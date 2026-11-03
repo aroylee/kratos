@@ -212,9 +212,12 @@ def validate_sql(
 
     if allowed_tables is not None:
         normalized_allowed = {t.lower() for t in allowed_tables}
+        # Also map without underscores or spaces for robust dialect mapping
+        simplified_allowed = {t.lower().replace("_", "").replace(" ", ""): t for t in allowed_tables}
         for t in tables:
-            bare = t.split(".")[-1].lower()
-            if bare not in normalized_allowed:
+            bare = t.split(".")[-1].lower().replace('"', '').replace("'", "")
+            simplified_bare = bare.replace("_", "").replace(" ", "")
+            if bare not in normalized_allowed and simplified_bare not in simplified_allowed:
                 return _reject(RejectReason.TABLE_NOT_ALLOWED, f"Table '{t}' is not present in target engine schema.")
 
     # Complexity checks

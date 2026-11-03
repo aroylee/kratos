@@ -1,4 +1,4 @@
-"""Kratos Two-Agent System: Interpreter & Investigator."""
+"""Kratos Two-Agent System: Interpreter & Investigator with Auto-Reflection."""
 
 import os
 from kratos.contracts.schemas import (
@@ -10,10 +10,12 @@ from kratos.contracts.schemas import (
     ExecutiveStorytelling,
     FinalAnswer,
 )
-from kratos.security.sql_guard import validate_sql
+from kratos.security.sql_guard import validate_sql, RejectReason
 from kratos.engines.registry import EngineRegistry, DatabaseEngine
 from kratos.semantics.bi_engine import compile_echarts
 from kratos.semantics.unit_utils import infer_column_unit, format_metric_value
+from kratos.inference.schema_pruner import SchemaPruner
+from kratos.inference.client import LLMClient
 
 
 class InterpreterAgent:
@@ -56,10 +58,13 @@ class InterpreterAgent:
 
 
 class InvestigatorAgent:
-    """Agent B: Investigates database schemas, executes safe queries, and collects facts."""
+    """Agent B: Investigates database schemas, executes safe queries, and collects facts with AST auto-reflection."""
 
     def __init__(self, registry: EngineRegistry):
         self.registry = registry
+        self.pruner = SchemaPruner()
+        self.llm = LLMClient()
+        self.max_reflections = 3
 
     def execute_task(self, task: DataTask) -> DataEvidence:
         engine = self.registry.engines.get(task.engine_id)
@@ -71,26 +76,55 @@ class InvestigatorAgent:
                 warnings=[f"Motor '{task.engine_id}' no disponible"],
             )
 
-        schema = engine.introspect()
-        allowed_tables = set(schema.keys())
+        full_schema = engine.introspect()
+        allowed_tables = set(full_schema.keys())
 
-        # Generate SQL tailored to engine and goal
-        sql = self._generate_sql(task, engine, schema)
+        # Step 1: Schema Pruning & Business Rule Injection
+        pruned_schema, rules = self.pruner.prune(task.goal, task.engine_id, full_schema)
 
-        # Layer 3 Security Check: AST validation with sqlglot
-        guard_res = validate_sql(sql, allowed_tables=allowed_tables, dialect="sqlite")
-        if not guard_res.allowed:
+        # Step 2: Investigation & Auto-Reflection Loop
+        executed_query = None
+        warnings = []
+        last_rejection_detail = None
+
+        for attempt in range(1, self.max_reflections + 1):
+            sql = None
+            if attempt == 1:
+                sql = self.llm.generate_sql(task.goal, task.engine_id, pruned_schema, rules)
+
+            if not sql:
+                sql = self._generate_fallback_sql(task, engine, full_schema, last_rejection_detail)
+
+            # Layer 3 Security Check: AST validation with sqlglot
+            guard_res = validate_sql(sql, allowed_tables=allowed_tables, dialect="sqlite")
+
+            if guard_res.allowed:
+                # Layer 1, 2, 4 Execution with runtime fetch bounding
+                cols, rows, duration_ms, truncated = engine.execute_readonly(guard_res.sanitized_sql)
+                executed_query = ExecutedQuery(
+                    sql=guard_res.sanitized_sql,
+                    engine_id=task.engine_id,
+                    row_count=len(rows),
+                    columns=cols,
+                    rows=rows,
+                    execution_ms=round(duration_ms, 2),
+                    truncated=truncated,
+                )
+                break
+            else:
+                last_rejection_detail = f"{guard_res.reason}: {guard_res.detail}"
+                warnings.append(f"Intento {attempt} rechazado por Security Guard ({last_rejection_detail})")
+
+        if not executed_query:
             return DataEvidence(
                 engine_id=task.engine_id,
                 observations=[],
                 confidence=0.0,
-                warnings=[f"Security Guard bloqueó la consulta: {guard_res.reason} ({guard_res.detail})"],
+                warnings=warnings or ["No fue posible validar una consulta segura."],
             )
 
-        # Layer 1, 2, 4 Execution
-        cols, rows, duration_ms, truncated = engine.execute_readonly(guard_res.sanitized_sql)
-
         # Synthesize factual observations
+        rows = executed_query.rows
         observations = []
         if rows:
             first_row = rows[0]
@@ -105,42 +139,39 @@ class InvestigatorAgent:
         return DataEvidence(
             engine_id=task.engine_id,
             observations=observations,
-            queries=[
-                ExecutedQuery(
-                    sql=guard_res.sanitized_sql,
-                    engine_id=task.engine_id,
-                    row_count=len(rows),
-                    columns=cols,
-                    rows=rows,
-                    execution_ms=round(duration_ms, 2),
-                    truncated=truncated,
-                )
-            ],
-            tables_used=guard_res.tables,
+            queries=[executed_query],
+            tables_used=guard_res.tables if guard_res.allowed else [],
             confidence=0.95 if rows else 0.5,
+            warnings=warnings,
         )
 
-    def _generate_sql(self, task: DataTask, engine: DatabaseEngine, schema: dict) -> str:
+    def _generate_fallback_sql(
+        self,
+        task: DataTask,
+        engine: DatabaseEngine,
+        schema: dict,
+        rejection_detail: str | None = None
+    ) -> str:
         lowered = task.goal.lower()
 
         # Northwind
         if engine.engine_id == "northwind":
             if "empleado" in lowered or "ventas por empleado" in lowered:
                 return (
-                    'SELECT e.LastName || ", " || e.FirstName AS Empleado, '
-                    'ROUND(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)), 2) AS Ventas_USD '
-                    'FROM Orders o '
-                    'JOIN Employees e ON o.EmployeeID = e.EmployeeID '
-                    'JOIN "Order Details" od ON o.OrderID = od.OrderID '
+                    'SELECT e.lastName || ", " || e.firstName AS Empleado, '
+                    'ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD '
+                    'FROM orders o '
+                    'JOIN employees e ON o.employeeID = e.employeeID '
+                    'JOIN order_details od ON o.orderID = od.orderID '
                     'GROUP BY Empleado ORDER BY Ventas_USD DESC LIMIT 10;'
                 )
             if "cliente" in lowered or "clientes" in lowered:
-                return "SELECT Country AS Pais, COUNT(CustomerID) AS Clientes FROM Customers GROUP BY Country ORDER BY Clientes DESC LIMIT 10;"
+                return "SELECT country AS Pais, COUNT(customerID) AS Clientes FROM customers GROUP BY country ORDER BY Clientes DESC LIMIT 10;"
             return (
-                'SELECT c.CategoryName AS Categoria, ROUND(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)), 2) AS Ventas_USD '
-                'FROM Categories c '
-                'JOIN Products p ON c.CategoryID = p.CategoryID '
-                'JOIN "Order Details" od ON p.ProductID = od.ProductID '
+                'SELECT c.categoryName AS Categoria, ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD '
+                'FROM categories c '
+                'JOIN products p ON c.categoryID = p.categoryID '
+                'JOIN order_details od ON p.productID = od.productID '
                 'GROUP BY Categoria ORDER BY Ventas_USD DESC LIMIT 10;'
             )
 
@@ -189,6 +220,6 @@ class InvestigatorAgent:
                 "GROUP BY Pais ORDER BY Clientes DESC LIMIT 10;"
             )
 
-        # AdventureWorks
+        # AdventureWorks / Generic fallback
         first_table = list(schema.keys())[0] if schema else "sqlite_master"
         return f"SELECT * FROM {first_table} LIMIT 10;"
