@@ -1,0 +1,147 @@
+{
+  "agent": "Kratos Harness² Evolution Agent",
+  "version": "1.0.0",
+  "framework": "Google Research Harness² Substrate",
+  "timestamp": "2026-11-03T22:58:51.353266+00:00",
+  "harness2_installed": true,
+  "harness_components_audit": {
+    "c1_system_prompt": {
+      "name": "System Prompt & Invariants",
+      "path": "AGENTS.md",
+      "role": "Directivas base, contratos y reglas operativas de Kratos.",
+      "status": "HEALTHY_PRESENT",
+      "size_bytes": 3850
+    },
+    "c2_guardrails": {
+      "name": "4-Layer AST Security Guard",
+      "path": "kratos/security/sql_guard.py",
+      "role": "Barrera determinista AST con sqlglot (bloqueo de DROP, DELETE, ALTER, CTE exploits).",
+      "status": "HEALTHY_PRESENT",
+      "size_bytes": 8452
+    },
+    "c3_memory_pruning": {
+      "name": "Schema Pruning & Business Rules",
+      "path": "kratos/inference/schema_pruner.py",
+      "role": "Poda semántica del 75% del contexto e inyección de fórmulas contables.",
+      "status": "HEALTHY_PRESENT",
+      "size_bytes": 4130
+    },
+    "c4_contracts": {
+      "name": "Typed Contracts Protocol",
+      "path": "kratos/contracts/schemas.py",
+      "role": "Contratos Pydantic inmutables: DataTask -> DataEvidence -> FinalAnswer.",
+      "status": "HEALTHY_PRESENT",
+      "size_bytes": 3178
+    },
+    "c5_two_agents": {
+      "name": "Interpreter & Investigator with Auto-Reflection",
+      "path": "kratos/agents/orchestrator.py",
+      "role": "Separación de roles con bucle de auto-corrección ante rechazos del guard.",
+      "status": "HEALTHY_PRESENT",
+      "size_bytes": 9618
+    },
+    "c6_units_bi": {
+      "name": "Semantic Unit & BI Intelligence",
+      "path": "kratos/semantics/unit_utils.py",
+      "role": "Diferenciación estricta de unidades ($ USD, %, días, pedidos, unidades) y ECharts.",
+      "status": "HEALTHY_PRESENT",
+      "size_bytes": 2569
+    },
+    "c7_engines": {
+      "name": "Multi-Engine Auto-Discovery",
+      "path": "kratos/engines/registry.py",
+      "role": "Descubrimiento en caliente de SQLite / DuckDB en modo de solo lectura.",
+      "status": "HEALTHY_PRESENT",
+      "size_bytes": 2915
+    },
+    "c8_interfaces": {
+      "name": "CLI & Web Endpoints",
+      "path": "kratos/cli.py",
+      "role": "Puntos de entrega: kratos ask, kratos serve y API REST.",
+      "status": "HEALTHY_PRESENT",
+      "size_bytes": 4639
+    }
+  },
+  "benchmark_evaluation": {
+    "total_tasks": 6,
+    "passed_tasks": 6,
+    "pass_rate_pct": 100.0,
+    "average_latency_ms": 78.37,
+    "tasks": [
+      {
+        "task_id": "task_nw_sales",
+        "engine": "northwind",
+        "query": "Ventas por empleado",
+        "passed": true,
+        "confidence": 0.95,
+        "latency_ms": 381.83,
+        "rows_returned": 9,
+        "sql": "SELECT e.lastName || \", \" || e.firstName AS Empleado, ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD FROM orders AS o JOIN employees AS e ON o.employeeID = e.employeeID JOIN order_details AS od ON o.orderID = od.orderID GROUP BY Empleado ORDER BY Ventas_USD DESC LIMIT 10",
+        "observations_count": 3,
+        "warnings": []
+      },
+      {
+        "task_id": "task_nw_category",
+        "engine": "northwind",
+        "query": "Ventas por categoría",
+        "passed": true,
+        "confidence": 0.95,
+        "latency_ms": 16.32,
+        "rows_returned": 8,
+        "sql": "SELECT c.categoryName AS Categoria, ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD FROM categories AS c JOIN products AS p ON c.categoryID = p.categoryID JOIN order_details AS od ON p.productID = od.productID GROUP BY Categoria ORDER BY Ventas_USD DESC LIMIT 10",
+        "observations_count": 3,
+        "warnings": []
+      },
+      {
+        "task_id": "task_chinook_artists",
+        "engine": "chinook",
+        "query": "Canciones por artista",
+        "passed": true,
+        "confidence": 0.95,
+        "latency_ms": 19.53,
+        "rows_returned": 10,
+        "sql": "SELECT ar.Name AS Artista, COUNT(t.TrackId) AS Canciones FROM Artist AS ar JOIN Album AS al ON ar.ArtistId = al.ArtistId JOIN Track AS t ON al.AlbumId = t.AlbumId GROUP BY Artista ORDER BY Canciones DESC LIMIT 10",
+        "observations_count": 3,
+        "warnings": []
+      },
+      {
+        "task_id": "task_chinook_billing",
+        "engine": "chinook",
+        "query": "Facturación por país",
+        "passed": true,
+        "confidence": 0.95,
+        "latency_ms": 16.62,
+        "rows_returned": 10,
+        "sql": "SELECT c.Country AS Pais, ROUND(SUM(i.Total), 2) AS Facturacion_USD FROM Customer AS c JOIN Invoice AS i ON c.CustomerId = i.CustomerId GROUP BY Pais ORDER BY Facturacion_USD DESC LIMIT 10",
+        "observations_count": 3,
+        "warnings": []
+      },
+      {
+        "task_id": "task_sakila_actors",
+        "engine": "sakila",
+        "query": "Top actores con más películas",
+        "passed": true,
+        "confidence": 0.95,
+        "latency_ms": 21.15,
+        "rows_returned": 10,
+        "sql": "SELECT a.first_name || ' ' || a.last_name AS Actor, COUNT(fa.film_id) AS Peliculas FROM actor AS a JOIN film_actor AS fa ON a.actor_id = fa.actor_id GROUP BY Actor ORDER BY Peliculas DESC LIMIT 10",
+        "observations_count": 3,
+        "warnings": []
+      },
+      {
+        "task_id": "task_tpch_nations",
+        "engine": "tpch",
+        "query": "Clientes por país",
+        "passed": true,
+        "confidence": 0.95,
+        "latency_ms": 14.78,
+        "rows_returned": 10,
+        "sql": "SELECT n.n_name AS Pais, COUNT(c.c_custkey) AS Clientes FROM customer AS c JOIN nation AS n ON c.c_nationkey = n.n_nationkey GROUP BY Pais ORDER BY Clientes DESC LIMIT 10",
+        "observations_count": 3,
+        "warnings": []
+      }
+    ]
+  },
+  "score": 100.0,
+  "status": "OPTIMAL_EVOLVED"
+}

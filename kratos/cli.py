@@ -27,6 +27,10 @@ def main():
     ask_parser.add_argument("query", help="Natural language question to ask")
     ask_parser.add_argument("--engine", default="northwind", help="Database engine ID (default: northwind)")
 
+    # Harness subcommand
+    harness_parser = subparsers.add_parser("harness", help="Execute Harness² recursive evaluation benchmark")
+    harness_parser.add_argument("--audit-only", action="store_true", help="Only audit the 8 harness components")
+
     args = parser.parse_args()
 
     if args.command == "serve":
@@ -69,6 +73,37 @@ def main():
             print(f"\n🔍 SQL EJECUTADO (AST VALIDADO):\n{q.sql}")
             print(f"⚡ Latencia: {q.execution_ms} ms | Filas: {q.row_count}\n")
         print("=" * 60 + "\n")
+
+    elif args.command == "harness":
+        from kratos.harness.agent import KratosHarness2Agent
+
+        agent = KratosHarness2Agent()
+        print("\n" + "=" * 65)
+        print("🚀 KRATOS HARNESS² RECURSIVE BENCHMARK & EVOLUTION SUBSTRATE")
+        print("=" * 65)
+
+        if args.audit_only:
+            audit = agent.audit_components()
+            print("\n📋 AUDITORÍA DE COMPONENTES DE ARNÉS:")
+            for cid, meta in audit.items():
+                icon = "✅" if meta["status"] == "HEALTHY_PRESENT" else "❌"
+                print(f"  {icon} {meta['name']} [{meta['path']}]: {meta['status']} ({meta['size_bytes']} bytes)")
+            print("=" * 65 + "\n")
+            return
+
+        report = agent.generate_report()
+        eval_data = report["benchmark_evaluation"]
+        print(f"\n🎯 PUNTUACIÓN GENERAL: {report['score']}% [{report['status']}]")
+        print(f"⏱️  Latencia Promedio: {eval_data['average_latency_ms']} ms")
+        print(f"📊 Tareas Exitosas: {eval_data['passed_tasks']} / {eval_data['total_tasks']}\n")
+
+        print("📋 DETALLE DE TAREAS:")
+        for t in eval_data["tasks"]:
+            icon = "✅" if t["passed"] else "❌"
+            print(f"  {icon} [{t['engine'].upper()}] {t['query']} ({t['latency_ms']} ms, {t['rows_returned']} filas)")
+
+        print(f"\n💾 Reporte completo guardado en: runs/harness2/report.json")
+        print("=" * 65 + "\n")
 
 
 if __name__ == "__main__":
