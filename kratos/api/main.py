@@ -778,13 +778,6 @@ def index_page():
             link.click();
             document.body.removeChild(link);
         }
-            } catch (err) {
-                showAlert("Error de conexión: " + err.message);
-            } finally {
-                runBtn.disabled = false;
-                runBtn.innerHTML = '<span>⚡</span> Ejecutar Análisis';
-            }
-        }
 
         // Enter key to submit
         document.getElementById('query-input').addEventListener('keydown', (e) => {

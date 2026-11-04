@@ -76,9 +76,12 @@ class InterpreterAgent:
 
         # 3. Multi-Series Breakdown Detection
         has_category = any(w in lowered for w in ["categoria", "categoría", "categorias", "categorías", "lineas", "líneas"])
+        has_product = any(w in lowered for w in ["producto", "productos", "articulo", "artículos", "articulos", "item", "items", "mercancía"])
         has_employee = any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"])
+        has_customer = any(w in lowered for w in ["cliente", "clientes", "comprador", "compradores"])
         has_country = any(w in lowered for w in ["pais", "país", "paises", "países"])
         has_genre = any(w in lowered for w in ["genero", "género", "generos", "géneros"])
+        has_artist = any(w in lowered for w in ["artista", "artistas", "banda", "bandas"])
 
         series_dimension = None
 
@@ -102,14 +105,20 @@ class InterpreterAgent:
             ranking_criterion = "menor desempeño"
 
         # 5. Analytical Pattern Detection
-        if is_time_series and (has_category or has_employee or has_country or has_genre):
+        if is_time_series and (has_category or has_product or has_employee or has_customer or has_country or has_genre or has_artist):
             analytical_pattern = AnalyticalPattern.MULTI_SERIES_TIME_SERIES
             if has_category:
                 series_dimension = "Categoria"
+            elif has_product:
+                series_dimension = "Producto"
             elif has_employee:
                 series_dimension = "Empleado"
+            elif has_customer:
+                series_dimension = "Cliente"
             elif has_genre:
                 series_dimension = "Genero"
+            elif has_artist:
+                series_dimension = "Artista"
             elif has_country:
                 series_dimension = "Pais"
         elif is_time_series:
@@ -225,7 +234,8 @@ class InterpreterAgent:
                     distinct_series = list(dict.fromkeys(r[s_name] for r in rows if s_name in r))
 
                 if task.top_n and distinct_series:
-                    cohort_str = f" para las Top {task.top_n} {s_name} ({', '.join(distinct_series[:task.top_n])})"
+                    cohort_prefix = "Bottom" if task.ranking_criterion == "menor desempeño" else "Top"
+                    cohort_str = f" para las {cohort_prefix} {task.top_n} {s_name} ({', '.join(distinct_series[:task.top_n])})"
                 else:
                     cohort_str = ""
 
@@ -273,7 +283,8 @@ class InterpreterAgent:
             dim_lbl = dist_diag.dimension_col
             unit = dist_diag.unit
 
-            n_prefix = f"Top {task.top_n} {dim_lbl} - " if task.top_n else f"Distribución de {dim_lbl} - "
+            cohort_prefix = "Bottom" if task.ranking_criterion == "menor desempeño" else "Top"
+            n_prefix = f"{cohort_prefix} {task.top_n} {dim_lbl} - " if task.top_n else f"Distribución de {dim_lbl} - "
             # Key Takeaway with Gap Context
             if dist_diag.dominance_gap_pct is not None and dist_diag.dominance_gap_pct > 25.0:
                 key_takeaway = (
