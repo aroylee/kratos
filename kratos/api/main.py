@@ -88,6 +88,8 @@ def run_query(req: QueryRequest):
         goal=interpreted.goal,
         analytical_pattern=interpreted.analytical_pattern,
         time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        series_dimension=interpreted.series_dimension,
         metric_target=interpreted.metric_target,
         dimensions=interpreted.dimensions,
         metrics=interpreted.metrics,

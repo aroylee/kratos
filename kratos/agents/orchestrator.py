@@ -36,37 +36,58 @@ class InterpreterAgent:
         elif any(w in lowered for w in ["tendencia", "tiempo", "evolucion", "evolución", "comparar", "analiza", "analizar"]):
             intent = Intent.ANALYZE_DATA
 
-        # 2. Analytical Pattern Detection
+        # 2. Time-series & Temporal Grain Detection
         is_time_series = any(w in lowered for w in [
             "tendencia", "tiempo", "semanal", "semana", "mensual", "mes",
-            "anual", "año", "ano", "diario", "dia", "día", "evolucion", "evolución",
+            "anual", "año", "ano", "diario", "dia", "día", "diaria", "evolucion", "evolución",
             "historico", "histórico", "a través del tiempo", "traves del tiempo"
         ])
-        is_ranking = any(w in lowered for w in ["top", "mejores", "primeros", "ranking", "lideres", "líderes", "mas", "más"])
-        is_geo = any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región"])
+
+        time_granularity = TimeGranularity.NONE
+        time_dimension = None
 
         if is_time_series:
+            if any(w in lowered for w in ["diario", "diaria", "dia", "día", "dias", "días", "daily"]):
+                time_granularity = TimeGranularity.DAILY
+                time_dimension = "Fecha"
+            elif any(w in lowered for w in ["semanal", "semana", "semanas", "week", "weekly"]):
+                time_granularity = TimeGranularity.WEEKLY
+                time_dimension = "Semana"
+            elif any(w in lowered for w in ["mensual", "mes", "meses", "month", "monthly"]):
+                time_granularity = TimeGranularity.MONTHLY
+                time_dimension = "Mes"
+            elif any(w in lowered for w in ["anual", "año", "ano", "años", "anos", "year", "yearly"]):
+                time_granularity = TimeGranularity.YEARLY
+                time_dimension = "Ano"
+            else:
+                time_granularity = TimeGranularity.DAILY if "diar" in lowered else TimeGranularity.MONTHLY
+                time_dimension = "Fecha" if time_granularity == TimeGranularity.DAILY else "Mes"
+
+        # 3. Multi-Series Breakdown Detection
+        has_category = any(w in lowered for w in ["categoria", "categoría", "categorias", "categorías", "lineas", "líneas"])
+        has_employee = any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"])
+        has_country = any(w in lowered for w in ["pais", "país", "paises", "países"])
+        has_genre = any(w in lowered for w in ["genero", "género", "generos", "géneros"])
+
+        series_dimension = None
+        if is_time_series and (has_category or has_employee or has_country or has_genre):
+            analytical_pattern = AnalyticalPattern.MULTI_SERIES_TIME_SERIES
+            if has_category:
+                series_dimension = "Categoria"
+            elif has_employee:
+                series_dimension = "Empleado"
+            elif has_genre:
+                series_dimension = "Genero"
+            elif has_country:
+                series_dimension = "Pais"
+        elif is_time_series:
             analytical_pattern = AnalyticalPattern.TIME_SERIES
-        elif is_ranking:
+        elif any(w in lowered for w in ["top", "mejores", "primeros", "ranking", "lideres", "líderes", "mas", "más"]):
             analytical_pattern = AnalyticalPattern.RANKING_TOP_N
-        elif is_geo:
+        elif any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región"]):
             analytical_pattern = AnalyticalPattern.GEO_DISTRIBUTION
         else:
             analytical_pattern = AnalyticalPattern.CATEGORICAL_BREAKDOWN
-
-        # 3. Time Granularity Detection
-        time_granularity = TimeGranularity.NONE
-        if is_time_series:
-            if any(w in lowered for w in ["semanal", "semana", "semanas", "week", "weekly"]):
-                time_granularity = TimeGranularity.WEEKLY
-            elif any(w in lowered for w in ["mensual", "mes", "meses", "month", "monthly"]):
-                time_granularity = TimeGranularity.MONTHLY
-            elif any(w in lowered for w in ["diario", "dia", "día", "dias", "días", "daily"]):
-                time_granularity = TimeGranularity.DAILY
-            elif any(w in lowered for w in ["anual", "año", "ano", "años", "anos", "year", "yearly"]):
-                time_granularity = TimeGranularity.YEARLY
-            else:
-                time_granularity = TimeGranularity.MONTHLY
 
         # 4. Metric Target Detection
         metric_target = MetricTarget.REVENUE
@@ -83,15 +104,14 @@ class InterpreterAgent:
         dimensions: list[str] = []
         metrics: list[str] = []
 
-        if analytical_pattern == AnalyticalPattern.TIME_SERIES:
-            if time_granularity == TimeGranularity.WEEKLY:
-                dimensions.append("Semana")
-            elif time_granularity == TimeGranularity.MONTHLY:
-                dimensions.append("Mes")
-            elif time_granularity == TimeGranularity.YEARLY:
-                dimensions.append("Ano")
-            else:
-                dimensions.append("Fecha")
+        if analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:
+            if time_dimension:
+                dimensions.append(time_dimension)
+            if series_dimension:
+                dimensions.append(series_dimension)
+        elif analytical_pattern == AnalyticalPattern.TIME_SERIES:
+            if time_dimension:
+                dimensions.append(time_dimension)
         elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION:
             dimensions.append("Pais")
         elif "empleado" in lowered:
@@ -117,6 +137,8 @@ class InterpreterAgent:
             goal=query,
             analytical_pattern=analytical_pattern,
             time_granularity=time_granularity,
+            time_dimension=time_dimension,
+            series_dimension=series_dimension,
             metric_target=metric_target,
             dimensions=dimensions,
             metrics=metrics,
@@ -135,7 +157,15 @@ class InterpreterAgent:
 
         top_obs = evidence.observations[0]
 
-        if task.analytical_pattern == AnalyticalPattern.TIME_SERIES:
+        if task.analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:
+            s_name = task.series_dimension or "segmento"
+            g_name = task.time_granularity.value.lower()
+            key_takeaway = f"Tendencia multi-serie identificada ({g_name} por {s_name}): {top_obs}."
+            recommendations = [
+                f"Comparar la evolución temporal relativa entre las diferentes líneas de {s_name}.",
+                "Monitorear los segmentos con mayor dinamismo para anticipar patrones de demanda o abastecimiento.",
+            ]
+        elif task.analytical_pattern == AnalyticalPattern.TIME_SERIES:
             key_takeaway = f"Tendencia temporal identificada ({task.time_granularity.value.lower()}): {top_obs}."
             recommendations = [
                 "Evaluar la estacionalidad y puntos de inflexión a lo largo del tiempo.",
@@ -258,10 +288,73 @@ class InvestigatorAgent:
         pattern = task.analytical_pattern
         grain = task.time_granularity
 
-        # --- TIME SERIES PATTERN ---
+        # --- MULTI-SERIES TIME SERIES PATTERN ---
+        if pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:
+            time_expr = "DATE(o.orderDate)" if grain == TimeGranularity.DAILY else (
+                "strftime('%Y-W%W', o.orderDate)" if grain == TimeGranularity.WEEKLY else "strftime('%Y-%m', o.orderDate)"
+            )
+            time_alias = task.time_dimension or ("Fecha" if grain == TimeGranularity.DAILY else ("Semana" if grain == TimeGranularity.WEEKLY else "Mes"))
+            series_dim = task.series_dimension or "Categoria"
+
+            if eid == "northwind":
+                if series_dim == "Empleado":
+                    return (
+                        f"SELECT {time_expr} AS {time_alias}, "
+                        f"e.lastName || ', ' || e.firstName AS Empleado, "
+                        f"ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD "
+                        f"FROM orders o "
+                        f"JOIN order_details od ON o.orderID = od.orderID "
+                        f"JOIN employees e ON o.employeeID = e.employeeID "
+                        f"GROUP BY {time_alias}, Empleado "
+                        f"ORDER BY {time_alias} ASC, Ventas_USD DESC "
+                        f"LIMIT 100;"
+                    )
+                else:
+                    return (
+                        f"SELECT {time_expr} AS {time_alias}, "
+                        f"c.categoryName AS Categoria, "
+                        f"ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD "
+                        f"FROM orders o "
+                        f"JOIN order_details od ON o.orderID = od.orderID "
+                        f"JOIN products p ON od.productID = p.productID "
+                        f"JOIN categories c ON p.categoryID = c.categoryID "
+                        f"GROUP BY {time_alias}, Categoria "
+                        f"ORDER BY {time_alias} ASC, Ventas_USD DESC "
+                        f"LIMIT 100;"
+                    )
+
+            elif eid == "chinook":
+                time_expr_ch = "DATE(i.InvoiceDate)" if grain == TimeGranularity.DAILY else (
+                    "strftime('%Y-W%W', i.InvoiceDate)" if grain == TimeGranularity.WEEKLY else "strftime('%Y-%m', i.InvoiceDate)"
+                )
+                time_alias_ch = task.time_dimension or ("Fecha" if grain == TimeGranularity.DAILY else ("Semana" if grain == TimeGranularity.WEEKLY else "Mes"))
+                return (
+                    f"SELECT {time_expr_ch} AS {time_alias_ch}, "
+                    f"g.Name AS Genero, "
+                    f"ROUND(SUM(il.UnitPrice * il.Quantity), 2) AS Facturacion_USD "
+                    f"FROM Invoice i "
+                    f"JOIN InvoiceLine il ON i.InvoiceId = il.InvoiceId "
+                    f"JOIN Track t ON il.TrackId = t.TrackId "
+                    f"JOIN Genre g ON t.GenreId = g.GenreId "
+                    f"GROUP BY {time_alias_ch}, Genero "
+                    f"ORDER BY {time_alias_ch} ASC, Facturacion_USD DESC "
+                    f"LIMIT 100;"
+                )
+
+        # --- TIME SERIES (MONO-SERIE) PATTERN ---
         if pattern == AnalyticalPattern.TIME_SERIES:
             if eid == "northwind":
-                if grain == TimeGranularity.WEEKLY:
+                if grain == TimeGranularity.DAILY:
+                    return (
+                        "SELECT DATE(o.orderDate) AS Fecha, "
+                        "ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD "
+                        "FROM orders o "
+                        "JOIN order_details od ON o.orderID = od.orderID "
+                        "GROUP BY Fecha "
+                        "ORDER BY Fecha ASC "
+                        "LIMIT 30;"
+                    )
+                elif grain == TimeGranularity.WEEKLY:
                     return (
                         "SELECT strftime('%Y-W%W', o.orderDate) AS Semana, "
                         "ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD "

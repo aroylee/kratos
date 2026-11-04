@@ -25,7 +25,8 @@ class Intent(StrEnum):
 
 class AnalyticalPattern(StrEnum):
     """Core analytical pattern requested in natural language."""
-    TIME_SERIES = "TIME_SERIES"                     # Tendencias temporales (semanal, mensual, anual)
+    TIME_SERIES = "TIME_SERIES"                     # Tendencias temporales mono-serie
+    MULTI_SERIES_TIME_SERIES = "MULTI_SERIES_TIME_SERIES" # Tendencias temporales multi-serie (desglose por categoría/grupo)
     CATEGORICAL_BREAKDOWN = "CATEGORICAL_BREAKDOWN" # Distribución por categorías o grupos
     RANKING_TOP_N = "RANKING_TOP_N"                 # Rankings líderes (Top 5, Top 10)
     GEO_DISTRIBUTION = "GEO_DISTRIBUTION"           # Distribución por país, región o ciudad
@@ -64,7 +65,15 @@ class InterpretedRequest(BaseModel):
     )
     time_granularity: TimeGranularity = Field(
         default=TimeGranularity.NONE,
-        description="Temporal granularity (weekly, monthly, etc.) if applicable"
+        description="Temporal granularity (weekly, monthly, daily) if applicable"
+    )
+    time_dimension: str | None = Field(
+        default=None,
+        description="Primary chronological dimension for X-Axis (e.g. 'Fecha', 'Semana')"
+    )
+    series_dimension: str | None = Field(
+        default=None,
+        description="Breakdown/Pivot dimension generating multiple lines (e.g. 'Categoria', 'Empleado')"
     )
     metric_target: MetricTarget = Field(
         default=MetricTarget.REVENUE,
@@ -72,7 +81,7 @@ class InterpretedRequest(BaseModel):
     )
     dimensions: list[str] = Field(
         default_factory=list,
-        description="Extracted dimensions e.g. ['semana', 'categoria', 'pais']"
+        description="Extracted dimensions e.g. ['Fecha', 'Categoria']"
     )
     metrics: list[str] = Field(
         default_factory=list,
@@ -94,11 +103,19 @@ class DataTask(BaseModel):
     goal: str = Field(description="Precise analytical objective")
     analytical_pattern: AnalyticalPattern = Field(
         default=AnalyticalPattern.CATEGORICAL_BREAKDOWN,
-        description="Analytical archetype (TIME_SERIES, RANKING_TOP_N, etc.)"
+        description="Analytical archetype (TIME_SERIES, MULTI_SERIES_TIME_SERIES, etc.)"
     )
     time_granularity: TimeGranularity = Field(
         default=TimeGranularity.NONE,
         description="Temporal frequency extracted from the user inquiry"
+    )
+    time_dimension: str | None = Field(
+        default=None,
+        description="Primary chronological dimension for X-Axis"
+    )
+    series_dimension: str | None = Field(
+        default=None,
+        description="Breakdown/Pivot dimension generating multiple series lines"
     )
     metric_target: MetricTarget = Field(
         default=MetricTarget.REVENUE,

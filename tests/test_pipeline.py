@@ -135,3 +135,54 @@ def test_end_to_end_weekly_sales_trend(registry):
     assert echarts["series"][0]["type"] == "line"
 
 
+def test_interpreter_multi_series_daily_sales():
+    interpreter = InterpreterAgent()
+    query = "dame una tendencia de ventas diaria a través del tiempo por categoría"
+    interpreted = interpreter.interpret(query, "northwind")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES
+    assert interpreted.time_granularity == TimeGranularity.DAILY
+    assert interpreted.time_dimension == "Fecha"
+    assert interpreted.series_dimension == "Categoria"
+    assert "Fecha" in interpreted.dimensions
+    assert "Categoria" in interpreted.dimensions
+
+
+def test_end_to_end_multi_series_daily_sales(registry):
+    interpreter = InterpreterAgent()
+    investigator = InvestigatorAgent(registry)
+
+    query = "dame una tendencia de ventas diaria a través del tiempo por categoría"
+    interpreted = interpreter.interpret(query, "northwind")
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="northwind",
+        goal=interpreted.goal,
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        series_dimension=interpreted.series_dimension,
+        metric_target=interpreted.metric_target,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+    evidence = investigator.execute_task(task)
+
+    assert evidence.confidence > 0.8
+    assert len(evidence.queries) == 1
+    q = evidence.queries[0]
+    assert "Fecha" in q.columns
+    assert "Categoria" in q.columns
+    assert "Ventas_USD" in q.columns
+    assert len(q.rows) > 0
+
+    # Multi-series ECharts validation: multiple lines for categories
+    echarts = compile_echarts(q.rows, title=task.goal)
+    assert echarts is not None
+    assert len(echarts["series"]) > 1
+    assert all(s["type"] == "line" for s in echarts["series"])
+    assert "legend" in echarts
+    assert len(echarts["legend"]["data"]) > 1
+
+
+
