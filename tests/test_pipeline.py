@@ -72,3 +72,21 @@ def test_end_to_end_sakila_execution(registry):
     assert evidence.confidence > 0.8
     assert len(evidence.queries) == 1
     assert "SUSAN DAVIS" in str(evidence.queries[0].rows)
+
+
+def test_documentation_page_endpoint():
+    from fastapi.testclient import TestClient
+    from kratos.api.main import app
+
+    client = TestClient(app)
+    response = client.get("/documentation")
+    assert response.status_code == 200
+    assert "KRATOS // Arquitectura y Documentación" in response.text
+    assert "mermaid" in response.text
+    assert "Restaurante de Alta Cocina" in response.text
+
+    # Also test index page has documentation link
+    index_res = client.get("/")
+    assert index_res.status_code == 200
+    assert 'href="/documentation"' in index_res.text
+

@@ -31,6 +31,9 @@ def main():
     harness_parser = subparsers.add_parser("harness", help="Execute Harness² recursive evaluation benchmark")
     harness_parser.add_argument("--audit-only", action="store_true", help="Only audit the 8 harness components")
 
+    # Info subcommand
+    info_parser = subparsers.add_parser("info", help="Display discovered analytical database engines and tables")
+
     args = parser.parse_args()
 
     if args.command == "serve":
@@ -104,6 +107,26 @@ def main():
 
         print(f"\n💾 Reporte completo guardado en: runs/harness2/report.json")
         print("=" * 65 + "\n")
+
+    elif args.command == "info":
+        base_dir = Path(__file__).resolve().parent.parent
+        data_dir = base_dir / "data"
+        registry = EngineRegistry(data_dir)
+        registry.discover()
+
+        print("\n" + "=" * 65)
+        print("🛡️  KRATOS MULTI-ENGINE DATABASE INVENTORY")
+        print("=" * 65)
+        print(f"Directorio de datos: {data_dir}")
+        print(f"Motor activo por defecto: {registry.active_engine_id}\n")
+
+        for eid, eng in registry.engines.items():
+            tables = eng.get_tables()
+            active_marker = "🌟 [ACTIVO]" if eid == registry.active_engine_id else ""
+            print(f"📁 Motor: {eid.upper()} ({len(tables)} tablas) {active_marker}")
+            print(f"   Tablas: {', '.join(tables[:8])}{'...' if len(tables) > 8 else ''}")
+        print("=" * 65 + "\n")
+
 
 
 if __name__ == "__main__":

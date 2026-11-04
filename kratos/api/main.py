@@ -10,6 +10,7 @@ from kratos.engines.registry import EngineRegistry
 from kratos.agents.orchestrator import InterpreterAgent, InvestigatorAgent
 from kratos.contracts.schemas import DataTask, FinalAnswer
 from kratos.semantics.bi_engine import compile_echarts
+from kratos.web.docs_page import get_documentation_html
 
 app = FastAPI(title="Kratos Intelligence", version="0.1.0")
 
@@ -98,6 +99,11 @@ def run_query(req: QueryRequest):
     )
 
 
+@app.get("/documentation", response_class=HTMLResponse)
+def documentation_page():
+    return get_documentation_html()
+
+
 @app.get("/", response_class=HTMLResponse)
 def index_page():
     return """
@@ -114,12 +120,32 @@ def index_page():
         </style>
     </head>
     <body class="min-h-screen p-6 max-w-7xl mx-auto">
-        <header class="flex justify-between items-center pb-6 border-b border-slate-800">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-slate-800 gap-4">
             <div>
-                <h1 class="text-3xl font-black tracking-wider text-white">KRATOS</h1>
-                <p class="text-sm text-slate-400">Sovereign Data Intelligence &bull; Contracts Protocol &bull; 4-Layer AST Security</p>
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🛡️</span>
+                    <h1 class="text-3xl font-black tracking-wider text-white">KRATOS</h1>
+                </div>
+                <p class="text-sm text-slate-400 mt-1">Sovereign Data Intelligence &bull; Contracts Protocol &bull; 4-Layer AST Security</p>
             </div>
-            <div id="engine-selector-container" class="flex gap-2"></div>
+            
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                <nav class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <a href="/" class="px-3 py-1 text-xs rounded-lg bg-indigo-600 text-white font-medium flex items-center gap-1">
+                        <span>📊</span> Dashboard
+                    </a>
+                    <a href="/documentation" class="px-3 py-1 text-xs rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition flex items-center gap-1">
+                        <span>📖</span> Documentación
+                    </a>
+                    <a href="/docs" target="_blank" class="px-3 py-1 text-xs rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition flex items-center gap-1">
+                        <span>⚡</span> Swagger
+                    </a>
+                    <a href="https://github.com/aroylee/kratos" target="_blank" class="px-3 py-1 text-xs rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition flex items-center gap-1">
+                        <span>🐙</span> GitHub
+                    </a>
+                </nav>
+                <div id="engine-selector-container" class="flex gap-2"></div>
+            </div>
         </header>
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
