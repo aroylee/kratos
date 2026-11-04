@@ -1,0 +1,508 @@
+{
+  "database": "SQLite (11 tablas)",
+  "dialect": "sqlite",
+  "version": "1.0",
+  "description": "Base de datos Northwind (ventas y transacciones) 🛒 (SQLite)",
+  "tables": {
+    "categories": {
+      "description": "Tabla categories",
+      "columns": {
+        "categoryID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "categoryName": {
+          "type": "TEXT",
+          "description": "Campo categoryName",
+          "not_null": true
+        },
+        "description": {
+          "type": "TEXT",
+          "description": "Campo description"
+        },
+        "picture": {
+          "type": "TEXT",
+          "description": "Campo picture"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 8
+    },
+    "customers": {
+      "description": "Tabla customers",
+      "columns": {
+        "customerID": {
+          "type": "TEXT",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "companyName": {
+          "type": "TEXT",
+          "description": "Nombre de la compañía",
+          "not_null": true
+        },
+        "contactName": {
+          "type": "TEXT",
+          "description": "Nombre del contacto"
+        },
+        "contactTitle": {
+          "type": "TEXT",
+          "description": "Campo contactTitle"
+        },
+        "address": {
+          "type": "TEXT",
+          "description": "Campo address"
+        },
+        "city": {
+          "type": "TEXT",
+          "description": "Ciudad"
+        },
+        "region": {
+          "type": "TEXT",
+          "description": "Campo region"
+        },
+        "postalCode": {
+          "type": "TEXT",
+          "description": "Campo postalCode"
+        },
+        "country": {
+          "type": "TEXT",
+          "description": "País"
+        },
+        "phone": {
+          "type": "TEXT",
+          "description": "Teléfono"
+        },
+        "fax": {
+          "type": "TEXT",
+          "description": "Campo fax"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 91
+    },
+    "employee_territories": {
+      "description": "Tabla employee_territories",
+      "columns": {
+        "employeeID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "territoryID": {
+          "type": "TEXT",
+          "description": "Identificador",
+          "primary_key": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "territoryID",
+          "ref_table": "territories",
+          "ref_column": "territoryID"
+        },
+        {
+          "column": "employeeID",
+          "ref_table": "employees",
+          "ref_column": "employeeID"
+        }
+      ],
+      "row_count": 49
+    },
+    "employees": {
+      "description": "Tabla employees",
+      "columns": {
+        "employeeID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "lastName": {
+          "type": "TEXT",
+          "description": "Campo lastName",
+          "not_null": true
+        },
+        "firstName": {
+          "type": "TEXT",
+          "description": "Campo firstName",
+          "not_null": true
+        },
+        "title": {
+          "type": "TEXT",
+          "description": "Campo title"
+        },
+        "titleOfCourtesy": {
+          "type": "TEXT",
+          "description": "Campo titleOfCourtesy"
+        },
+        "birthDate": {
+          "type": "TEXT",
+          "description": "Fecha"
+        },
+        "hireDate": {
+          "type": "TEXT",
+          "description": "Fecha"
+        },
+        "address": {
+          "type": "TEXT",
+          "description": "Campo address"
+        },
+        "city": {
+          "type": "TEXT",
+          "description": "Ciudad"
+        },
+        "region": {
+          "type": "TEXT",
+          "description": "Campo region"
+        },
+        "postalCode": {
+          "type": "TEXT",
+          "description": "Campo postalCode"
+        },
+        "country": {
+          "type": "TEXT",
+          "description": "País"
+        },
+        "homePhone": {
+          "type": "TEXT",
+          "description": "Teléfono"
+        },
+        "extension": {
+          "type": "TEXT",
+          "description": "Campo extension"
+        },
+        "photo": {
+          "type": "TEXT",
+          "description": "Campo photo"
+        },
+        "notes": {
+          "type": "TEXT",
+          "description": "Campo notes"
+        },
+        "reportsTo": {
+          "type": "INTEGER",
+          "description": "Campo reportsTo"
+        },
+        "photoPath": {
+          "type": "TEXT",
+          "description": "Campo photoPath"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "reportsTo",
+          "ref_table": "employees",
+          "ref_column": "employeeID"
+        }
+      ],
+      "row_count": 9
+    },
+    "order_details": {
+      "description": "Tabla order_details",
+      "columns": {
+        "orderID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "productID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "unitPrice": {
+          "type": "REAL",
+          "description": "Precio unitario",
+          "not_null": true
+        },
+        "quantity": {
+          "type": "INTEGER",
+          "description": "Cantidad",
+          "not_null": true
+        },
+        "discount": {
+          "type": "REAL",
+          "description": "Campo discount",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "productID",
+          "ref_table": "products",
+          "ref_column": "productID"
+        },
+        {
+          "column": "orderID",
+          "ref_table": "orders",
+          "ref_column": "orderID"
+        }
+      ],
+      "row_count": 2155
+    },
+    "orders": {
+      "description": "Tabla orders",
+      "columns": {
+        "orderID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "customerID": {
+          "type": "TEXT",
+          "description": "Identificador"
+        },
+        "employeeID": {
+          "type": "INTEGER",
+          "description": "Identificador"
+        },
+        "orderDate": {
+          "type": "TEXT",
+          "description": "Fecha"
+        },
+        "requiredDate": {
+          "type": "TEXT",
+          "description": "Fecha"
+        },
+        "shippedDate": {
+          "type": "TEXT",
+          "description": "Fecha"
+        },
+        "shipVia": {
+          "type": "INTEGER",
+          "description": "Campo shipVia"
+        },
+        "freight": {
+          "type": "REAL",
+          "description": "Campo freight"
+        },
+        "shipName": {
+          "type": "TEXT",
+          "description": "Campo shipName"
+        },
+        "shipAddress": {
+          "type": "TEXT",
+          "description": "Campo shipAddress"
+        },
+        "shipCity": {
+          "type": "TEXT",
+          "description": "Ciudad"
+        },
+        "shipRegion": {
+          "type": "TEXT",
+          "description": "Campo shipRegion"
+        },
+        "shipPostalCode": {
+          "type": "TEXT",
+          "description": "Campo shipPostalCode"
+        },
+        "shipCountry": {
+          "type": "TEXT",
+          "description": "País"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "shipVia",
+          "ref_table": "shippers",
+          "ref_column": "shipperID"
+        },
+        {
+          "column": "employeeID",
+          "ref_table": "employees",
+          "ref_column": "employeeID"
+        },
+        {
+          "column": "customerID",
+          "ref_table": "customers",
+          "ref_column": "customerID"
+        }
+      ],
+      "row_count": 830
+    },
+    "products": {
+      "description": "Tabla products",
+      "columns": {
+        "productID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "productName": {
+          "type": "TEXT",
+          "description": "Campo productName",
+          "not_null": true
+        },
+        "supplierID": {
+          "type": "INTEGER",
+          "description": "Identificador"
+        },
+        "categoryID": {
+          "type": "INTEGER",
+          "description": "Identificador"
+        },
+        "quantityPerUnit": {
+          "type": "TEXT",
+          "description": "Cantidad"
+        },
+        "unitPrice": {
+          "type": "REAL",
+          "description": "Precio unitario"
+        },
+        "unitsInStock": {
+          "type": "INTEGER",
+          "description": "Campo unitsInStock"
+        },
+        "unitsOnOrder": {
+          "type": "INTEGER",
+          "description": "Campo unitsOnOrder"
+        },
+        "reorderLevel": {
+          "type": "INTEGER",
+          "description": "Campo reorderLevel"
+        },
+        "discontinued": {
+          "type": "INTEGER",
+          "description": "Campo discontinued"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "categoryID",
+          "ref_table": "categories",
+          "ref_column": "categoryID"
+        },
+        {
+          "column": "supplierID",
+          "ref_table": "suppliers",
+          "ref_column": "supplierID"
+        }
+      ],
+      "row_count": 77
+    },
+    "regions": {
+      "description": "Tabla regions",
+      "columns": {
+        "regionID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "regionDescription": {
+          "type": "TEXT",
+          "description": "Campo regionDescription",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 4
+    },
+    "shippers": {
+      "description": "Tabla shippers",
+      "columns": {
+        "shipperID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "companyName": {
+          "type": "TEXT",
+          "description": "Nombre de la compañía",
+          "not_null": true
+        },
+        "phone": {
+          "type": "TEXT",
+          "description": "Teléfono"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 3
+    },
+    "suppliers": {
+      "description": "Tabla suppliers",
+      "columns": {
+        "supplierID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "companyName": {
+          "type": "TEXT",
+          "description": "Nombre de la compañía",
+          "not_null": true
+        },
+        "contactName": {
+          "type": "TEXT",
+          "description": "Nombre del contacto"
+        },
+        "contactTitle": {
+          "type": "TEXT",
+          "description": "Campo contactTitle"
+        },
+        "address": {
+          "type": "TEXT",
+          "description": "Campo address"
+        },
+        "city": {
+          "type": "TEXT",
+          "description": "Ciudad"
+        },
+        "region": {
+          "type": "TEXT",
+          "description": "Campo region"
+        },
+        "postalCode": {
+          "type": "TEXT",
+          "description": "Campo postalCode"
+        },
+        "country": {
+          "type": "TEXT",
+          "description": "País"
+        },
+        "phone": {
+          "type": "TEXT",
+          "description": "Teléfono"
+        },
+        "fax": {
+          "type": "TEXT",
+          "description": "Campo fax"
+        },
+        "homePage": {
+          "type": "TEXT",
+          "description": "Campo homePage"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 29
+    },
+    "territories": {
+      "description": "Tabla territories",
+      "columns": {
+        "territoryID": {
+          "type": "TEXT",
+          "description": "Identificador",
+          "primary_key": true
+        },
+        "territoryDescription": {
+          "type": "TEXT",
+          "description": "Campo territoryDescription",
+          "not_null": true
+        },
+        "regionID": {
+          "type": "INTEGER",
+          "description": "Identificador",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "regionID",
+          "ref_table": "regions",
+          "ref_column": "regionID"
+        }
+      ],
+      "row_count": 53
+    }
+  }
+}

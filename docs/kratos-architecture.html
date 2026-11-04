@@ -60,19 +60,19 @@
         <!-- ===== ARROWS (early, behind boxes) ===== -->
         <!-- user -> dashboard -->
         <line x1="120" y1="330" x2="178" y2="330" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <text x="150" y="322" fill="#94a3b8" font-size="8" text-anchor="middle">HTTP</text>
+        <text x="150" y="344" fill="#94a3b8" font-size="8" text-anchor="middle">HTTP</text>
         <!-- dashboard -> interpreter -->
         <line x1="330" y1="330" x2="368" y2="330" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <!-- interpreter -> investigator : DataTask -->
         <line x1="520" y1="330" x2="558" y2="330" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <text x="539" y="322" fill="#fbbf24" font-size="8" text-anchor="middle">DataTask</text>
         <!-- investigator -> llm (up, dashed) -->
-        <line x1="640" y1="295" x2="640" y2="105" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+        <line x1="640" y1="295" x2="640" y2="102" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
         <text x="652" y="200" fill="#94a3b8" font-size="8">chat / SQL-gen</text>
         <!-- investigator -> pruner -->
-        <line x1="640" y1="365" x2="640" y2="398" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="640" y1="365" x2="640" y2="400" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <!-- pruner -> guard -->
-        <line x1="560" y1="430" x2="502" y2="430" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="560" y1="430" x2="527" y2="430" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <text x="531" y="422" fill="#94a3b8" font-size="8">SQL</text>
         <!-- guard -> engines -->
         <line x1="500" y1="470" x2="620" y2="530" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
@@ -81,7 +81,8 @@
         <line x1="620" y1="555" x2="330" y2="555" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <text x="470" y="547" fill="#a78bfa" font-size="8" text-anchor="middle">DataEvidence (typed)</text>
         <!-- BI -> final answer -->
-        <line x1="255" y1="520" x2="255" y2="368" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="255" y1="525" x2="255" y2="367" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="266" y="450" fill="#34d399" font-size="8">storytelling</text> stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <!-- final answer -> user (return path) -->
         <path d="M 210 365 Q 150 400 60 360" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <text x="120" y="395" fill="#34d399" font-size="8">FinalAnswer</text>

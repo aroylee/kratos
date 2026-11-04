@@ -1,0 +1,307 @@
+{
+  "database": "SQLite (8 tablas)",
+  "version": "1.0",
+  "description": "Base de datos generada automáticamente con generate_metadata.py",
+  "tables": {
+    "customer": {
+      "description": "Tabla customer",
+      "columns": {
+        "c_custkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "c_name": {
+          "type": "VARCHAR",
+          "description": "Nombre"
+        },
+        "c_address": {
+          "type": "VARCHAR",
+          "description": "Dirección física"
+        },
+        "c_nationkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "c_phone": {
+          "type": "VARCHAR",
+          "description": "Teléfono de contacto"
+        },
+        "c_acctbal": {
+          "type": "VARCHAR",
+          "description": "Campo c_acctbal"
+        },
+        "c_mktsegment": {
+          "type": "VARCHAR",
+          "description": "Campo c_mktsegment"
+        },
+        "c_comment": {
+          "type": "VARCHAR",
+          "description": "Campo c_comment"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 1500
+    },
+    "lineitem": {
+      "description": "Tabla lineitem",
+      "columns": {
+        "l_orderkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "l_partkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "l_suppkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "l_linenumber": {
+          "type": "BIGINT",
+          "description": "Campo l_linenumber"
+        },
+        "l_quantity": {
+          "type": "VARCHAR",
+          "description": "Cantidad"
+        },
+        "l_extendedprice": {
+          "type": "VARCHAR",
+          "description": "Precio unitario"
+        },
+        "l_discount": {
+          "type": "VARCHAR",
+          "description": "Campo l_discount"
+        },
+        "l_tax": {
+          "type": "VARCHAR",
+          "description": "Campo l_tax"
+        },
+        "l_returnflag": {
+          "type": "VARCHAR",
+          "description": "Campo l_returnflag"
+        },
+        "l_linestatus": {
+          "type": "VARCHAR",
+          "description": "Estado"
+        },
+        "l_shipdate": {
+          "type": "VARCHAR",
+          "description": "Fecha"
+        },
+        "l_commitdate": {
+          "type": "VARCHAR",
+          "description": "Fecha"
+        },
+        "l_receiptdate": {
+          "type": "VARCHAR",
+          "description": "Fecha"
+        },
+        "l_shipinstruct": {
+          "type": "VARCHAR",
+          "description": "Campo l_shipinstruct"
+        },
+        "l_shipmode": {
+          "type": "VARCHAR",
+          "description": "Campo l_shipmode"
+        },
+        "l_comment": {
+          "type": "VARCHAR",
+          "description": "Campo l_comment"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 60175
+    },
+    "nation": {
+      "description": "Tabla nation",
+      "columns": {
+        "n_nationkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "n_name": {
+          "type": "VARCHAR",
+          "description": "Nombre"
+        },
+        "n_regionkey": {
+          "type": "BIGINT",
+          "description": "Región / Estado / Provincia"
+        },
+        "n_comment": {
+          "type": "VARCHAR",
+          "description": "Campo n_comment"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 25
+    },
+    "orders": {
+      "description": "Tabla orders",
+      "columns": {
+        "o_orderkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "o_custkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "o_orderstatus": {
+          "type": "VARCHAR",
+          "description": "Estado"
+        },
+        "o_totalprice": {
+          "type": "VARCHAR",
+          "description": "Precio unitario"
+        },
+        "o_orderdate": {
+          "type": "VARCHAR",
+          "description": "Fecha"
+        },
+        "o_orderpriority": {
+          "type": "VARCHAR",
+          "description": "Campo o_orderpriority"
+        },
+        "o_clerk": {
+          "type": "VARCHAR",
+          "description": "Campo o_clerk"
+        },
+        "o_shippriority": {
+          "type": "BIGINT",
+          "description": "Campo o_shippriority"
+        },
+        "o_comment": {
+          "type": "VARCHAR",
+          "description": "Campo o_comment"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 15000
+    },
+    "part": {
+      "description": "Tabla part",
+      "columns": {
+        "p_partkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "p_name": {
+          "type": "VARCHAR",
+          "description": "Nombre"
+        },
+        "p_mfgr": {
+          "type": "VARCHAR",
+          "description": "Campo p_mfgr"
+        },
+        "p_brand": {
+          "type": "VARCHAR",
+          "description": "Campo p_brand"
+        },
+        "p_type": {
+          "type": "VARCHAR",
+          "description": "Tipo"
+        },
+        "p_size": {
+          "type": "BIGINT",
+          "description": "Campo p_size"
+        },
+        "p_container": {
+          "type": "VARCHAR",
+          "description": "Campo p_container"
+        },
+        "p_retailprice": {
+          "type": "VARCHAR",
+          "description": "Precio unitario"
+        },
+        "p_comment": {
+          "type": "VARCHAR",
+          "description": "Campo p_comment"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 2000
+    },
+    "partsupp": {
+      "description": "Tabla partsupp",
+      "columns": {
+        "ps_partkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "ps_suppkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "ps_availqty": {
+          "type": "BIGINT",
+          "description": "Campo ps_availqty"
+        },
+        "ps_supplycost": {
+          "type": "VARCHAR",
+          "description": "Campo ps_supplycost"
+        },
+        "ps_comment": {
+          "type": "VARCHAR",
+          "description": "Campo ps_comment"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 8000
+    },
+    "region": {
+      "description": "Tabla region",
+      "columns": {
+        "r_regionkey": {
+          "type": "BIGINT",
+          "description": "Región / Estado / Provincia"
+        },
+        "r_name": {
+          "type": "VARCHAR",
+          "description": "Nombre"
+        },
+        "r_comment": {
+          "type": "VARCHAR",
+          "description": "Campo r_comment"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 5
+    },
+    "supplier": {
+      "description": "Tabla supplier",
+      "columns": {
+        "s_suppkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "s_name": {
+          "type": "VARCHAR",
+          "description": "Nombre"
+        },
+        "s_address": {
+          "type": "VARCHAR",
+          "description": "Dirección física"
+        },
+        "s_nationkey": {
+          "type": "BIGINT",
+          "description": "Clave principal"
+        },
+        "s_phone": {
+          "type": "VARCHAR",
+          "description": "Teléfono de contacto"
+        },
+        "s_acctbal": {
+          "type": "VARCHAR",
+          "description": "Campo s_acctbal"
+        },
+        "s_comment": {
+          "type": "VARCHAR",
+          "description": "Campo s_comment"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 100
+    }
+  }
+}

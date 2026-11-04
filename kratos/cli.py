@@ -19,7 +19,7 @@ def main():
     # Server subcommand
     serve_parser = subparsers.add_parser("serve", help="Launch Kratos API and interactive web console")
     serve_parser.add_argument("--host", default="0.0.0.0", help="Host interface (default: 0.0.0.0)")
-    serve_parser.add_argument("--port", type=int, default=8000, help="Port to listen on (default: 8000)")
+    serve_parser.add_argument("--port", type=int, default=8888, help="Port to listen on (default: 8888)")
     serve_parser.add_argument("--reload", action="store_true", help="Enable code hot reloading")
 
     # Ask subcommand

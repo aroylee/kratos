@@ -99,18 +99,22 @@ class InvestigatorAgent:
             guard_res = validate_sql(sql, allowed_tables=allowed_tables, dialect="sqlite")
 
             if guard_res.allowed:
-                # Layer 1, 2, 4 Execution with runtime fetch bounding
-                cols, rows, duration_ms, truncated = engine.execute_readonly(guard_res.sanitized_sql)
-                executed_query = ExecutedQuery(
-                    sql=guard_res.sanitized_sql,
-                    engine_id=task.engine_id,
-                    row_count=len(rows),
-                    columns=cols,
-                    rows=rows,
-                    execution_ms=round(duration_ms, 2),
-                    truncated=truncated,
-                )
-                break
+                try:
+                    # Layer 1, 2, 4 Execution with runtime fetch bounding
+                    cols, rows, duration_ms, truncated = engine.execute_readonly(guard_res.sanitized_sql)
+                    executed_query = ExecutedQuery(
+                        sql=guard_res.sanitized_sql,
+                        engine_id=task.engine_id,
+                        row_count=len(rows),
+                        columns=cols,
+                        rows=rows,
+                        execution_ms=round(duration_ms, 2),
+                        truncated=truncated,
+                    )
+                    break
+                except Exception as exc:
+                    last_rejection_detail = str(exc)
+                    warnings.append(f"Intento {attempt} falló en ejecución ({str(exc)})")
             else:
                 last_rejection_detail = f"{guard_res.reason}: {guard_res.detail}"
                 warnings.append(f"Intento {attempt} rechazado por Security Guard ({last_rejection_detail})")

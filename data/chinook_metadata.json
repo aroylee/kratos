@@ -1,0 +1,444 @@
+{
+  "database": "SQLite (11 tablas)",
+  "version": "1.0",
+  "description": "Base de datos generada automáticamente con generate_metadata.py",
+  "tables": {
+    "Album": {
+      "description": "Tabla Album",
+      "columns": {
+        "AlbumId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "Title": {
+          "type": "NVARCHAR(160)",
+          "description": "Título",
+          "not_null": true
+        },
+        "ArtistId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "ArtistId",
+          "ref_table": "Artist",
+          "ref_column": "ArtistId"
+        }
+      ],
+      "row_count": 347
+    },
+    "Artist": {
+      "description": "Tabla Artist",
+      "columns": {
+        "ArtistId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "Name": {
+          "type": "NVARCHAR(120)",
+          "description": "Nombre"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 275
+    },
+    "Customer": {
+      "description": "Tabla Customer",
+      "columns": {
+        "CustomerId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "FirstName": {
+          "type": "NVARCHAR(40)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "LastName": {
+          "type": "NVARCHAR(20)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "Company": {
+          "type": "NVARCHAR(80)",
+          "description": "Campo Company"
+        },
+        "Address": {
+          "type": "NVARCHAR(70)",
+          "description": "Dirección física"
+        },
+        "City": {
+          "type": "NVARCHAR(40)",
+          "description": "Ciudad"
+        },
+        "State": {
+          "type": "NVARCHAR(40)",
+          "description": "Campo State"
+        },
+        "Country": {
+          "type": "NVARCHAR(40)",
+          "description": "País"
+        },
+        "PostalCode": {
+          "type": "NVARCHAR(10)",
+          "description": "Código postal"
+        },
+        "Phone": {
+          "type": "NVARCHAR(24)",
+          "description": "Teléfono de contacto"
+        },
+        "Fax": {
+          "type": "NVARCHAR(24)",
+          "description": "Número de fax"
+        },
+        "Email": {
+          "type": "NVARCHAR(60)",
+          "description": "Correo electrónico",
+          "not_null": true
+        },
+        "SupportRepId": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "SupportRepId",
+          "ref_table": "Employee",
+          "ref_column": "EmployeeId"
+        }
+      ],
+      "row_count": 59
+    },
+    "Employee": {
+      "description": "Tabla Employee",
+      "columns": {
+        "EmployeeId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "LastName": {
+          "type": "NVARCHAR(20)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "FirstName": {
+          "type": "NVARCHAR(20)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "Title": {
+          "type": "NVARCHAR(30)",
+          "description": "Título"
+        },
+        "ReportsTo": {
+          "type": "INTEGER",
+          "description": "Campo ReportsTo"
+        },
+        "BirthDate": {
+          "type": "DATETIME",
+          "description": "Fecha"
+        },
+        "HireDate": {
+          "type": "DATETIME",
+          "description": "Fecha"
+        },
+        "Address": {
+          "type": "NVARCHAR(70)",
+          "description": "Dirección física"
+        },
+        "City": {
+          "type": "NVARCHAR(40)",
+          "description": "Ciudad"
+        },
+        "State": {
+          "type": "NVARCHAR(40)",
+          "description": "Campo State"
+        },
+        "Country": {
+          "type": "NVARCHAR(40)",
+          "description": "País"
+        },
+        "PostalCode": {
+          "type": "NVARCHAR(10)",
+          "description": "Código postal"
+        },
+        "Phone": {
+          "type": "NVARCHAR(24)",
+          "description": "Teléfono de contacto"
+        },
+        "Fax": {
+          "type": "NVARCHAR(24)",
+          "description": "Número de fax"
+        },
+        "Email": {
+          "type": "NVARCHAR(60)",
+          "description": "Correo electrónico"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "ReportsTo",
+          "ref_table": "Employee",
+          "ref_column": "EmployeeId"
+        }
+      ],
+      "row_count": 8
+    },
+    "Genre": {
+      "description": "Tabla Genre",
+      "columns": {
+        "GenreId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "Name": {
+          "type": "NVARCHAR(120)",
+          "description": "Nombre"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 25
+    },
+    "Invoice": {
+      "description": "Tabla Invoice",
+      "columns": {
+        "InvoiceId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "CustomerId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "InvoiceDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true
+        },
+        "BillingAddress": {
+          "type": "NVARCHAR(70)",
+          "description": "Dirección física"
+        },
+        "BillingCity": {
+          "type": "NVARCHAR(40)",
+          "description": "Ciudad"
+        },
+        "BillingState": {
+          "type": "NVARCHAR(40)",
+          "description": "Campo BillingState"
+        },
+        "BillingCountry": {
+          "type": "NVARCHAR(40)",
+          "description": "País"
+        },
+        "BillingPostalCode": {
+          "type": "NVARCHAR(10)",
+          "description": "Código postal"
+        },
+        "Total": {
+          "type": "NUMERIC(10,2)",
+          "description": "Total",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "CustomerId",
+          "ref_table": "Customer",
+          "ref_column": "CustomerId"
+        }
+      ],
+      "row_count": 412
+    },
+    "InvoiceLine": {
+      "description": "Tabla InvoiceLine",
+      "columns": {
+        "InvoiceLineId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "InvoiceId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "TrackId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "UnitPrice": {
+          "type": "NUMERIC(10,2)",
+          "description": "Precio unitario",
+          "not_null": true
+        },
+        "Quantity": {
+          "type": "INTEGER",
+          "description": "Cantidad",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "TrackId",
+          "ref_table": "Track",
+          "ref_column": "TrackId"
+        },
+        {
+          "column": "InvoiceId",
+          "ref_table": "Invoice",
+          "ref_column": "InvoiceId"
+        }
+      ],
+      "row_count": 2240
+    },
+    "MediaType": {
+      "description": "Tabla MediaType",
+      "columns": {
+        "MediaTypeId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "Name": {
+          "type": "NVARCHAR(120)",
+          "description": "Nombre"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 5
+    },
+    "Playlist": {
+      "description": "Tabla Playlist",
+      "columns": {
+        "PlaylistId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "Name": {
+          "type": "NVARCHAR(120)",
+          "description": "Nombre"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 18
+    },
+    "PlaylistTrack": {
+      "description": "Tabla PlaylistTrack",
+      "columns": {
+        "PlaylistId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "TrackId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "TrackId",
+          "ref_table": "Track",
+          "ref_column": "TrackId"
+        },
+        {
+          "column": "PlaylistId",
+          "ref_table": "Playlist",
+          "ref_column": "PlaylistId"
+        }
+      ],
+      "row_count": 8715
+    },
+    "Track": {
+      "description": "Tabla Track",
+      "columns": {
+        "TrackId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "Name": {
+          "type": "NVARCHAR(200)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "AlbumId": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "MediaTypeId": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "GenreId": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "Composer": {
+          "type": "NVARCHAR(220)",
+          "description": "Campo Composer"
+        },
+        "Milliseconds": {
+          "type": "INTEGER",
+          "description": "Campo Milliseconds",
+          "not_null": true
+        },
+        "Bytes": {
+          "type": "INTEGER",
+          "description": "Campo Bytes"
+        },
+        "UnitPrice": {
+          "type": "NUMERIC(10,2)",
+          "description": "Precio unitario",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "MediaTypeId",
+          "ref_table": "MediaType",
+          "ref_column": "MediaTypeId"
+        },
+        {
+          "column": "GenreId",
+          "ref_table": "Genre",
+          "ref_column": "GenreId"
+        },
+        {
+          "column": "AlbumId",
+          "ref_table": "Album",
+          "ref_column": "AlbumId"
+        }
+      ],
+      "row_count": 3503
+    }
+  }
+}

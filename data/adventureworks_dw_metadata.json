@@ -1,0 +1,700 @@
+{
+  "database": "SQLite (12 tablas)",
+  "version": "1.0",
+  "description": "Base de datos generada automáticamente con generate_metadata.py",
+  "tables": {
+    "Address": {
+      "description": "Tabla Address",
+      "columns": {
+        "AddressID": {
+          "type": "INTEGER",
+          "description": "Dirección física",
+          "primary_key": true
+        },
+        "AddressLine1": {
+          "type": "TEXT",
+          "description": "Dirección física",
+          "not_null": true
+        },
+        "AddressLine2": {
+          "type": "TEXT",
+          "description": "Dirección física"
+        },
+        "City": {
+          "type": "TEXT",
+          "description": "Ciudad",
+          "not_null": true
+        },
+        "StateProvince": {
+          "type": "TEXT",
+          "description": "Campo StateProvince",
+          "not_null": true
+        },
+        "CountryRegion": {
+          "type": "TEXT",
+          "description": "Región / Estado / Provincia",
+          "not_null": true
+        },
+        "PostalCode": {
+          "type": "TEXT",
+          "description": "Código postal",
+          "not_null": true
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 450
+    },
+    "BuildVersion": {
+      "description": "Tabla BuildVersion",
+      "columns": {
+        "SystemInformationID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true
+        },
+        "Database Version": {
+          "type": "TEXT",
+          "description": "Campo Database Version",
+          "not_null": true
+        },
+        "VersionDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 1
+    },
+    "Customer": {
+      "description": "Tabla Customer",
+      "columns": {
+        "CustomerID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true
+        },
+        "NameStyle": {
+          "type": "INTEGER",
+          "description": "Nombre",
+          "not_null": true,
+          "default": "0"
+        },
+        "Title": {
+          "type": "TEXT",
+          "description": "Título"
+        },
+        "FirstName": {
+          "type": "TEXT",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "MiddleName": {
+          "type": "TEXT",
+          "description": "Nombre"
+        },
+        "LastName": {
+          "type": "TEXT",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "Suffix": {
+          "type": "TEXT",
+          "description": "Campo Suffix"
+        },
+        "CompanyName": {
+          "type": "TEXT",
+          "description": "Nombre de la compañía"
+        },
+        "SalesPerson": {
+          "type": "TEXT",
+          "description": "Campo SalesPerson"
+        },
+        "EmailAddress": {
+          "type": "TEXT",
+          "description": "Dirección física"
+        },
+        "Phone": {
+          "type": "TEXT",
+          "description": "Teléfono de contacto"
+        },
+        "PasswordHash": {
+          "type": "TEXT",
+          "description": "Campo PasswordHash",
+          "not_null": true
+        },
+        "PasswordSalt": {
+          "type": "TEXT",
+          "description": "Campo PasswordSalt",
+          "not_null": true
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 847
+    },
+    "CustomerAddress": {
+      "description": "Tabla CustomerAddress",
+      "columns": {
+        "CustomerID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "AddressID": {
+          "type": "INTEGER",
+          "description": "Dirección física",
+          "primary_key": true,
+          "not_null": true
+        },
+        "AddressType": {
+          "type": "TEXT",
+          "description": "Dirección física",
+          "not_null": true
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "AddressID",
+          "ref_table": "Address",
+          "ref_column": "AddressID"
+        },
+        {
+          "column": "CustomerID",
+          "ref_table": "Customer",
+          "ref_column": "CustomerID"
+        }
+      ],
+      "row_count": 417
+    },
+    "ErrorLog": {
+      "description": "Tabla ErrorLog",
+      "columns": {
+        "ErrorLogID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true
+        },
+        "ErrorTime": {
+          "type": "DATETIME",
+          "description": "Campo ErrorTime",
+          "not_null": true,
+          "default": "datetime('now')"
+        },
+        "UserName": {
+          "type": "TEXT",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "ErrorNumber": {
+          "type": "INTEGER",
+          "description": "Campo ErrorNumber",
+          "not_null": true
+        },
+        "ErrorSeverity": {
+          "type": "INTEGER",
+          "description": "Campo ErrorSeverity"
+        },
+        "ErrorState": {
+          "type": "INTEGER",
+          "description": "Campo ErrorState"
+        },
+        "ErrorProcedure": {
+          "type": "TEXT",
+          "description": "Campo ErrorProcedure"
+        },
+        "ErrorLine": {
+          "type": "INTEGER",
+          "description": "Campo ErrorLine"
+        },
+        "ErrorMessage": {
+          "type": "TEXT",
+          "description": "Campo ErrorMessage",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 0
+    },
+    "Product": {
+      "description": "Tabla Product",
+      "columns": {
+        "ProductID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true
+        },
+        "Name": {
+          "type": "TEXT",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "ProductNumber": {
+          "type": "TEXT",
+          "description": "Campo ProductNumber",
+          "not_null": true
+        },
+        "Color": {
+          "type": "TEXT",
+          "description": "Campo Color"
+        },
+        "StandardCost": {
+          "type": "INTEGER",
+          "description": "Campo StandardCost",
+          "not_null": true
+        },
+        "ListPrice": {
+          "type": "INTEGER",
+          "description": "Precio unitario",
+          "not_null": true
+        },
+        "Size": {
+          "type": "TEXT",
+          "description": "Campo Size"
+        },
+        "Weight": {
+          "type": "INTEGER",
+          "description": "Campo Weight"
+        },
+        "ProductCategoryID": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "ProductModelID": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "SellStartDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true
+        },
+        "SellEndDate": {
+          "type": "DATETIME",
+          "description": "Fecha"
+        },
+        "DiscontinuedDate": {
+          "type": "DATETIME",
+          "description": "Fecha"
+        },
+        "ThumbNailPhoto": {
+          "type": "BLOB",
+          "description": "Campo ThumbNailPhoto"
+        },
+        "ThumbnailPhotoFileName": {
+          "type": "TEXT",
+          "description": "Nombre"
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "ProductCategoryID",
+          "ref_table": "ProductCategory",
+          "ref_column": "ProductCategoryID"
+        },
+        {
+          "column": "ProductModelID",
+          "ref_table": "ProductModel",
+          "ref_column": "ProductModelID"
+        }
+      ],
+      "row_count": 295
+    },
+    "ProductCategory": {
+      "description": "Tabla ProductCategory",
+      "columns": {
+        "ProductCategoryID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true
+        },
+        "ParentProductCategoryID": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "Name": {
+          "type": "TEXT",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "ParentProductCategoryID",
+          "ref_table": "ProductCategory",
+          "ref_column": "ProductCategoryID"
+        }
+      ],
+      "row_count": 41
+    },
+    "ProductDescription": {
+      "description": "Tabla ProductDescription",
+      "columns": {
+        "ProductDescriptionID": {
+          "type": "INTEGER",
+          "description": "Descripción",
+          "primary_key": true
+        },
+        "Description": {
+          "type": "TEXT",
+          "description": "Descripción",
+          "not_null": true
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 762
+    },
+    "ProductModel": {
+      "description": "Tabla ProductModel",
+      "columns": {
+        "ProductModelID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true
+        },
+        "Name": {
+          "type": "TEXT",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "CatalogDescription": {
+          "type": "TEXT",
+          "description": "Descripción"
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 128
+    },
+    "ProductModelProductDescription": {
+      "description": "Tabla ProductModelProductDescription",
+      "columns": {
+        "ProductModelID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "ProductDescriptionID": {
+          "type": "INTEGER",
+          "description": "Descripción",
+          "primary_key": true,
+          "not_null": true
+        },
+        "Culture": {
+          "type": "TEXT",
+          "description": "Campo Culture",
+          "primary_key": true,
+          "not_null": true
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "ProductModelID",
+          "ref_table": "ProductModel",
+          "ref_column": "ProductModelID"
+        },
+        {
+          "column": "ProductDescriptionID",
+          "ref_table": "ProductDescription",
+          "ref_column": "ProductDescriptionID"
+        }
+      ],
+      "row_count": 762
+    },
+    "SalesOrderDetail": {
+      "description": "Tabla SalesOrderDetail",
+      "columns": {
+        "SalesOrderID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "SalesOrderDetailID": {
+          "type": "INTEGER IDENTITY (1, 1)",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "OrderQty": {
+          "type": "INTEGER",
+          "description": "Campo OrderQty",
+          "not_null": true
+        },
+        "ProductID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "UnitPrice": {
+          "type": "INTEGER",
+          "description": "Precio unitario",
+          "not_null": true
+        },
+        "UnitPriceDiscount": {
+          "type": "INTEGER",
+          "description": "Precio unitario",
+          "not_null": true,
+          "default": "0.0"
+        },
+        "LineTotal": {
+          "type": "INTEGER",
+          "description": "Total",
+          "not_null": true
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "ProductID",
+          "ref_table": "Product",
+          "ref_column": "ProductID"
+        },
+        {
+          "column": "SalesOrderID",
+          "ref_table": "SalesOrderHeader",
+          "ref_column": "SalesOrderID"
+        }
+      ],
+      "row_count": 542
+    },
+    "SalesOrderHeader": {
+      "description": "Tabla SalesOrderHeader",
+      "columns": {
+        "SalesOrderID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "primary_key": true
+        },
+        "RevisionNumber": {
+          "type": "INTEGER",
+          "description": "Campo RevisionNumber",
+          "not_null": true,
+          "default": "0"
+        },
+        "OrderDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        },
+        "DueDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true
+        },
+        "ShipDate": {
+          "type": "DATETIME",
+          "description": "Fecha"
+        },
+        "Status": {
+          "type": "INTEGER",
+          "description": "Estado",
+          "not_null": true,
+          "default": "1"
+        },
+        "OnlineOrderFlag": {
+          "type": "INTEGER",
+          "description": "Campo OnlineOrderFlag",
+          "not_null": true,
+          "default": "1"
+        },
+        "SalesOrderNumber": {
+          "type": "TEXT",
+          "description": "Campo SalesOrderNumber",
+          "not_null": true
+        },
+        "PurchaseOrderNumber": {
+          "type": "INTEGER",
+          "description": "Campo PurchaseOrderNumber"
+        },
+        "AccountNumber": {
+          "type": "TEXT",
+          "description": "Campo AccountNumber"
+        },
+        "CustomerID": {
+          "type": "INTEGER",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ShipToAddressID": {
+          "type": "INT",
+          "description": "Dirección física"
+        },
+        "BillToAddressID": {
+          "type": "INT",
+          "description": "Dirección física"
+        },
+        "ShipMethod": {
+          "type": "TEXT",
+          "description": "Campo ShipMethod",
+          "not_null": true
+        },
+        "CreditCardApprovalCode": {
+          "type": "TEXT",
+          "description": "Código"
+        },
+        "SubTotal": {
+          "type": "INTEGER",
+          "description": "Total",
+          "not_null": true,
+          "default": "0.00"
+        },
+        "TaxAmt": {
+          "type": "INTEGER",
+          "description": "Campo TaxAmt",
+          "not_null": true,
+          "default": "0.00"
+        },
+        "Freight": {
+          "type": "INTEGER",
+          "description": "Campo Freight",
+          "not_null": true,
+          "default": "0.00"
+        },
+        "TotalDue": {
+          "type": "INTEGER",
+          "description": "Total",
+          "not_null": true
+        },
+        "Comment": {
+          "type": "TEXT",
+          "description": "Campo Comment"
+        },
+        "rowguid": {
+          "type": "TEXT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "ModifiedDate": {
+          "type": "DATETIME",
+          "description": "Fecha",
+          "not_null": true,
+          "default": "datetime('now')"
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "BillToAddressID",
+          "ref_table": "Address",
+          "ref_column": "AddressID"
+        },
+        {
+          "column": "ShipToAddressID",
+          "ref_table": "Address",
+          "ref_column": "AddressID"
+        },
+        {
+          "column": "CustomerID",
+          "ref_table": "Customer",
+          "ref_column": "CustomerID"
+        }
+      ],
+      "row_count": 32
+    }
+  }
+}

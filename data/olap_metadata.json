@@ -1,0 +1,139 @@
+{
+  "database": "SQLite (4 tablas)",
+  "version": "1.0",
+  "description": "Base de datos olap generada automáticamente",
+  "tables": {
+    "dim_customer": {
+      "description": "Tabla dim_customer",
+      "columns": {
+        "customer_id": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "customer_name": {
+          "type": "TEXT",
+          "description": "Nombre"
+        },
+        "customer_type": {
+          "type": "TEXT",
+          "description": "Campo customer_type"
+        },
+        "region": {
+          "type": "TEXT",
+          "description": "Región / Estado / Provincia"
+        },
+        "country": {
+          "type": "TEXT",
+          "description": "País"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 5
+    },
+    "dim_product": {
+      "description": "Tabla dim_product",
+      "columns": {
+        "product_id": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "product_name": {
+          "type": "TEXT",
+          "description": "Nombre"
+        },
+        "category": {
+          "type": "TEXT",
+          "description": "Campo category"
+        },
+        "subcategory": {
+          "type": "TEXT",
+          "description": "Campo subcategory"
+        },
+        "unit_price": {
+          "type": "REAL",
+          "description": "Precio unitario"
+        },
+        "supplier_id": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 5
+    },
+    "dim_time": {
+      "description": "Tabla dim_time",
+      "columns": {
+        "time_id": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "date": {
+          "type": "TEXT",
+          "description": "Fecha"
+        },
+        "year": {
+          "type": "INTEGER",
+          "description": "Campo year"
+        },
+        "quarter": {
+          "type": "INTEGER",
+          "description": "Campo quarter"
+        },
+        "month": {
+          "type": "INTEGER",
+          "description": "Campo month"
+        },
+        "day": {
+          "type": "INTEGER",
+          "description": "Campo day"
+        },
+        "day_of_week": {
+          "type": "TEXT",
+          "description": "Campo day_of_week"
+        },
+        "week_of_year": {
+          "type": "INTEGER",
+          "description": "Campo week_of_year"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 5
+    },
+    "fact_sales": {
+      "description": "Tabla fact_sales",
+      "columns": {
+        "sale_id": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "time_id": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "product_id": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "customer_id": {
+          "type": "INTEGER",
+          "description": "Identificador único"
+        },
+        "quantity": {
+          "type": "INTEGER",
+          "description": "Cantidad"
+        },
+        "unit_price": {
+          "type": "REAL",
+          "description": "Precio unitario"
+        },
+        "total_amount": {
+          "type": "REAL",
+          "description": "Total"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 10
+    }
+  }
+}

@@ -70,13 +70,16 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ### 2. Levantar el Servidor Local
 ```bash
-# Inicia el servidor con recarga automática en caliente
-uv run uvicorn kratos.api.main:app --host 0.0.0.0 --port 8000 --reload
+# Inicia el servidor nativo en su puerto dedicado (8888)
+uv run uvicorn kratos.api.main:app --host 0.0.0.0 --port 8888 --reload
+
+# O mediante la CLI integrada de Kratos:
+uv run kratos serve --reload
 ```
 
-* **Dashboard Analítico:** Abre [http://localhost:8000](http://localhost:8000)
-* **Documentación Interactiva en Línea:** Abre [http://localhost:8000/documentation](http://localhost:8000/documentation)
-* **Especificación Swagger API:** Abre [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Dashboard Analítico:** Abre [http://localhost:8888](http://localhost:8888)
+* **Documentación Interactiva en Línea:** Abre [http://localhost:8888/documentation](http://localhost:8888/documentation)
+* **Especificación Swagger API:** Abre [http://localhost:8888/docs](http://localhost:8888/docs)
 
 ---
 

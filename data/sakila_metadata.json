@@ -1,0 +1,706 @@
+{
+  "database": "SQLite (16 tablas)",
+  "version": "1.0",
+  "description": "Base de datos generada automáticamente con generate_metadata.py",
+  "tables": {
+    "actor": {
+      "description": "Tabla actor",
+      "columns": {
+        "actor_id": {
+          "type": "NUMERIC",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "first_name": {
+          "type": "VARCHAR(45)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "last_name": {
+          "type": "VARCHAR(45)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 200
+    },
+    "address": {
+      "description": "Tabla address",
+      "columns": {
+        "address_id": {
+          "type": "INT",
+          "description": "Dirección física",
+          "primary_key": true,
+          "not_null": true
+        },
+        "address": {
+          "type": "VARCHAR(50)",
+          "description": "Dirección física",
+          "not_null": true
+        },
+        "address2": {
+          "type": "VARCHAR(50)",
+          "description": "Dirección física",
+          "default": "NULL"
+        },
+        "district": {
+          "type": "VARCHAR(20)",
+          "description": "Campo district",
+          "not_null": true
+        },
+        "city_id": {
+          "type": "INT",
+          "description": "Ciudad",
+          "not_null": true
+        },
+        "postal_code": {
+          "type": "VARCHAR(10)",
+          "description": "Código",
+          "default": "NULL"
+        },
+        "phone": {
+          "type": "VARCHAR(20)",
+          "description": "Teléfono de contacto",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "city_id",
+          "ref_table": "city",
+          "ref_column": "city_id"
+        }
+      ],
+      "row_count": 603
+    },
+    "category": {
+      "description": "Tabla category",
+      "columns": {
+        "category_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "name": {
+          "type": "VARCHAR(25)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 16
+    },
+    "city": {
+      "description": "Tabla city",
+      "columns": {
+        "city_id": {
+          "type": "INT",
+          "description": "Ciudad",
+          "primary_key": true,
+          "not_null": true
+        },
+        "city": {
+          "type": "VARCHAR(50)",
+          "description": "Ciudad",
+          "not_null": true
+        },
+        "country_id": {
+          "type": "SMALLINT",
+          "description": "País",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "country_id",
+          "ref_table": "country",
+          "ref_column": "country_id"
+        }
+      ],
+      "row_count": 600
+    },
+    "country": {
+      "description": "Tabla country",
+      "columns": {
+        "country_id": {
+          "type": "SMALLINT",
+          "description": "País",
+          "primary_key": true,
+          "not_null": true
+        },
+        "country": {
+          "type": "VARCHAR(50)",
+          "description": "País",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 109
+    },
+    "customer": {
+      "description": "Tabla customer",
+      "columns": {
+        "customer_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "store_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "first_name": {
+          "type": "VARCHAR(45)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "last_name": {
+          "type": "VARCHAR(45)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "email": {
+          "type": "VARCHAR(50)",
+          "description": "Correo electrónico",
+          "default": "NULL"
+        },
+        "address_id": {
+          "type": "INT",
+          "description": "Dirección física",
+          "not_null": true
+        },
+        "active": {
+          "type": "CHAR(1)",
+          "description": "Activo",
+          "not_null": true,
+          "default": "'Y'"
+        },
+        "create_date": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "address_id",
+          "ref_table": "address",
+          "ref_column": "address_id"
+        },
+        {
+          "column": "store_id",
+          "ref_table": "store",
+          "ref_column": "store_id"
+        }
+      ],
+      "row_count": 599
+    },
+    "film": {
+      "description": "Tabla film",
+      "columns": {
+        "film_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "title": {
+          "type": "VARCHAR(255)",
+          "description": "Título",
+          "not_null": true
+        },
+        "description": {
+          "type": "BLOB SUB_TYPE TEXT",
+          "description": "Descripción",
+          "default": "NULL"
+        },
+        "release_year": {
+          "type": "VARCHAR(4)",
+          "description": "Campo release_year",
+          "default": "NULL"
+        },
+        "language_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "original_language_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "default": "NULL"
+        },
+        "rental_duration": {
+          "type": "SMALLINT",
+          "description": "Campo rental_duration",
+          "not_null": true,
+          "default": "3"
+        },
+        "rental_rate": {
+          "type": "DECIMAL(4,2)",
+          "description": "Campo rental_rate",
+          "not_null": true,
+          "default": "4.99"
+        },
+        "length": {
+          "type": "SMALLINT",
+          "description": "Campo length",
+          "default": "NULL"
+        },
+        "replacement_cost": {
+          "type": "DECIMAL(5,2)",
+          "description": "Campo replacement_cost",
+          "not_null": true,
+          "default": "19.99"
+        },
+        "rating": {
+          "type": "VARCHAR(10)",
+          "description": "Campo rating",
+          "default": "'G'"
+        },
+        "special_features": {
+          "type": "VARCHAR(100)",
+          "description": "Campo special_features",
+          "default": "NULL"
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "original_language_id",
+          "ref_table": "language",
+          "ref_column": "language_id"
+        },
+        {
+          "column": "language_id",
+          "ref_table": "language",
+          "ref_column": "language_id"
+        }
+      ],
+      "row_count": 1000
+    },
+    "film_actor": {
+      "description": "Tabla film_actor",
+      "columns": {
+        "actor_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "film_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "film_id",
+          "ref_table": "film",
+          "ref_column": "film_id"
+        },
+        {
+          "column": "actor_id",
+          "ref_table": "actor",
+          "ref_column": "actor_id"
+        }
+      ],
+      "row_count": 5462
+    },
+    "film_category": {
+      "description": "Tabla film_category",
+      "columns": {
+        "film_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "category_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "category_id",
+          "ref_table": "category",
+          "ref_column": "category_id"
+        },
+        {
+          "column": "film_id",
+          "ref_table": "film",
+          "ref_column": "film_id"
+        }
+      ],
+      "row_count": 1000
+    },
+    "film_text": {
+      "description": "Tabla film_text",
+      "columns": {
+        "film_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "title": {
+          "type": "VARCHAR(255)",
+          "description": "Título",
+          "not_null": true
+        },
+        "description": {
+          "type": "BLOB SUB_TYPE TEXT",
+          "description": "Descripción"
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 0
+    },
+    "inventory": {
+      "description": "Tabla inventory",
+      "columns": {
+        "inventory_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "film_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "store_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "film_id",
+          "ref_table": "film",
+          "ref_column": "film_id"
+        },
+        {
+          "column": "store_id",
+          "ref_table": "store",
+          "ref_column": "store_id"
+        }
+      ],
+      "row_count": 4581
+    },
+    "language": {
+      "description": "Tabla language",
+      "columns": {
+        "language_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "name": {
+          "type": "CHAR(20)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [],
+      "row_count": 6
+    },
+    "payment": {
+      "description": "Tabla payment",
+      "columns": {
+        "payment_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "customer_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "staff_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "rental_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "default": "NULL"
+        },
+        "amount": {
+          "type": "DECIMAL(5,2)",
+          "description": "Campo amount",
+          "not_null": true
+        },
+        "payment_date": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "staff_id",
+          "ref_table": "staff",
+          "ref_column": "staff_id"
+        },
+        {
+          "column": "customer_id",
+          "ref_table": "customer",
+          "ref_column": "customer_id"
+        },
+        {
+          "column": "rental_id",
+          "ref_table": "rental",
+          "ref_column": "rental_id"
+        }
+      ],
+      "row_count": 16049
+    },
+    "rental": {
+      "description": "Tabla rental",
+      "columns": {
+        "rental_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "rental_date": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        },
+        "inventory_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "customer_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "return_date": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "default": "NULL"
+        },
+        "staff_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "customer_id",
+          "ref_table": "customer",
+          "ref_column": "customer_id"
+        },
+        {
+          "column": "inventory_id",
+          "ref_table": "inventory",
+          "ref_column": "inventory_id"
+        },
+        {
+          "column": "staff_id",
+          "ref_table": "staff",
+          "ref_column": "staff_id"
+        }
+      ],
+      "row_count": 16044
+    },
+    "staff": {
+      "description": "Tabla staff",
+      "columns": {
+        "staff_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "first_name": {
+          "type": "VARCHAR(45)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "last_name": {
+          "type": "VARCHAR(45)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "address_id": {
+          "type": "INT",
+          "description": "Dirección física",
+          "not_null": true
+        },
+        "picture": {
+          "type": "BLOB",
+          "description": "Campo picture",
+          "default": "NULL"
+        },
+        "email": {
+          "type": "VARCHAR(50)",
+          "description": "Correo electrónico",
+          "default": "NULL"
+        },
+        "store_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "active": {
+          "type": "SMALLINT",
+          "description": "Activo",
+          "not_null": true,
+          "default": "1"
+        },
+        "username": {
+          "type": "VARCHAR(16)",
+          "description": "Nombre",
+          "not_null": true
+        },
+        "password": {
+          "type": "VARCHAR(40)",
+          "description": "Campo password",
+          "default": "NULL"
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "address_id",
+          "ref_table": "address",
+          "ref_column": "address_id"
+        },
+        {
+          "column": "store_id",
+          "ref_table": "store",
+          "ref_column": "store_id"
+        }
+      ],
+      "row_count": 2
+    },
+    "store": {
+      "description": "Tabla store",
+      "columns": {
+        "store_id": {
+          "type": "INT",
+          "description": "Identificador único",
+          "primary_key": true,
+          "not_null": true
+        },
+        "manager_staff_id": {
+          "type": "SMALLINT",
+          "description": "Identificador único",
+          "not_null": true
+        },
+        "address_id": {
+          "type": "INT",
+          "description": "Dirección física",
+          "not_null": true
+        },
+        "last_update": {
+          "type": "TIMESTAMP",
+          "description": "Fecha",
+          "not_null": true
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "address_id",
+          "ref_table": "address",
+          "ref_column": "address_id"
+        },
+        {
+          "column": "manager_staff_id",
+          "ref_table": "staff",
+          "ref_column": "staff_id"
+        }
+      ],
+      "row_count": 2
+    }
+  }
+}

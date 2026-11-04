@@ -6,10 +6,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 
+class DatabaseExecutionError(Exception):
+    """Raised when safe SQL execution fails at the engine level."""
+    pass
+
+
 class DatabaseEngine:
     def __init__(self, engine_id: str, db_path: Path):
         self.engine_id = engine_id
-        self.db_path = db_path
+        self.db_path = db_path.resolve()
         self._schema_cache: Dict[str, List[str]] | None = None
 
     def get_tables(self) -> List[str]:
@@ -19,42 +24,50 @@ class DatabaseEngine:
 
     def introspect(self) -> Dict[str, List[str]]:
         conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
-        tables = [r[0] for r in cursor.fetchall()]
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+            tables = [r[0] for r in cursor.fetchall()]
 
-        schema = {}
-        for t in tables:
-            cursor.execute(f"PRAGMA table_info('{t}');")
-            schema[t] = [r[1] for r in cursor.fetchall()]
+            schema = {}
+            for t in tables:
+                cursor.execute(f"PRAGMA table_info('{t}');")
+                schema[t] = [r[1] for r in cursor.fetchall()]
 
-        conn.close()
-        self._schema_cache = schema
-        return schema
+            self._schema_cache = schema
+            return schema
+        finally:
+            conn.close()
 
     def execute_readonly(self, sql: str, max_rows: int = 500) -> Tuple[List[str], List[Dict[str, Any]], float, bool]:
         conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
 
-        start = time.perf_counter()
-        cursor.execute(sql)
-        raw_rows = cursor.fetchmany(max_rows + 1)
-        duration_ms = (time.perf_counter() - start) * 1000.0
+            start = time.perf_counter()
+            try:
+                cursor.execute(sql)
+            except sqlite3.Error as err:
+                raise DatabaseExecutionError(f"Error al ejecutar consulta en '{self.engine_id}': {str(err)}")
 
-        truncated = len(raw_rows) > max_rows
-        rows_to_keep = raw_rows[:max_rows]
+            raw_rows = cursor.fetchmany(max_rows + 1)
+            duration_ms = (time.perf_counter() - start) * 1000.0
 
-        cols = [d[0] for d in cursor.description] if cursor.description else []
-        rows = [dict(r) for r in rows_to_keep]
+            truncated = len(raw_rows) > max_rows
+            rows_to_keep = raw_rows[:max_rows]
 
-        conn.close()
-        return cols, rows, duration_ms, truncated
+            cols = [d[0] for d in cursor.description] if cursor.description else []
+            rows = [dict(r) for r in rows_to_keep]
+
+            return cols, rows, duration_ms, truncated
+        finally:
+            conn.close()
 
 
 class EngineRegistry:
     def __init__(self, data_dir: Path):
-        self.data_dir = data_dir
+        self.data_dir = data_dir.resolve()
         self.engines: Dict[str, DatabaseEngine] = {}
         self.active_engine_id: str = "northwind"
         self.discover()
@@ -62,7 +75,7 @@ class EngineRegistry:
     def discover(self):
         if not self.data_dir.exists():
             return
-        for db_file in self.data_dir.glob("*.db"):
+        for db_file in sorted(self.data_dir.glob("*.db")):
             engine_id = db_file.stem.lower()
             if engine_id not in self.engines:
                 self.engines[engine_id] = DatabaseEngine(engine_id, db_file)

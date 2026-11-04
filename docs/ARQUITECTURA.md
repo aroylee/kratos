@@ -322,8 +322,8 @@ kratos/
 
 | Acción | Comando | Descripción |
 | :--- | :--- | :--- |
-| **Levantar la aplicación local** | `uv run uvicorn kratos.api.main:app --host 0.0.0.0 --port 8000 --reload` | Inicia el dashboard en `http://localhost:8000` |
-| **Ver la documentación en línea** | Abrir `http://localhost:8000/documentation` | Página visual interactiva con diagramas Mermaid |
+| **Levantar la aplicación local** | `uv run kratos serve --reload` | Inicia el dashboard en el puerto soberano `http://localhost:8888` |
+| **Ver la documentación en línea** | Abrir `http://localhost:8888/documentation` | Página visual interactiva con diagramas Mermaid |
 | **Correr las pruebas automatizadas** | `uv run --extra dev pytest` | Ejecuta los 12 tests unitarios y de integración |
 | **Ejecutar el benchmark Harness²** | `uv run kratos harness` | Evalúa los 8 componentes de arnés con 6 tareas reales |
 | **Inspección de bases de datos** | `uv run kratos info` | Lista los motores activos y número de tablas |
