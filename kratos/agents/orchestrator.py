@@ -18,12 +18,17 @@ from kratos.security.sql_guard import validate_sql, RejectReason
 from kratos.engines.registry import EngineRegistry, DatabaseEngine
 from kratos.semantics.bi_engine import compile_echarts
 from kratos.semantics.unit_utils import infer_column_unit, format_metric_value
+from kratos.semantics.mdl import SemanticCatalog
+from kratos.semantics.compiler import SemanticCompiler
 from kratos.inference.schema_pruner import SchemaPruner
 from kratos.inference.client import LLMClient
 
 
 class InterpreterAgent:
     """Agent A: Intent classification, DataTask generation, and executive storytelling."""
+
+    def __init__(self):
+        self.semantic_catalog = SemanticCatalog()
 
     def interpret(self, query: str, active_engine_id: str) -> InterpretedRequest:
         lowered = query.lower()
@@ -122,9 +127,11 @@ class InterpreterAgent:
         elif any(w in lowered for w in ["cancion", "canciones", "track", "pelicula", "peliculas", "películas"]):
             metric_target = MetricTarget.COUNT_ENTITIES
 
-        # 7. Dimensions & Metrics Aliases
+        # 7. Dimensions & Metrics Aliases using Wren MDL Semantic Catalog
         dimensions: list[str] = []
         metrics: list[str] = []
+
+        model = self.semantic_catalog.get_model(active_engine_id)
 
         if analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:
             if time_dimension:
@@ -134,29 +141,36 @@ class InterpreterAgent:
         elif analytical_pattern == AnalyticalPattern.TIME_SERIES:
             if time_dimension:
                 dimensions.append(time_dimension)
-        elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION or any(w in lowered for w in ["pais", "país", "paises", "países"]):
-            dimensions.append("Pais")
-        elif any(w in lowered for w in ["producto", "productos", "articulo", "artículo", "articulos", "artículos", "item", "items"]):
-            dimensions.append("Producto")
-        elif any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"]):
-            dimensions.append("Empleado")
-        elif any(w in lowered for w in ["cliente", "clientes", "comprador", "compradores"]):
-            dimensions.append("Cliente")
-        elif any(w in lowered for w in ["proveedor", "proveedores", "supplier", "suppliers"]):
-            dimensions.append("Proveedor")
-        elif any(w in lowered for w in ["artista", "artistas"]):
-            dimensions.append("Artista")
-        elif any(w in lowered for w in ["actor", "actores", "actriz", "actrices"]):
-            dimensions.append("Actor")
-        elif any(w in lowered for w in ["genero", "género", "generos", "géneros"]):
-            dimensions.append("Genero")
         else:
-            dimensions.append("Categoria")
+            matched_dim = model.find_dimension_by_synonym(query) if model else None
+            if matched_dim:
+                dimensions.append(matched_dim.id)
+            elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION or any(w in lowered for w in ["pais", "país", "paises", "países"]):
+                dimensions.append("Pais")
+            elif any(w in lowered for w in ["producto", "productos", "articulo", "artículo", "articulos", "artículos", "item", "items"]):
+                dimensions.append("Producto")
+            elif any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"]):
+                dimensions.append("Empleado")
+            elif any(w in lowered for w in ["cliente", "clientes", "comprador", "compradores"]):
+                dimensions.append("Cliente")
+            elif any(w in lowered for w in ["proveedor", "proveedores", "supplier", "suppliers"]):
+                dimensions.append("Proveedor")
+            elif any(w in lowered for w in ["artista", "artistas"]):
+                dimensions.append("Artista")
+            elif any(w in lowered for w in ["actor", "actores", "actriz", "actrices"]):
+                dimensions.append("Actor")
+            elif any(w in lowered for w in ["genero", "género", "generos", "géneros"]):
+                dimensions.append("Genero")
+            else:
+                dimensions.append("Categoria")
 
-        if metric_target == MetricTarget.REVENUE:
+        matched_met = model.find_metric_by_synonym(query) if model else None
+        if matched_met:
+            metrics.append(matched_met.id)
+        elif metric_target == MetricTarget.REVENUE:
             metrics.append("Ventas_USD" if active_engine_id in ["northwind", "adventureworks_dw"] else "Facturacion_USD")
         elif metric_target == MetricTarget.ORDERS:
-            metrics.append("Pedidos")
+            metrics.append("Pedidos" if active_engine_id in ["northwind", "tpch"] else "Facturas")
         elif metric_target == MetricTarget.CUSTOMERS:
             metrics.append("Clientes")
         else:
@@ -243,6 +257,7 @@ class InvestigatorAgent:
         self.registry = registry
         self.pruner = SchemaPruner()
         self.llm = LLMClient()
+        self.semantic_catalog = SemanticCatalog()
         self.max_reflections = 3
 
     def execute_task(self, task: DataTask) -> DataEvidence:
@@ -347,6 +362,16 @@ class InvestigatorAgent:
         eid = engine.engine_id
         pattern = task.analytical_pattern
         grain = task.time_granularity
+
+        # Step 0: Wren AI MDL Semantic Compiler (Deterministic & Graph-Resolved)
+        model = self.semantic_catalog.get_model(eid)
+        if model:
+            try:
+                compiled = SemanticCompiler.compile(task, model)
+                if compiled:
+                    return compiled
+            except Exception as exc:
+                print(f"[WARN] Wren SemanticCompiler failed for {eid}: {exc}")
 
         # --- MULTI-SERIES TIME SERIES PATTERN ---
         if pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:

@@ -1,0 +1,95 @@
+engine_id: tpch
+name: "TPC-H Decision Support Benchmark"
+description: "Modelado semántico Wren MDL para cadena de suministro global: proveedores, partes, órdenes, envíos y clientes por nación."
+
+dimensions:
+  - id: Cliente
+    table: customer
+    column: c_name
+    synonyms: ["cliente", "clientes", "comprador", "cuenta"]
+    type: categorical
+
+  - id: Pais
+    table: nation
+    column: n_name
+    synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado"]
+    type: geo
+
+  - id: Segmento
+    table: customer
+    column: c_mktsegment
+    synonyms: ["segmento", "sector", "mercado objetivo"]
+    type: categorical
+
+  - id: Parte
+    table: part
+    column: p_name
+    synonyms: ["parte", "partes", "pieza", "piezas", "componente", "material"]
+    type: categorical
+
+  - id: Proveedor
+    table: supplier
+    column: s_name
+    synonyms: ["proveedor", "proveedores", "distribuidor", "supplier"]
+    type: categorical
+
+  - id: Fecha
+    table: orders
+    column: o_orderdate
+    synonyms: ["fecha", "día", "dia", "tiempo", "mes", "año"]
+    type: temporal
+
+metrics:
+  - id: Monto_USD
+    table: lineitem
+    expression: "ROUND(SUM(lineitem.l_extendedprice * (1 - lineitem.l_discount)), 2)"
+    unit: "USD"
+    is_currency: true
+    synonyms: ["monto", "ventas", "facturación", "ingresos", "volumen financiero", "desempeño"]
+
+  - id: Ordenes
+    table: orders
+    expression: "COUNT(DISTINCT orders.o_orderkey)"
+    unit: "órdenes"
+    is_currency: false
+    synonyms: ["órdenes", "ordenes", "pedidos", "transacciones"]
+
+  - id: Volumen
+    table: lineitem
+    expression: "SUM(lineitem.l_quantity)"
+    unit: "unidades"
+    is_currency: false
+    synonyms: ["volumen", "cantidad", "unidades", "toneladas"]
+
+  - id: Clientes
+    table: customer
+    expression: "COUNT(DISTINCT customer.c_custkey)"
+    unit: "clientes"
+    is_currency: false
+    synonyms: ["clientes", "total clientes"]
+
+relationships:
+  - from_table: orders
+    to_table: lineitem
+    on_clause: "orders.o_orderkey = lineitem.l_orderkey"
+    cardinality: one_to_many
+
+  - from_table: orders
+    to_table: customer
+    on_clause: "orders.o_custkey = customer.c_custkey"
+    cardinality: many_to_one
+
+  - from_table: customer
+    to_table: nation
+    on_clause: "customer.c_nationkey = nation.n_nationkey"
+    cardinality: many_to_one
+
+  - from_table: lineitem
+    to_table: part
+    on_clause: "lineitem.l_partkey = part.p_partkey"
+    cardinality: many_to_one
+
+  - from_table: lineitem
+    to_table: supplier
+    on_clause: "lineitem.l_suppkey = supplier.s_suppkey"
+    cardinality: many_to_one

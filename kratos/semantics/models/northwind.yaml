@@ -1,0 +1,95 @@
+engine_id: northwind
+name: "Northwind Sales & Inventory"
+description: "Modelado semántico Wren MDL para ventas minoristas, órdenes, clientes, productos y empleados."
+
+dimensions:
+  - id: Producto
+    table: products
+    column: productName
+    synonyms: ["producto", "productos", "artículo", "artículos", "item", "items", "mercancía"]
+    type: categorical
+
+  - id: Categoria
+    table: categories
+    column: categoryName
+    synonyms: ["categoría", "categorías", "linea", "línea", "lineas", "líneas", "segmento", "familia"]
+    type: categorical
+
+  - id: Empleado
+    table: employees
+    expression: "employees.lastName || ', ' || employees.firstName"
+    synonyms: ["empleado", "empleados", "vendedor", "vendedores", "personal", "staff"]
+    type: categorical
+
+  - id: Cliente
+    table: customers
+    column: companyName
+    synonyms: ["cliente", "clientes", "comprador", "compradores", "empresa", "cuenta"]
+    type: categorical
+
+  - id: Pais
+    table: customers
+    column: country
+    synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado"]
+    type: geo
+
+  - id: Fecha
+    table: orders
+    column: orderDate
+    synonyms: ["fecha", "día", "dia", "tiempo", "histórico", "historico", "cronología"]
+    type: temporal
+
+metrics:
+  - id: Ventas_USD
+    table: order_details
+    expression: "ROUND(SUM(order_details.unitPrice * order_details.quantity * (1 - order_details.discount)), 2)"
+    unit: "USD"
+    is_currency: true
+    synonyms: ["ventas", "venta", "facturación", "facturacion", "ingresos", "desempeño", "desempeno", "rendimiento", "volumen de venta", "monto"]
+
+  - id: Pedidos
+    table: orders
+    expression: "COUNT(DISTINCT orders.orderID)"
+    unit: "pedidos"
+    is_currency: false
+    synonyms: ["pedidos", "pedido", "órdenes", "ordenes", "orden", "transacciones", "compras"]
+
+  - id: Unidades
+    table: order_details
+    expression: "SUM(order_details.quantity)"
+    unit: "unidades"
+    is_currency: false
+    synonyms: ["unidades", "unidad", "cantidad", "piezas", "volumen físico", "stock vendido"]
+
+  - id: Clientes
+    table: customers
+    expression: "COUNT(DISTINCT customers.customerID)"
+    unit: "clientes"
+    is_currency: false
+    synonyms: ["clientes", "conteo de clientes", "total clientes", "cuentas"]
+
+relationships:
+  - from_table: orders
+    to_table: order_details
+    on_clause: "orders.orderID = order_details.orderID"
+    cardinality: one_to_many
+
+  - from_table: order_details
+    to_table: products
+    on_clause: "order_details.productID = products.productID"
+    cardinality: many_to_one
+
+  - from_table: products
+    to_table: categories
+    on_clause: "products.categoryID = categories.categoryID"
+    cardinality: many_to_one
+
+  - from_table: orders
+    to_table: employees
+    on_clause: "orders.employeeID = employees.employeeID"
+    cardinality: many_to_one
+
+  - from_table: orders
+    to_table: customers
+    on_clause: "orders.customerID = customers.customerID"
+    cardinality: many_to_one

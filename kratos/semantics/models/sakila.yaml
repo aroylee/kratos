@@ -1,0 +1,104 @@
+engine_id: sakila
+name: "Sakila DVD Rental Store"
+description: "Modelado semántico Wren MDL para videoclub: actores, películas, categorías, alquileres, pagos y clientes."
+
+dimensions:
+  - id: Actor
+    table: actor
+    expression: "actor.first_name || ' ' || actor.last_name"
+    synonyms: ["actor", "actores", "actriz", "actrices", "elenco", "protagonista", "estrella"]
+    type: categorical
+
+  - id: Pelicula
+    table: film
+    column: title
+    synonyms: ["película", "pelicula", "películas", "peliculas", "film", "films", "título", "cinta"]
+    type: categorical
+
+  - id: Categoria
+    table: category
+    column: name
+    synonyms: ["categoría", "categoria", "categorías", "categorias", "género cinematográfico", "tipo de película"]
+    type: categorical
+
+  - id: Cliente
+    table: customer
+    expression: "customer.first_name || ' ' || customer.last_name"
+    synonyms: ["cliente", "clientes", "miembro", "suscriptor"]
+    type: categorical
+
+  - id: Fecha
+    table: payment
+    column: payment_date
+    synonyms: ["fecha", "día", "dia", "tiempo", "mes", "semana"]
+    type: temporal
+
+metrics:
+  - id: Ingresos_USD
+    table: payment
+    expression: "ROUND(SUM(payment.amount), 2)"
+    unit: "USD"
+    is_currency: true
+    synonyms: ["ingresos", "ventas", "facturación", "recaudación", "desempeño", "monto", "dinero"]
+
+  - id: Alquileres
+    table: rental
+    expression: "COUNT(DISTINCT rental.rental_id)"
+    unit: "alquileres"
+    is_currency: false
+    synonyms: ["alquileres", "rentas", "préstamos", "operaciones", "movimientos"]
+
+  - id: Peliculas
+    table: film
+    expression: "COUNT(DISTINCT film.film_id)"
+    unit: "películas"
+    is_currency: false
+    synonyms: ["películas", "conteo de películas", "total películas", "títulos"]
+
+  - id: Actores
+    table: actor
+    expression: "COUNT(DISTINCT actor.actor_id)"
+    unit: "actores"
+    is_currency: false
+    synonyms: ["actores", "total actores"]
+
+relationships:
+  - from_table: payment
+    to_table: rental
+    on_clause: "payment.rental_id = rental.rental_id"
+    cardinality: many_to_one
+
+  - from_table: rental
+    to_table: inventory
+    on_clause: "rental.inventory_id = inventory.inventory_id"
+    cardinality: many_to_one
+
+  - from_table: inventory
+    to_table: film
+    on_clause: "inventory.film_id = film.film_id"
+    cardinality: many_to_one
+
+  - from_table: film
+    to_table: film_actor
+    on_clause: "film.film_id = film_actor.film_id"
+    cardinality: one_to_many
+
+  - from_table: film_actor
+    to_table: actor
+    on_clause: "film_actor.actor_id = actor.actor_id"
+    cardinality: many_to_one
+
+  - from_table: film
+    to_table: film_category
+    on_clause: "film.film_id = film_category.film_id"
+    cardinality: one_to_many
+
+  - from_table: film_category
+    to_table: category
+    on_clause: "film_category.category_id = category.category_id"
+    cardinality: many_to_one
+
+  - from_table: payment
+    to_table: customer
+    on_clause: "payment.customer_id = customer.customer_id"
+    cardinality: many_to_one

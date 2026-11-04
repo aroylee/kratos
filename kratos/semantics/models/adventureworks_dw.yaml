@@ -1,0 +1,71 @@
+engine_id: adventureworks_dw
+name: "AdventureWorks Data Warehouse"
+description: "Modelado semántico Wren MDL para manufactura y ventas: productos, modelos, categorías, órdenes y clientes corporativos."
+
+dimensions:
+  - id: Producto
+    table: Product
+    column: Name
+    synonyms: ["producto", "productos", "artículo", "artículos", "bicicleta", "componente", "modelo"]
+    type: categorical
+
+  - id: Categoria
+    table: ProductCategory
+    column: Name
+    synonyms: ["categoría", "categoria", "categorías", "linea", "segmento"]
+    type: categorical
+
+  - id: Cliente
+    table: Customer
+    column: CompanyName
+    synonyms: ["cliente", "clientes", "empresa", "cuenta corporativa"]
+    type: categorical
+
+  - id: Fecha
+    table: SalesOrderHeader
+    column: OrderDate
+    synonyms: ["fecha", "día", "dia", "tiempo", "mes", "año"]
+    type: temporal
+
+metrics:
+  - id: Ventas_USD
+    table: SalesOrderDetail
+    expression: "ROUND(SUM(SalesOrderDetail.LineTotal), 2)"
+    unit: "USD"
+    is_currency: true
+    synonyms: ["ventas", "venta", "facturación", "ingresos", "desempeño", "monto"]
+
+  - id: Ordenes
+    table: SalesOrderHeader
+    expression: "COUNT(DISTINCT SalesOrderHeader.SalesOrderID)"
+    unit: "órdenes"
+    is_currency: false
+    synonyms: ["órdenes", "ordenes", "pedidos", "transacciones"]
+
+  - id: Cantidad
+    table: SalesOrderDetail
+    expression: "SUM(SalesOrderDetail.OrderQty)"
+    unit: "unidades"
+    is_currency: false
+    synonyms: ["cantidad", "unidades", "volumen", "piezas"]
+
+relationships:
+  - from_table: SalesOrderHeader
+    to_table: SalesOrderDetail
+    on_clause: "SalesOrderHeader.SalesOrderID = SalesOrderDetail.SalesOrderID"
+    cardinality: one_to_many
+
+  - from_table: SalesOrderDetail
+    to_table: Product
+    on_clause: "SalesOrderDetail.ProductID = Product.ProductID"
+    cardinality: many_to_one
+
+  - from_table: Product
+    to_table: ProductCategory
+    on_clause: "Product.ProductCategoryID = ProductCategory.ProductCategoryID"
+    cardinality: many_to_one
+
+  - from_table: SalesOrderHeader
+    to_table: Customer
+    on_clause: "SalesOrderHeader.CustomerID = Customer.CustomerID"
+    cardinality: many_to_one

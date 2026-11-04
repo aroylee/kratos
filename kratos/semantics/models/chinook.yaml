@@ -1,0 +1,106 @@
+engine_id: chinook
+name: "Chinook Digital Music Store"
+description: "Modelado semántico Wren MDL para tienda musical: canciones, álbumes, artistas, géneros, facturación y clientes."
+
+dimensions:
+  - id: Artista
+    table: Artist
+    column: Name
+    synonyms: ["artista", "artistas", "músico", "músicos", "banda", "bandas", "autor"]
+    type: categorical
+
+  - id: Album
+    table: Album
+    column: Title
+    synonyms: ["álbum", "album", "álbumes", "albumes", "disco", "discos"]
+    type: categorical
+
+  - id: Cancion
+    table: Track
+    column: Name
+    synonyms: ["canción", "cancion", "canciones", "track", "tracks", "tema", "temas", "pista"]
+    type: categorical
+
+  - id: Genero
+    table: Genre
+    column: Name
+    synonyms: ["género", "genero", "géneros", "generos", "estilo", "categoría musical"]
+    type: categorical
+
+  - id: Pais
+    table: Invoice
+    column: BillingCountry
+    synonyms: ["país", "pais", "paises", "países", "nación", "mercado"]
+    type: geo
+
+  - id: Fecha
+    table: Invoice
+    column: InvoiceDate
+    synonyms: ["fecha", "día", "dia", "tiempo", "histórico", "mes", "semana"]
+    type: temporal
+
+  - id: Cliente
+    table: Customer
+    expression: "Customer.FirstName || ' ' || Customer.LastName"
+    synonyms: ["cliente", "clientes", "comprador", "compradores", "usuario"]
+    type: categorical
+
+metrics:
+  - id: Facturacion_USD
+    table: InvoiceLine
+    expression: "ROUND(SUM(InvoiceLine.UnitPrice * InvoiceLine.Quantity), 2)"
+    unit: "USD"
+    is_currency: true
+    synonyms: ["facturación", "facturacion", "ventas", "venta", "ingresos", "desempeño", "recaudación", "monto"]
+
+  - id: Canciones
+    table: Track
+    expression: "COUNT(DISTINCT Track.TrackId)"
+    unit: "canciones"
+    is_currency: false
+    synonyms: ["canciones", "tracks", "total canciones", "conteo de canciones", "catálogo"]
+
+  - id: Facturas
+    table: Invoice
+    expression: "COUNT(DISTINCT Invoice.InvoiceId)"
+    unit: "órdenes"
+    is_currency: false
+    synonyms: ["facturas", "pedidos", "compras", "transacciones"]
+
+  - id: Clientes
+    table: Customer
+    expression: "COUNT(DISTINCT Customer.CustomerId)"
+    unit: "clientes"
+    is_currency: false
+    synonyms: ["clientes", "total clientes", "usuarios"]
+
+relationships:
+  - from_table: Invoice
+    to_table: InvoiceLine
+    on_clause: "Invoice.InvoiceId = InvoiceLine.InvoiceId"
+    cardinality: one_to_many
+
+  - from_table: InvoiceLine
+    to_table: Track
+    on_clause: "InvoiceLine.TrackId = Track.TrackId"
+    cardinality: many_to_one
+
+  - from_table: Track
+    to_table: Genre
+    on_clause: "Track.GenreId = Genre.GenreId"
+    cardinality: many_to_one
+
+  - from_table: Track
+    to_table: Album
+    on_clause: "Track.AlbumId = Album.AlbumId"
+    cardinality: many_to_one
+
+  - from_table: Album
+    to_table: Artist
+    on_clause: "Album.ArtistId = Artist.ArtistId"
+    cardinality: many_to_one
+
+  - from_table: Invoice
+    to_table: Customer
+    on_clause: "Invoice.CustomerId = Customer.CustomerId"
+    cardinality: many_to_one
