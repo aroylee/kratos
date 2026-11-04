@@ -71,20 +71,27 @@ class SemanticCompiler:
                 from_fact = f"FROM {time_dim.table} {fact_join_sql}".strip()
 
                 cte_table_name = f"top_{primary_dim.table}"
-                # Primary key or joining column
                 dim_col_name = primary_dim.column or primary_dim.id
 
                 return (
+                    f"/* =========================================================================\n"
+                    f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
+                    f"   Objetivo: {task.goal}\n"
+                    f"   Patrón: Multi-Series Time Series con Cohorte Top {top_n}\n"
+                    f"   Capa Semántica: Wren AI MDL ({model.name})\n"
+                    f"   ========================================================================= */\n"
+                    f"-- Paso 1: Filtrar la cohorte Top {top_n} por volumen histórico total\n"
                     f"WITH {cte_table_name} AS (\n"
-                    f"    SELECT {s_expr} AS {s_alias}\n"
+                    f"    SELECT {s_expr} AS {s_alias} -- Entidad líder\n"
                     f"    {from_cohort}\n"
                     f"    GROUP BY {s_alias}\n"
                     f"    ORDER BY {metric.expression} {order_dir}\n"
                     f"    LIMIT {top_n}\n"
                     f")\n"
-                    f"SELECT {time_expr} AS {time_alias},\n"
-                    f"       tc.{s_alias} AS {s_alias},\n"
-                    f"       {metric.expression} AS {metric.id}\n"
+                    f"-- Paso 2: Desglose cronológico ({grain.value}) únicamente para la cohorte seleccionada\n"
+                    f"SELECT {time_expr} AS {time_alias}, -- Eje temporal\n"
+                    f"       tc.{s_alias} AS {s_alias}, -- Segmento de la cohorte Top {top_n}\n"
+                    f"       {metric.expression} AS {metric.id} -- Métrica analítica calculada ({metric.unit})\n"
                     f"{from_fact}\n"
                     f"JOIN {primary_dim.table} ON {primary_dim.table}.{dim_col_name} = tc.{s_alias}\n"
                     f"JOIN {cte_table_name} tc ON {primary_dim.table}.{dim_col_name} = tc.{s_alias}\n"
@@ -97,9 +104,15 @@ class SemanticCompiler:
             joins = cls._build_joins(req_tables, model, base_table=time_dim.table)
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
             return (
-                f"SELECT {time_expr} AS {time_alias},\n"
-                f"       {s_expr} AS {s_alias},\n"
-                f"       {metric.expression} AS {metric.id}\n"
+                f"/* =========================================================================\n"
+                f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
+                f"   Objetivo: {task.goal}\n"
+                f"   Patrón: Multi-Series Time Series ({grain.value})\n"
+                f"   Capa Semántica: Wren AI MDL ({model.name})\n"
+                f"   ========================================================================= */\n"
+                f"SELECT {time_expr} AS {time_alias}, -- Dimensión temporal ({grain.value})\n"
+                f"       {s_expr} AS {s_alias}, -- Segmento analítico\n"
+                f"       {metric.expression} AS {metric.id} -- Métrica calculada ({metric.unit})\n"
                 f"FROM {time_dim.table} {join_sql}\n"
                 f"GROUP BY {time_alias}, {s_alias}\n"
                 f"ORDER BY {time_alias} ASC, {metric.id} DESC\n"
@@ -117,8 +130,14 @@ class SemanticCompiler:
             from_clause = f"FROM {time_dim.table} {join_sql}".strip()
 
             return (
-                f"SELECT {time_expr} AS {time_alias},\n"
-                f"       {metric.expression} AS {metric.id}\n"
+                f"/* =========================================================================\n"
+                f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
+                f"   Objetivo: {task.goal}\n"
+                f"   Patrón: Time Series Mono-serie ({grain.value})\n"
+                f"   Capa Semántica: Wren AI MDL ({model.name})\n"
+                f"   ========================================================================= */\n"
+                f"SELECT {time_expr} AS {time_alias}, -- Eje cronológico\n"
+                f"       {metric.expression} AS {metric.id} -- Métrica acumulada ({metric.unit})\n"
                 f"{from_clause}\n"
                 f"GROUP BY {time_alias}\n"
                 f"ORDER BY {time_alias} ASC\n"
@@ -134,9 +153,16 @@ class SemanticCompiler:
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
             from_clause = f"FROM {primary_dim.table} {join_sql}".strip()
 
+            rank_title = f"Top {limit_val}" if top_n else "Distribución Categórica"
             return (
-                f"SELECT {primary_dim.select_expression} AS {primary_dim.id},\n"
-                f"       {metric.expression} AS {metric.id}\n"
+                f"/* =========================================================================\n"
+                f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
+                f"   Objetivo: {task.goal}\n"
+                f"   Patrón: {rank_title} ({order_dir})\n"
+                f"   Capa Semántica: Wren AI MDL ({model.name})\n"
+                f"   ========================================================================= */\n"
+                f"SELECT {primary_dim.select_expression} AS {primary_dim.id}, -- Dimensión analítica canónica\n"
+                f"       {metric.expression} AS {metric.id} -- Métrica formal de negocio ({metric.unit})\n"
                 f"{from_clause}\n"
                 f"GROUP BY {primary_dim.id}\n"
                 f"ORDER BY {metric.id} {order_dir}\n"

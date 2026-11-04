@@ -234,7 +234,7 @@ def validate_sql(
 
     return GuardResult(
         allowed=True,
-        sanitized_sql=tree.sql(dialect=dialect),
+        sanitized_sql=tree.sql(dialect=dialect, pretty=True, comments=True),
         tables=sorted(set(tables)),
         limit_applied=limit_applied,
     )

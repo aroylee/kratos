@@ -405,9 +405,14 @@ def index_page():
                 // Render Audit
                 const q = (data.evidence && data.evidence.queries && data.evidence.queries.length > 0) ? data.evidence.queries[0] : null;
                 if (q) {
+                    // Escape HTML for pre block
+                    const escapedSql = q.sql.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                     document.getElementById('audit-container').innerHTML = `
-                        <p><span class="text-indigo-400">SQL:</span> ${q.sql}</p>
-                        <p><span class="text-emerald-400">Latencia:</span> ${q.execution_ms} ms &bull; <span class="text-blue-400">Filas:</span> ${q.row_count} &bull; <span class="text-purple-400">Motor:</span> ${data.evidence.engine_id.toUpperCase()}</p>
+                        <div class="mb-2">
+                            <span class="text-indigo-400 font-semibold block mb-1">SQL Formateado & Comentado:</span>
+                            <pre class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 overflow-x-auto text-[11px] leading-relaxed font-mono whitespace-pre">${escapedSql}</pre>
+                        </div>
+                        <p class="mt-2 text-slate-400"><span class="text-emerald-400 font-semibold">Latencia:</span> ${q.execution_ms} ms &bull; <span class="text-blue-400 font-semibold">Filas:</span> ${q.row_count} &bull; <span class="text-purple-400 font-semibold">Motor:</span> ${data.evidence.engine_id.toUpperCase()}</p>
                     `;
 
                     // Render Table
