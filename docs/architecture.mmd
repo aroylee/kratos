@@ -17,12 +17,12 @@ flowchart TD
     end
 
     LLM["<b>LLM Providers</b><br/>litellm (local / cloud)"]
-    DATA[("data/<br/>northwind · chinook · sakila<br/>adventureworks_dw · tpch (".db")]
+    DATA[("data/<br/>northwind · chinook · sakila<br/>adventureworks_dw · tpch")]
 
     User -.->|"HTTP query"| API
     API -->|"natural language"| A
     A -->|"<b>DataTask</b> (typed contract)"| B
-    B <-.->|"chat / SQL-gen"| LLM
+    B -.->|"chat / SQL-gen"| LLM
     B --> P
     P -->|"candidate SQL"| G
     G -->|"validated SELECT"| E

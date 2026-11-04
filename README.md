@@ -24,6 +24,15 @@
 
 ## 🗺️ Arquitectura del Sistema
 
+<p align="center">
+  <a href="docs/architecture.mmd"><img src="docs/architecture.png" alt="Kratos — Arquitectura multi-agente" width="640"/></a>
+</p>
+
+<p align="center"><sub>🖱️ Clic en la imagen = <b>diagrama Mermaid interactivo</b> (GitHub lo renderiza desde la fuente).</sub></p>
+
+<details>
+<summary>📐 Vista alternativa: flujo horizontal resumido (Mermaid inline)</summary>
+
 ```mermaid
 flowchart LR
     subgraph Entrada ["👤 Entrada"]
@@ -52,6 +61,8 @@ flowchart LR
         Answer --> UI
     end
 ```
+
+</details>
 
 > 📖 **Para una explicación detallada componente por componente con analogías del mundo real:**
 > 👉 Consulta la [**Guía Exhaustiva de Arquitectura**](docs/ARQUITECTURA.md).
