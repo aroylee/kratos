@@ -58,7 +58,7 @@ class SemanticCompiler:
             s_alias = primary_dim.id
             s_expr = primary_dim.select_expression
 
-            # Case A1: Multi-series with Top N Cohort CTE
+            # Case A1: Multi-series with Top N / Bottom N Cohort CTE
             if top_n:
                 cohort_tables = {primary_dim.table, metric.table}
                 if metric.required_tables:
@@ -67,26 +67,28 @@ class SemanticCompiler:
                 cohort_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in cohort_joins])
                 from_cohort = f"FROM {primary_dim.table} {cohort_join_sql}".strip()
 
-                fact_tables = {time_dim.table, metric.table}
+                # Must include primary_dim.table so fact table traversal path (e.g. orders -> order_details -> products -> categories) is complete
+                fact_tables = {time_dim.table, metric.table, primary_dim.table}
                 if metric.required_tables:
                     fact_tables.update(metric.required_tables)
                 fact_joins = cls._build_joins(fact_tables, model, base_table=time_dim.table)
                 fact_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in fact_joins])
                 from_fact = f"FROM {time_dim.table} {fact_join_sql}".strip()
 
-                cte_table_name = f"top_{primary_dim.table}"
-                dim_col_name = primary_dim.column or primary_dim.id
+                is_lowest = order_dir == "ASC"
+                cohort_label = f"Bottom {top_n} (menor desempeño)" if is_lowest else f"Top {top_n} (mejor desempeño)"
+                cte_table_name = f"{'bottom' if is_lowest else 'top'}_{primary_dim.table}"
 
                 return (
                     f"/* =========================================================================\n"
                     f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
                     f"   Objetivo: {task.goal}\n"
-                    f"   Patrón: Multi-Series Time Series con Cohorte Top {top_n}\n"
+                    f"   Patrón: Multi-Series Time Series con Cohorte {cohort_label}\n"
                     f"   Capa Semántica: Wren AI MDL ({model.name})\n"
                     f"   ========================================================================= */\n"
-                    f"-- Paso 1: Filtrar la cohorte Top {top_n} por volumen histórico total\n"
+                    f"-- Paso 1: Filtrar la cohorte {cohort_label} por volumen histórico total ({order_dir})\n"
                     f"WITH {cte_table_name} AS (\n"
-                    f"    SELECT {s_expr} AS {s_alias} -- Entidad líder\n"
+                    f"    SELECT {s_expr} AS {s_alias} -- Entidad líder/segmento\n"
                     f"    {from_cohort}\n"
                     f"    GROUP BY {s_alias}\n"
                     f"    ORDER BY {metric.expression} {order_dir}\n"
@@ -94,13 +96,13 @@ class SemanticCompiler:
                     f")\n"
                     f"-- Paso 2: Desglose cronológico ({grain.value}) únicamente para la cohorte seleccionada\n"
                     f"SELECT {time_expr} AS {time_alias}, -- Eje temporal\n"
-                    f"       tc.{s_alias} AS {s_alias}, -- Segmento de la cohorte Top {top_n}\n"
+                    f"       tc.{s_alias} AS {s_alias}, -- Segmento de la cohorte {cohort_label}\n"
                     f"       {metric.expression} AS {metric.id} -- Métrica analítica calculada ({metric.unit})\n"
                     f"{from_fact}\n"
-                    f"JOIN {primary_dim.table} ON {primary_dim.table}.{dim_col_name} = tc.{s_alias}\n"
-                    f"JOIN {cte_table_name} tc ON {primary_dim.table}.{dim_col_name} = tc.{s_alias}\n"
+                    f"JOIN {cte_table_name} tc ON {s_expr} = tc.{s_alias}\n"
                     f"GROUP BY {time_alias}, {s_alias}\n"
-                    f"ORDER BY {time_alias} ASC, {metric.id} DESC;"
+                    f"ORDER BY {time_alias} ASC, {metric.id} DESC\n"
+                    f"LIMIT 500;"
                 )
 
             # Case A2: Standard Multi-series

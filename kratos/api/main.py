@@ -226,6 +226,13 @@ def index_page():
                 </div>
             </div>
 
+            <div id="suggested-container" class="hidden bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-2 flex items-center gap-1.5">
+                    <span>💡</span> Preguntas Analíticas Sugeridas
+                </h3>
+                <div id="suggested-chips" class="flex flex-wrap gap-1.5 text-xs"></div>
+            </div>
+
             <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
                 <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Auditoría DataTask & 4-Layer AST</h3>
                 <div id="audit-container" class="text-xs font-mono space-y-1 text-slate-400 overflow-x-auto">
@@ -236,19 +243,45 @@ def index_page():
 
         <!-- Columna Derecha: Gráficos y Tablas -->
         <section class="lg:col-span-2 space-y-4">
-            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Visualización Analítica (Apache ECharts 5)</h3>
-                <div id="chart-container" style="height: 380px; width: 100%;"></div>
+            <!-- Tarjeta de Gráfico con Controles Interactivos -->
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-xl">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-slate-800/80 mb-3 gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm">📈</span>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Visualización Analítica Interactiva</h3>
+                        <span id="chart-type-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950/80 text-indigo-400 border border-indigo-800">ECharts 5</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-[11px] text-slate-500 mr-1 hidden sm:inline">Modo:</span>
+                        <button onclick="changeChartType('line')" id="btn-chart-line" class="chart-type-btn px-2.5 py-1 text-xs rounded bg-indigo-600 border border-indigo-500 text-white font-medium transition shadow-sm">📈 Línea</button>
+                        <button onclick="changeChartType('bar')" id="btn-chart-bar" class="chart-type-btn px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">📊 Barra</button>
+                        <button onclick="changeChartType('area')" id="btn-chart-area" class="chart-type-btn px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">🏔️ Área</button>
+                        <button onclick="downloadChartImage()" title="Descargar Imagen PNG" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
+                            <span>📸</span> PNG
+                        </button>
+                    </div>
+                </div>
+                <div id="chart-container" style="height: 390px; width: 100%;"></div>
             </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl overflow-x-auto">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                        <span>📋</span> Registros de Evidencia Auditada
-                    </h3>
-                    <span id="table-row-count-badge" class="hidden text-[11px] font-mono bg-slate-950 text-slate-400 px-2 py-0.5 rounded border border-slate-800"></span>
+            <!-- Tarjeta de Tabla de Evidencias con Búsqueda y Exportación -->
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-xl">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-slate-800/80 mb-3 gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm">📋</span>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Registros de Evidencia Auditada</h3>
+                        <span id="table-row-count-badge" class="hidden text-[11px] font-mono bg-slate-950 text-slate-400 px-2 py-0.5 rounded border border-slate-800"></span>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-48">
+                            <input type="text" id="table-search-input" oninput="filterTableRows()" placeholder="🔍 Filtrar registros..." class="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <button onclick="exportTableToCSV()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
+                            <span>📥</span> CSV
+                        </button>
+                    </div>
                 </div>
-                <div id="table-container" class="text-xs">
+                <div id="table-container" class="text-xs overflow-x-auto">
                     <p class="text-slate-600 p-2 italic">Sin registros cargados.</p>
                 </div>
             </div>
@@ -259,6 +292,11 @@ def index_page():
         let chartInstance = echarts.init(document.getElementById('chart-container'), 'dark');
         let currentEngine = 'northwind';
         let enginesData = [];
+        let currentChartOption = null;
+        let currentChartMode = 'line';
+        let currentRawRows = [];
+        let currentRawCols = [];
+        let currentColMeta = [];
 
         function setQuery(text) {
             document.getElementById('query-input').value = text;
@@ -535,6 +573,9 @@ def index_page():
                     ` : ''}
                 `;
 
+                // Render Suggested Questions
+                renderSuggestedQuestions(data.suggested_questions);
+
                 // Render Audit
                 const q = (data.evidence && data.evidence.queries && data.evidence.queries.length > 0) ? data.evidence.queries[0] : null;
                 if (q) {
@@ -548,49 +589,13 @@ def index_page():
                         <p class="mt-2 text-slate-400"><span class="text-emerald-400 font-semibold">Latencia:</span> ${q.execution_ms} ms &bull; <span class="text-blue-400 font-semibold">Filas:</span> ${q.row_count} &bull; <span class="text-purple-400 font-semibold">Motor:</span> ${data.evidence.engine_id.toUpperCase()}</p>
                     `;
 
-                    // Render Table with Semantic Formatting and Units
-                    if (q.rows && q.rows.length > 0) {
-                        const cols = Object.keys(q.rows[0]);
-                        const colMeta = cols.map(c => ({ col: c, ...getColumnMetadata(c) }));
-                        
-                        const badge = document.getElementById('table-row-count-badge');
-                        badge.innerText = `${q.rows.length} ${q.rows.length === 1 ? 'registro' : 'registros'}${q.truncated ? ' (truncado)' : ''}`;
-                        badge.classList.remove('hidden');
-
-                        document.getElementById('table-container').innerHTML = `
-                            <table class="w-full text-left border-collapse rounded-lg overflow-hidden">
-                                <thead>
-                                    <tr class="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
-                                        <th class="p-2.5 text-center w-12 font-semibold text-slate-500">#</th>
-                                        ${colMeta.map(m => `
-                                            <th class="p-2.5 ${m.align} font-semibold">
-                                                <span class="inline-flex items-center">${m.label} ${m.badge}</span>
-                                            </th>
-                                        `).join('')}
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-800/40">
-                                    ${q.rows.slice(0, 15).map((r, i) => {
-                                        let rankBadge = `<span class="text-slate-500 font-mono text-[11px]">${i + 1}</span>`;
-                                        if (i === 0) rankBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥇 1</span>`;
-                                        else if (i === 1) rankBadge = `<span class="bg-slate-300/20 text-slate-200 border border-slate-400/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥈 2</span>`;
-                                        else if (i === 2) rankBadge = `<span class="bg-amber-700/20 text-amber-500 border border-amber-600/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥉 3</span>`;
-
-                                        return `
-                                            <tr class="transition hover:bg-indigo-950/20 ${i % 2 === 0 ? 'bg-slate-950/30' : 'bg-transparent'}">
-                                                <td class="p-2.5 text-center font-mono">${rankBadge}</td>
-                                                ${colMeta.map(m => `
-                                                    <td class="p-2.5 ${m.align}">
-                                                        ${formatTableCell(r[m.col], m.unitType)}
-                                                    </td>
-                                                `).join('')}
-                                            </tr>
-                                        `;
-                                    }).join('')}
-                                </tbody>
-                            </table>
-                            ${q.rows.length > 15 ? `<p class="text-right text-[11px] text-slate-500 mt-2 italic">Mostrando primeros 15 de ${q.rows.length} registros auditados</p>` : ''}
-                        `;
+                    // Store rows for interactive filtering & CSV export
+                    currentRawRows = q.rows || [];
+                    if (currentRawRows.length > 0) {
+                        currentRawCols = Object.keys(currentRawRows[0]);
+                        currentColMeta = currentRawCols.map(c => ({ col: c, ...getColumnMetadata(c) }));
+                        document.getElementById('table-search-input').value = '';
+                        renderTableRows(currentRawRows);
                     } else {
                         document.getElementById('table-row-count-badge').classList.add('hidden');
                         document.getElementById('table-container').innerHTML = '<p class="text-slate-500 italic p-3">Sin registros devueltos.</p>';
@@ -602,12 +607,177 @@ def index_page():
                     document.getElementById('table-container').innerHTML = '<p class="text-slate-500 italic p-2">Sin registros devueltos.</p>';
                 }
 
-                // Render Chart
+                // Render Chart & store options for dynamic switching
                 if (data.visualization) {
-                    chartInstance.setOption(data.visualization, true);
+                    currentChartOption = data.visualization;
+                    chartInstance.setOption(currentChartOption, true);
+                    updateChartTypeButtons(currentChartMode);
                 } else {
+                    currentChartOption = null;
                     chartInstance.clear();
                 }
+            } catch (err) {
+                showAlert("Error de conexión: " + err.message);
+            } finally {
+                runBtn.disabled = false;
+                runBtn.innerHTML = '<span>⚡</span> Ejecutar Análisis';
+            }
+        }
+
+        function renderSuggestedQuestions(questions) {
+            const container = document.getElementById('suggested-container');
+            const chips = document.getElementById('suggested-chips');
+            if (questions && questions.length > 0) {
+                chips.innerHTML = questions.map(q => `
+                    <button onclick="setQuery('${q.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg bg-slate-950 border border-indigo-900/60 text-indigo-300 hover:text-white hover:bg-indigo-950/80 hover:border-indigo-500 transition text-left flex items-center gap-1.5 shadow-sm">
+                        <span class="text-indigo-400">⚡</span> ${q}
+                    </button>
+                `).join('');
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function renderTableRows(rows) {
+            if (!rows || rows.length === 0) {
+                document.getElementById('table-container').innerHTML = '<p class="text-slate-500 italic p-3">No hay registros que coincidan con la búsqueda.</p>';
+                document.getElementById('table-row-count-badge').innerText = `0 de ${currentRawRows.length} registros`;
+                return;
+            }
+
+            const badge = document.getElementById('table-row-count-badge');
+            if (rows.length !== currentRawRows.length) {
+                badge.innerText = `${rows.length} de ${currentRawRows.length} filtrados`;
+            } else {
+                badge.innerText = `${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}`;
+            }
+            badge.classList.remove('hidden');
+
+            const displayedRows = rows.slice(0, 30);
+            document.getElementById('table-container').innerHTML = `
+                <table class="w-full text-left border-collapse rounded-lg overflow-hidden">
+                    <thead>
+                        <tr class="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+                            <th class="p-2.5 text-center w-12 font-semibold text-slate-500">#</th>
+                            ${currentColMeta.map(m => `
+                                <th class="p-2.5 ${m.align} font-semibold">
+                                    <span class="inline-flex items-center">${m.label} ${m.badge}</span>
+                                </th>
+                            `).join('')}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/40">
+                        ${displayedRows.map((r, i) => {
+                            let rankBadge = `<span class="text-slate-500 font-mono text-[11px]">${i + 1}</span>`;
+                            if (i === 0) rankBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥇 1</span>`;
+                            else if (i === 1) rankBadge = `<span class="bg-slate-300/20 text-slate-200 border border-slate-400/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥈 2</span>`;
+                            else if (i === 2) rankBadge = `<span class="bg-amber-700/20 text-amber-500 border border-amber-600/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥉 3</span>`;
+
+                            return `
+                                <tr class="transition hover:bg-indigo-950/20 ${i % 2 === 0 ? 'bg-slate-950/30' : 'bg-transparent'}">
+                                    <td class="p-2.5 text-center font-mono">${rankBadge}</td>
+                                    ${currentColMeta.map(m => `
+                                        <td class="p-2.5 ${m.align}">
+                                            ${formatTableCell(r[m.col], m.unitType)}
+                                        </td>
+                                    `).join('')}
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+                ${rows.length > 30 ? `<p class="text-right text-[11px] text-slate-500 mt-2 italic">Mostrando primeros 30 de ${rows.length} registros auditados</p>` : ''}
+            `;
+        }
+
+        function filterTableRows() {
+            const query = (document.getElementById('table-search-input').value || '').toLowerCase().trim();
+            if (!query) {
+                renderTableRows(currentRawRows);
+                return;
+            }
+            const filtered = currentRawRows.filter(row => {
+                return Object.values(row).some(val => String(val).toLowerCase().includes(query));
+            });
+            renderTableRows(filtered);
+        }
+
+        function exportTableToCSV() {
+            if (!currentRawRows || currentRawRows.length === 0) {
+                alert("No hay registros disponibles para exportar.");
+                return;
+            }
+            const headers = currentRawCols.join(',');
+            const rowsCsv = currentRawRows.map(r => {
+                return currentRawCols.map(col => {
+                    let val = r[col];
+                    if (val === null || val === undefined) return '""';
+                    val = String(val).replace(/"/g, '""');
+                    return `"${val}"`;
+                }).join(',');
+            }).join('\\n');
+
+            const csvContent = "data:text/csv;charset=utf-8," + headers + "\\n" + rowsCsv;
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `kratos_data_${currentEngine}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function changeChartType(newType) {
+            if (!currentChartOption || !currentChartOption.series) return;
+            currentChartMode = newType;
+            updateChartTypeButtons(newType);
+
+            currentChartOption.series.forEach(s => {
+                if (newType === 'bar') {
+                    s.type = 'bar';
+                    s.itemStyle = Object.assign({}, s.itemStyle || {}, { borderRadius: [4, 4, 0, 0] });
+                    delete s.areaStyle;
+                } else if (newType === 'area') {
+                    s.type = 'line';
+                    s.smooth = true;
+                    s.areaStyle = { opacity: 0.25 };
+                } else {
+                    s.type = 'line';
+                    s.smooth = true;
+                    delete s.areaStyle;
+                }
+            });
+
+            chartInstance.setOption(currentChartOption, true);
+        }
+
+        function updateChartTypeButtons(activeType) {
+            ['line', 'bar', 'area'].forEach(t => {
+                const btn = document.getElementById(`btn-chart-${t}`);
+                if (!btn) return;
+                if (t === activeType) {
+                    btn.className = "chart-type-btn px-2.5 py-1 text-xs rounded bg-indigo-600 border border-indigo-500 text-white font-medium transition shadow-sm";
+                } else {
+                    btn.className = "chart-type-btn px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition";
+                }
+            });
+        }
+
+        function downloadChartImage() {
+            if (!chartInstance) return;
+            const url = chartInstance.getDataURL({
+                type: 'png',
+                pixelRatio: 2,
+                backgroundColor: '#0B0F19'
+            });
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `kratos_chart_${currentEngine}_${new Date().toISOString().slice(0,10)}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
             } catch (err) {
                 showAlert("Error de conexión: " + err.message);
             } finally {

@@ -57,17 +57,29 @@ def _compile_multi_series_echarts(
         })
 
     primary_unit = infer_column_unit(metric_col)
+    has_zoom = len(time_points) > 12
 
-    return {
+    option: Dict[str, Any] = {
         "title": {"text": title, "textStyle": {"color": "#E2E8F0"}},
-        "tooltip": {"trigger": "axis"},
+        "tooltip": {
+            "trigger": "axis",
+            "backgroundColor": "#0F172A",
+            "borderColor": "#334155",
+            "textStyle": {"color": "#E2E8F0"}
+        },
         "legend": {
             "data": top_cats,
             "textStyle": {"color": "#94A3B8"},
             "top": 25,
             "type": "scroll",
         },
-        "grid": {"left": "3%", "right": "4%", "bottom": "5%", "top": "18%", "containLabel": True},
+        "grid": {
+            "left": "3%",
+            "right": "4%",
+            "bottom": "14%" if has_zoom else "5%",
+            "top": "18%",
+            "containLabel": True
+        },
         "xAxis": {
             "type": "category",
             "data": time_points,
@@ -81,6 +93,24 @@ def _compile_multi_series_echarts(
         },
         "series": series,
     }
+
+    if has_zoom:
+        option["dataZoom"] = [
+            {"type": "inside", "start": 0, "end": 100},
+            {
+                "type": "slider",
+                "start": 0,
+                "end": 100,
+                "height": 22,
+                "bottom": 6,
+                "borderColor": "#334155",
+                "fillerColor": "rgba(99, 102, 241, 0.15)",
+                "handleStyle": {"color": "#6366F1"},
+                "textStyle": {"color": "#94A3B8"}
+            }
+        ]
+
+    return option
 
 
 def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overview") -> Dict[str, Any] | None:
@@ -161,12 +191,23 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
         })
 
     primary_unit = infer_column_unit(metric_cols[0])
+    has_zoom = is_temporal and len(categories) > 12
 
-    return {
+    option: Dict[str, Any] = {
         "title": {"text": title, "textStyle": {"color": "#E2E8F0"}},
-        "tooltip": {"trigger": "axis"},
+        "tooltip": {
+            "trigger": "axis",
+            "backgroundColor": "#0F172A",
+            "borderColor": "#334155",
+            "textStyle": {"color": "#E2E8F0"}
+        },
         "legend": {"textStyle": {"color": "#94A3B8"}, "top": 25},
-        "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
+        "grid": {
+            "left": "3%",
+            "right": "4%",
+            "bottom": "14%" if has_zoom else "5%",
+            "containLabel": True
+        },
         "xAxis": {
             "type": "category",
             "data": categories,
@@ -180,3 +221,21 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
         },
         "series": series,
     }
+
+    if has_zoom:
+        option["dataZoom"] = [
+            {"type": "inside", "start": 0, "end": 100},
+            {
+                "type": "slider",
+                "start": 0,
+                "end": 100,
+                "height": 22,
+                "bottom": 6,
+                "borderColor": "#334155",
+                "fillerColor": "rgba(99, 102, 241, 0.15)",
+                "handleStyle": {"color": "#6366F1"},
+                "textStyle": {"color": "#94A3B8"}
+            }
+        ]
+
+    return option
