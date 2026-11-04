@@ -71,26 +71,8 @@ class InterpreterAgent:
         has_genre = any(w in lowered for w in ["genero", "género", "generos", "géneros"])
 
         series_dimension = None
-        if is_time_series and (has_category or has_employee or has_country or has_genre):
-            analytical_pattern = AnalyticalPattern.MULTI_SERIES_TIME_SERIES
-            if has_category:
-                series_dimension = "Categoria"
-            elif has_employee:
-                series_dimension = "Empleado"
-            elif has_genre:
-                series_dimension = "Genero"
-            elif has_country:
-                series_dimension = "Pais"
-        elif is_time_series:
-            analytical_pattern = AnalyticalPattern.TIME_SERIES
-        elif any(w in lowered for w in ["top", "mejores", "primeros", "ranking", "lideres", "líderes", "mas", "más"]):
-            analytical_pattern = AnalyticalPattern.RANKING_TOP_N
-        elif any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región"]):
-            analytical_pattern = AnalyticalPattern.GEO_DISTRIBUTION
-        else:
-            analytical_pattern = AnalyticalPattern.CATEGORICAL_BREAKDOWN
 
-        # 4. Top-N and Ranking Extraction
+        # 4. Top-N and Ranking Extraction (Extract before Pattern to ground correctly)
         top_n = None
         ranking_criterion = None
 
@@ -104,12 +86,32 @@ class InterpreterAgent:
                     top_n = n
                     break
 
-        if any(w in lowered for w in ["mejor desempeño", "mejores desempeños", "mejor rendimiento", "más ventas", "mas ventas", "mayores ventas", "mejores"]):
+        if any(w in lowered for w in ["mejor desempeño", "mejores desempeños", "mejor rendimiento", "más ventas", "mas ventas", "mayores ventas", "mejores", "mejor"]):
             ranking_criterion = "mejor desempeño"
-        elif any(w in lowered for w in ["peor desempeño", "menos ventas", "menores ventas"]):
+        elif any(w in lowered for w in ["peor desempeño", "menos ventas", "menores ventas", "peores", "peor"]):
             ranking_criterion = "menor desempeño"
 
-        # 5. Metric Target Detection
+        # 5. Analytical Pattern Detection
+        if is_time_series and (has_category or has_employee or has_country or has_genre):
+            analytical_pattern = AnalyticalPattern.MULTI_SERIES_TIME_SERIES
+            if has_category:
+                series_dimension = "Categoria"
+            elif has_employee:
+                series_dimension = "Empleado"
+            elif has_genre:
+                series_dimension = "Genero"
+            elif has_country:
+                series_dimension = "Pais"
+        elif is_time_series:
+            analytical_pattern = AnalyticalPattern.TIME_SERIES
+        elif top_n is not None or any(w in lowered for w in ["top", "mejores", "mejor", "primeros", "primeras", "ranking", "lideres", "líderes", "lider", "líder", "mas", "más", "peor", "peores"]):
+            analytical_pattern = AnalyticalPattern.RANKING_TOP_N
+        elif any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región"]):
+            analytical_pattern = AnalyticalPattern.GEO_DISTRIBUTION
+        else:
+            analytical_pattern = AnalyticalPattern.CATEGORICAL_BREAKDOWN
+
+        # 6. Metric Target Detection
         metric_target = MetricTarget.REVENUE
         if any(w in lowered for w in ["pedido", "pedidos", "orden", "ordenes", "órdenes", "orders"]):
             metric_target = MetricTarget.ORDERS
@@ -120,7 +122,7 @@ class InterpreterAgent:
         elif any(w in lowered for w in ["cancion", "canciones", "track", "pelicula", "peliculas", "películas"]):
             metric_target = MetricTarget.COUNT_ENTITIES
 
-        # 6. Dimensions & Metrics Aliases
+        # 7. Dimensions & Metrics Aliases
         dimensions: list[str] = []
         metrics: list[str] = []
 
@@ -132,14 +134,22 @@ class InterpreterAgent:
         elif analytical_pattern == AnalyticalPattern.TIME_SERIES:
             if time_dimension:
                 dimensions.append(time_dimension)
-        elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION:
+        elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION or any(w in lowered for w in ["pais", "país", "paises", "países"]):
             dimensions.append("Pais")
-        elif "empleado" in lowered:
+        elif any(w in lowered for w in ["producto", "productos", "articulo", "artículo", "articulos", "artículos", "item", "items"]):
+            dimensions.append("Producto")
+        elif any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"]):
             dimensions.append("Empleado")
-        elif "artista" in lowered:
+        elif any(w in lowered for w in ["cliente", "clientes", "comprador", "compradores"]):
+            dimensions.append("Cliente")
+        elif any(w in lowered for w in ["proveedor", "proveedores", "supplier", "suppliers"]):
+            dimensions.append("Proveedor")
+        elif any(w in lowered for w in ["artista", "artistas"]):
             dimensions.append("Artista")
-        elif "actor" in lowered or "actores" in lowered:
+        elif any(w in lowered for w in ["actor", "actores", "actriz", "actrices"]):
             dimensions.append("Actor")
+        elif any(w in lowered for w in ["genero", "género", "generos", "géneros"]):
+            dimensions.append("Genero")
         else:
             dimensions.append("Categoria")
 
@@ -202,6 +212,15 @@ class InterpreterAgent:
             recommendations = [
                 "Evaluar la estacionalidad y puntos de inflexión a lo largo del tiempo.",
                 "Comparar con períodos homólogos anteriores para detectar patrones de crecimiento o desaceleración.",
+            ]
+        elif task.analytical_pattern == AnalyticalPattern.RANKING_TOP_N or task.top_n is not None:
+            dim_label = task.dimensions[0] if task.dimensions else "entidades"
+            n_str = f"Top {task.top_n}" if task.top_n else "Ranking de"
+            crit = task.ranking_criterion or "mejor desempeño"
+            key_takeaway = f"{n_str} {dim_label} con {crit}: {top_obs}."
+            recommendations = [
+                f"Focalizar estrategias comerciales y de inventario en los {dim_label} líderes.",
+                f"Identificar factores clave de éxito de los líderes para potenciar el resto de {dim_label}.",
             ]
         else:
             key_takeaway = f"Análisis completado: {top_obs}."
@@ -291,14 +310,23 @@ class InvestigatorAgent:
         rows = executed_query.rows
         observations = []
         if rows:
-            first_row = rows[0]
-            for col, val in first_row.items():
-                unit = infer_column_unit(col)
-                formatted = format_metric_value(val, unit)
-                observations.append(f"{col}: {formatted}")
+            if task.top_n and len(rows) <= 10:
+                dim_col = task.dimensions[0] if (task.dimensions and task.dimensions[0] in rows[0]) else list(rows[0].keys())[0]
+                val_col = task.metrics[0] if (task.metrics and task.metrics[0] in rows[0]) else (list(rows[0].keys())[1] if len(rows[0]) > 1 else list(rows[0].keys())[0])
+                val_unit = infer_column_unit(val_col)
+                for idx, r in enumerate(rows, 1):
+                    dim_val = r.get(dim_col, f"Item {idx}")
+                    val_formatted = format_metric_value(r.get(val_col, 0), val_unit)
+                    observations.append(f"#{idx} {dim_val}: {val_formatted}")
+            else:
+                first_row = rows[0]
+                for col, val in first_row.items():
+                    unit = infer_column_unit(col)
+                    formatted = format_metric_value(val, unit)
+                    observations.append(f"{col}: {formatted}")
 
-            if len(rows) > 1:
-                observations.append(f"Total de entidades o filas devueltas: {len(rows):,}")
+                if len(rows) > 1:
+                    observations.append(f"Total de entidades o filas devueltas: {len(rows):,}")
 
         return DataEvidence(
             engine_id=task.engine_id,
@@ -509,82 +537,86 @@ class InvestigatorAgent:
 
         # --- GEO DISTRIBUTION PATTERN ---
         if pattern == AnalyticalPattern.GEO_DISTRIBUTION:
+            limit_geo = task.top_n if task.top_n else 10
             if eid == "northwind":
-                return "SELECT country AS Pais, COUNT(customerID) AS Clientes FROM customers GROUP BY country ORDER BY Clientes DESC LIMIT 10;"
+                return f"SELECT country AS Pais, COUNT(customerID) AS Clientes FROM customers GROUP BY country ORDER BY Clientes DESC LIMIT {limit_geo};"
             elif eid == "chinook":
-                return "SELECT BillingCountry AS Pais, ROUND(SUM(Total), 2) AS Facturacion_USD FROM Invoice GROUP BY BillingCountry ORDER BY Facturacion_USD DESC LIMIT 10;"
+                return f"SELECT BillingCountry AS Pais, ROUND(SUM(Total), 2) AS Facturacion_USD FROM Invoice GROUP BY BillingCountry ORDER BY Facturacion_USD DESC LIMIT {limit_geo};"
             elif eid == "tpch":
-                return "SELECT n.n_name AS Pais, COUNT(c.c_custkey) AS Clientes FROM customer c JOIN nation n ON c.c_nationkey = n.n_nationkey GROUP BY Pais ORDER BY Clientes DESC LIMIT 10;"
+                return f"SELECT n.n_name AS Pais, COUNT(c.c_custkey) AS Clientes FROM customer c JOIN nation n ON c.c_nationkey = n.n_nationkey GROUP BY Pais ORDER BY Clientes DESC LIMIT {limit_geo};"
 
         # --- RANKINGS & CATEGORIES ---
         lowered = task.goal.lower()
+        limit_val = task.top_n if task.top_n else 10
+        order_dir = "ASC" if task.ranking_criterion == "menor desempeño" else "DESC"
+
         if eid == "northwind":
-            if "empleado" in lowered:
+            if "empleado" in lowered or "Empleado" in task.dimensions:
                 return (
                     'SELECT e.lastName || ", " || e.firstName AS Empleado, '
                     'ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD '
                     'FROM orders o '
                     'JOIN employees e ON o.employeeID = e.employeeID '
                     'JOIN order_details od ON o.orderID = od.orderID '
-                    'GROUP BY Empleado ORDER BY Ventas_USD DESC LIMIT 10;'
+                    f'GROUP BY Empleado ORDER BY Ventas_USD {order_dir} LIMIT {limit_val};'
                 )
-            if "cliente" in lowered:
-                return "SELECT country AS Pais, COUNT(customerID) AS Clientes FROM customers GROUP BY country ORDER BY Clientes DESC LIMIT 10;"
-            if "producto" in lowered:
+            if "cliente" in lowered or "Cliente" in task.dimensions:
+                return f"SELECT country AS Pais, COUNT(customerID) AS Clientes FROM customers GROUP BY country ORDER BY Clientes {order_dir} LIMIT {limit_val};"
+            if "producto" in lowered or "Producto" in task.dimensions:
                 return (
                     'SELECT p.productName AS Producto, ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD '
                     'FROM products p '
                     'JOIN order_details od ON p.productID = od.productID '
-                    'GROUP BY Producto ORDER BY Ventas_USD DESC LIMIT 10;'
+                    f'GROUP BY Producto ORDER BY Ventas_USD {order_dir} LIMIT {limit_val};'
                 )
             return (
                 'SELECT c.categoryName AS Categoria, ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD '
                 'FROM categories c '
                 'JOIN products p ON c.categoryID = p.categoryID '
                 'JOIN order_details od ON p.productID = od.productID '
-                'GROUP BY Categoria ORDER BY Ventas_USD DESC LIMIT 10;'
+                f'GROUP BY Categoria ORDER BY Ventas_USD {order_dir} LIMIT {limit_val};'
             )
 
         if eid == "chinook":
-            if "artista" in lowered or "cancion" in lowered or "track" in lowered:
+            if "artista" in lowered or "cancion" in lowered or "track" in lowered or "Artista" in task.dimensions:
                 return (
                     "SELECT ar.Name AS Artista, COUNT(t.TrackId) AS Canciones "
                     "FROM Artist ar "
                     "JOIN Album al ON ar.ArtistId = al.ArtistId "
                     "JOIN Track t ON al.AlbumId = t.AlbumId "
-                    "GROUP BY Artista ORDER BY Canciones DESC LIMIT 10;"
+                    f"GROUP BY Artista ORDER BY Canciones {order_dir} LIMIT {limit_val};"
                 )
-            if "genero" in lowered or "genre" in lowered:
+            if "genero" in lowered or "genre" in lowered or "Genero" in task.dimensions:
                 return (
                     "SELECT g.Name AS Genero, COUNT(t.TrackId) AS Canciones "
                     "FROM Genre g "
                     "JOIN Track t ON g.GenreId = t.GenreId "
-                    "GROUP BY Genero ORDER BY Canciones DESC LIMIT 10;"
+                    f"GROUP BY Genero ORDER BY Canciones {order_dir} LIMIT {limit_val};"
                 )
             return (
-                "SELECT c.Country AS Pais, ROUND(SUM(i.Total), 2) AS Facturacion_USD "
-                "FROM Customer c JOIN Invoice i ON c.CustomerId = i.CustomerId "
-                "GROUP BY Pais ORDER BY Facturacion_USD DESC LIMIT 10;"
+                f"SELECT c.Country AS Pais, ROUND(SUM(i.Total), 2) AS Facturacion_USD "
+                f"FROM Customer c JOIN Invoice i ON c.CustomerId = i.CustomerId "
+                f"GROUP BY Pais ORDER BY Facturacion_USD {order_dir} LIMIT {limit_val};"
             )
 
         if eid == "sakila":
-            if "actor" in lowered or "actores" in lowered:
+            if "actor" in lowered or "actores" in lowered or "Actor" in task.dimensions:
                 return (
                     "SELECT a.first_name || ' ' || a.last_name AS Actor, COUNT(fa.film_id) AS Peliculas "
                     "FROM actor a JOIN film_actor fa ON a.actor_id = fa.actor_id "
-                    "GROUP BY Actor ORDER BY Peliculas DESC LIMIT 10;"
+                    f"GROUP BY Actor ORDER BY Peliculas {order_dir} LIMIT {limit_val};"
                 )
             return (
                 "SELECT c.name AS Categoria, COUNT(fc.film_id) AS Peliculas "
                 "FROM category c JOIN film_category fc ON c.category_id = fc.category_id "
-                "GROUP BY Categoria ORDER BY Peliculas DESC LIMIT 10;"
+                f"GROUP BY Categoria ORDER BY Peliculas {order_dir} LIMIT {limit_val};"
             )
 
         if eid == "tpch":
             return (
-                "SELECT n.n_name AS Pais, COUNT(c.c_custkey) AS Clientes "
-                "FROM customer c JOIN nation n ON c.c_nationkey = n.n_nationkey "
-                "GROUP BY Pais ORDER BY Clientes DESC LIMIT 10;"
+                f"SELECT n.n_name AS Pais, COUNT(c.c_custkey) AS Clientes "
+                f"FROM customer c JOIN nation n ON c.c_nationkey = n.n_nationkey "
+                f"GROUP BY Pais ORDER BY Clientes {order_dir} LIMIT {limit_val};"
             )
 
         first_table = list(schema.keys())[0] if schema else "sqlite_master"

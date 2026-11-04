@@ -227,5 +227,44 @@ def test_interpreter_and_cte_multi_series_top_3(registry):
     assert "Dairy Products" in storytelling.key_takeaway
 
 
+def test_interpreter_and_investigator_top_3_products(registry):
+    interpreter = InterpreterAgent()
+    investigator = InvestigatorAgent(registry)
+
+    query = "cuales son los 3 productos con mejor desempeño en todo el set de datos?"
+    interpreted = interpreter.interpret(query, "northwind")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.RANKING_TOP_N
+    assert interpreted.top_n == 3
+    assert interpreted.ranking_criterion == "mejor desempeño"
+    assert "Producto" in interpreted.dimensions
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="northwind",
+        goal=interpreted.goal,
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        metric_target=interpreted.metric_target,
+        top_n=interpreted.top_n,
+        ranking_criterion=interpreted.ranking_criterion,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+    evidence = investigator.execute_task(task)
+    assert evidence.confidence > 0.8
+    assert len(evidence.queries) == 1
+    q = evidence.queries[0]
+    assert "limit 3" in q.sql.lower()
+    assert len(q.rows) == 3
+    assert q.rows[0]["Producto"] == "Côte de Blaye"
+
+    storytelling = interpreter.formulate_storytelling(task, evidence)
+    assert "Top 3" in storytelling.key_takeaway
+    assert "Producto" in storytelling.key_takeaway
+    assert len(storytelling.quantitative_findings) == 3
+
+
+
 
 
