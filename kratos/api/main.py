@@ -484,13 +484,55 @@ def index_page():
                 // Render Grounding Contract Chips
                 renderContractChips(data.task);
 
-                // Render Storytelling
+                // Render Advanced Executive Storytelling
                 const story = data.storytelling;
                 document.getElementById('storytelling-container').innerHTML = `
-                    <p class="font-bold text-indigo-300">${story.key_takeaway}</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-300">
-                        ${story.quantitative_findings.map(f => `<li>${f}</li>`).join('')}
-                    </ul>
+                    <div class="p-3 bg-indigo-950/40 border border-indigo-800/60 rounded-xl mb-3">
+                        <div class="text-[10px] font-mono uppercase tracking-wider text-indigo-400 font-bold mb-1 flex items-center gap-1">
+                            <span>📌</span> Conclusión Ejecutiva
+                        </div>
+                        <p class="font-medium text-slate-100 text-xs sm:text-sm leading-snug">${story.key_takeaway}</p>
+                    </div>
+
+                    <div class="space-y-1.5 mb-3">
+                        <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold mb-1">
+                            Diagnóstico Cuantitativo
+                        </div>
+                        ${story.quantitative_findings.map(f => `
+                            <div class="flex items-start gap-2 text-xs text-slate-300 bg-slate-950/60 p-1.5 rounded border border-slate-800/60">
+                                <span class="text-indigo-400 mt-0.5">📊</span>
+                                <span>${f}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    ${story.risk_alerts && story.risk_alerts.length > 0 ? `
+                        <div class="space-y-1.5 mb-3">
+                            <div class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-semibold mb-1">
+                                Alertas de Riesgo & Vulnerabilidad
+                            </div>
+                            ${story.risk_alerts.map(r => `
+                                <div class="flex items-start gap-2 text-xs text-amber-200 bg-amber-950/40 p-2 rounded-lg border border-amber-800/60">
+                                    <span class="text-amber-400">⚠️</span>
+                                    <span>${r}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    ${story.strategic_recommendations && story.strategic_recommendations.length > 0 ? `
+                        <div class="space-y-1.5">
+                            <div class="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-semibold mb-1">
+                                Recomendaciones Accionables
+                            </div>
+                            ${story.strategic_recommendations.map(rec => `
+                                <div class="flex items-start gap-2 text-xs text-emerald-200 bg-emerald-950/30 p-2 rounded-lg border border-emerald-800/50">
+                                    <span class="text-emerald-400">🎯</span>
+                                    <span>${rec}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 `;
 
                 // Render Audit

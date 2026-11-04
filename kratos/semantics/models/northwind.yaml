@@ -2,71 +2,180 @@ engine_id: northwind
 name: "Northwind Sales & Inventory"
 description: "Modelado semántico Wren MDL para ventas minoristas, órdenes, clientes, productos y empleados."
 
+entities:
+  - name: orders
+    primary_key: [orderID]
+    grain: "Una fila por orden de compra comercial"
+    description: "Cabecera de transacciones con fecha, cliente y vendedor"
+
+  - name: order_details
+    primary_key: [orderID, productID]
+    grain: "Una fila por línea de producto dentro de una orden"
+    description: "Detalle transaccional con precio unitario, volumen y descuento"
+
+  - name: products
+    primary_key: [productID]
+    grain: "Una fila por SKU o artículo en catálogo"
+    description: "Maestro de productos con categoría, proveedor y stock"
+
+  - name: categories
+    primary_key: [categoryID]
+    grain: "Una fila por familia o segmento de productos"
+    description: "Jerarquía de categorización comercial"
+
+  - name: customers
+    primary_key: [customerID]
+    grain: "Una fila por cliente corporativo o comprador"
+    description: "Cuentas comerciales y distribución geográfica"
+
+  - name: employees
+    primary_key: [employeeID]
+    grain: "Una fila por representante de ventas o personal interno"
+    description: "Fuerza comercial interna"
+
 dimensions:
   - id: Producto
     table: products
     column: productName
     synonyms: ["producto", "productos", "artículo", "artículos", "item", "items", "mercancía"]
     type: categorical
+    description: "Nombre del producto en catálogo"
 
   - id: Categoria
     table: categories
     column: categoryName
     synonyms: ["categoría", "categorías", "linea", "línea", "lineas", "líneas", "segmento", "familia"]
     type: categorical
+    description: "Familia comercial del producto"
 
   - id: Empleado
     table: employees
     expression: "employees.lastName || ', ' || employees.firstName"
     synonyms: ["empleado", "empleados", "vendedor", "vendedores", "personal", "staff"]
     type: categorical
+    description: "Representante de ventas responsable"
 
   - id: Cliente
     table: customers
     column: companyName
     synonyms: ["cliente", "clientes", "comprador", "compradores", "empresa", "cuenta"]
     type: categorical
+    description: "Razón social del cliente comprador"
 
   - id: Pais
     table: customers
     column: country
     synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado"]
     type: geo
+    description: "País de destino del cliente"
 
   - id: Fecha
     table: orders
     column: orderDate
     synonyms: ["fecha", "día", "dia", "tiempo", "histórico", "historico", "cronología"]
     type: temporal
+    allowed_grains: [day, week, month, quarter, year]
+    description: "Fecha formal de colocación del pedido"
+
+measures:
+  - id: gross_revenue
+    table: order_details
+    agg_type: sum
+    expression: "SUM(order_details.unitPrice * order_details.quantity * (1 - order_details.discount))"
+    unit: "USD"
+    is_currency: true
+    description: "Suma neta de ventas descontadas"
+
+  - id: order_count
+    table: orders
+    agg_type: count_distinct
+    expression: "COUNT(DISTINCT orders.orderID)"
+    unit: "pedidos"
+    is_currency: false
+    description: "Conteo único de transacciones comerciales"
+
+  - id: units_sold
+    table: order_details
+    agg_type: sum
+    expression: "SUM(order_details.quantity)"
+    unit: "unidades"
+    is_currency: false
+    description: "Volumen físico total despachado"
 
 metrics:
   - id: Ventas_USD
     table: order_details
     expression: "ROUND(SUM(order_details.unitPrice * order_details.quantity * (1 - order_details.discount)), 2)"
+    metric_type: atomic
     unit: "USD"
     is_currency: true
     synonyms: ["ventas", "venta", "facturación", "facturacion", "ingresos", "desempeño", "desempeno", "rendimiento", "volumen de venta", "monto"]
+    description: "Volumen total de facturación neta descontada en dólares"
+
+  - id: Ticket_Promedio_USD
+    table: order_details
+    required_tables: [orders]
+    expression: "ROUND(SUM(order_details.unitPrice * order_details.quantity * (1 - order_details.discount)) * 1.0 / NULLIF(COUNT(DISTINCT orders.orderID), 0), 2)"
+    metric_type: ratio
+    unit: "USD"
+    is_currency: true
+    synonyms: ["ticket promedio", "valor promedio de orden", "aov", "promedio por pedido", "venta promedio por orden", "promedio por orden", "venta promedio"]
+    description: "Valor promedio generado por cada orden de compra (AOV)"
+
+  - id: Precio_Promedio_USD
+    table: order_details
+    expression: "ROUND(SUM(order_details.unitPrice * order_details.quantity * (1 - order_details.discount)) * 1.0 / NULLIF(SUM(order_details.quantity), 0), 2)"
+    metric_type: ratio
+    unit: "USD"
+    is_currency: true
+    synonyms: ["precio promedio", "precio promedio por unidad", "asp", "precio medio"]
+    description: "Precio de venta efectivo por unidad física (ASP)"
+
+  - id: Unidades_Por_Pedido
+    table: order_details
+    required_tables: [orders]
+    expression: "ROUND(SUM(order_details.quantity) * 1.0 / NULLIF(COUNT(DISTINCT orders.orderID), 0), 1)"
+    metric_type: ratio
+    unit: "uds/pedido"
+    is_currency: false
+    synonyms: ["unidades por pedido", "unidades por orden", "artículos por pedido", "upt"]
+    description: "Promedio de artículos adquiridos por transacción (UPT)"
+
+  - id: Descuento_Efectivo_Pct
+    table: order_details
+    expression: "ROUND(AVG(order_details.discount) * 100.0, 1)"
+    metric_type: derived
+    unit: "%"
+    is_currency: false
+    synonyms: ["descuento promedio", "tasa de descuento", "porcentaje de descuento", "descuento"]
+    description: "Tasa media porcentual de descuento otorgada"
 
   - id: Pedidos
     table: orders
     expression: "COUNT(DISTINCT orders.orderID)"
+    metric_type: atomic
     unit: "pedidos"
     is_currency: false
     synonyms: ["pedidos", "pedido", "órdenes", "ordenes", "orden", "transacciones", "compras"]
+    description: "Total de transacciones y pedidos completados"
 
   - id: Unidades
     table: order_details
     expression: "SUM(order_details.quantity)"
+    metric_type: atomic
     unit: "unidades"
     is_currency: false
     synonyms: ["unidades", "unidad", "cantidad", "piezas", "volumen físico", "stock vendido"]
+    description: "Conteo total de piezas y unidades físicas vendidas"
 
   - id: Clientes
     table: customers
     expression: "COUNT(DISTINCT customers.customerID)"
+    metric_type: atomic
     unit: "clientes"
     is_currency: false
     synonyms: ["clientes", "conteo de clientes", "total clientes", "cuentas"]
+    description: "Cantidad de cuentas de clientes activas"
 
 relationships:
   - from_table: orders

@@ -262,7 +262,9 @@ def test_interpreter_and_investigator_top_3_products(registry):
     storytelling = interpreter.formulate_storytelling(task, evidence)
     assert "Top 3" in storytelling.key_takeaway
     assert "Producto" in storytelling.key_takeaway
-    assert len(storytelling.quantitative_findings) == 3
+    assert len(storytelling.quantitative_findings) >= 3
+    assert len(storytelling.risk_alerts) >= 1
+    assert "top_1_share_pct" in storytelling.diagnostic_metrics
 
 
 

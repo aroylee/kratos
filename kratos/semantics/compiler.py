@@ -61,11 +61,15 @@ class SemanticCompiler:
             # Case A1: Multi-series with Top N Cohort CTE
             if top_n:
                 cohort_tables = {primary_dim.table, metric.table}
+                if metric.required_tables:
+                    cohort_tables.update(metric.required_tables)
                 cohort_joins = cls._build_joins(cohort_tables, model, base_table=primary_dim.table)
                 cohort_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in cohort_joins])
                 from_cohort = f"FROM {primary_dim.table} {cohort_join_sql}".strip()
 
                 fact_tables = {time_dim.table, metric.table}
+                if metric.required_tables:
+                    fact_tables.update(metric.required_tables)
                 fact_joins = cls._build_joins(fact_tables, model, base_table=time_dim.table)
                 fact_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in fact_joins])
                 from_fact = f"FROM {time_dim.table} {fact_join_sql}".strip()
@@ -101,6 +105,8 @@ class SemanticCompiler:
 
             # Case A2: Standard Multi-series
             req_tables = {time_dim.table, primary_dim.table, metric.table}
+            if metric.required_tables:
+                req_tables.update(metric.required_tables)
             joins = cls._build_joins(req_tables, model, base_table=time_dim.table)
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
             return (
@@ -125,6 +131,8 @@ class SemanticCompiler:
         if pattern == AnalyticalPattern.TIME_SERIES and time_dim and metric:
             time_expr, time_alias = cls._build_time_expr(time_dim, grain, task.time_dimension)
             req_tables = {time_dim.table, metric.table}
+            if metric.required_tables:
+                req_tables.update(metric.required_tables)
             joins = cls._build_joins(req_tables, model, base_table=time_dim.table)
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
             from_clause = f"FROM {time_dim.table} {join_sql}".strip()
@@ -149,6 +157,8 @@ class SemanticCompiler:
         # =========================================================================
         if primary_dim and metric:
             req_tables = {primary_dim.table, metric.table}
+            if metric.required_tables:
+                req_tables.update(metric.required_tables)
             joins = cls._build_joins(req_tables, model, base_table=primary_dim.table)
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
             from_clause = f"FROM {primary_dim.table} {join_sql}".strip()
@@ -180,6 +190,8 @@ class SemanticCompiler:
             return f"DATE({col_ref})", alias_override or "Fecha"
         elif grain == TimeGranularity.WEEKLY:
             return f"strftime('%Y-W%W', {col_ref})", alias_override or "Semana"
+        elif grain == TimeGranularity.QUARTERLY:
+            return f"(strftime('%Y', {col_ref}) || '-Q' || ((CAST(strftime('%m', {col_ref}) AS INTEGER) + 2) / 3))", alias_override or "Trimestre"
         elif grain == TimeGranularity.YEARLY:
             return f"strftime('%Y', {col_ref})", alias_override or "Ano"
         else:

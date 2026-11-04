@@ -171,9 +171,11 @@ class DataEvidence(BaseModel):
 
 
 class ExecutiveStorytelling(BaseModel):
-    """Executive decision framework summary."""
+    """Executive decision framework summary with diagnostic intelligence."""
     key_takeaway: str = Field(description="One-sentence direct conclusion with precise metric unit")
+    diagnostic_metrics: dict[str, Any] = Field(default_factory=dict, description="Calculated statistical diagnostic metrics")
     quantitative_findings: list[str] = Field(description="Key metrics with units ($, %, days, orders, units)")
+    risk_alerts: list[str] = Field(default_factory=list, description="Business risk, concentration, or volatility alerts")
     strategic_recommendations: list[str] = Field(description="1-2 actionable decisions based on the data")
 
 

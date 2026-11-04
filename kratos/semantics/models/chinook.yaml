@@ -2,77 +2,175 @@ engine_id: chinook
 name: "Chinook Digital Music Store"
 description: "Modelado semántico Wren MDL para tienda musical: canciones, álbumes, artistas, géneros, facturación y clientes."
 
+entities:
+  - name: Invoice
+    primary_key: [InvoiceId]
+    grain: "Una fila por factura comercial emitida"
+    description: "Cabecera de facturas con fecha, cliente y total de facturación"
+
+  - name: InvoiceLine
+    primary_key: [InvoiceLineId]
+    grain: "Una fila por canción adquirida en una factura"
+    description: "Líneas transaccionales con precio y cantidad"
+
+  - name: Track
+    primary_key: [TrackId]
+    grain: "Una fila por tema musical o pista en catálogo"
+    description: "Maestro de canciones con duración, formato, álbum y género"
+
+  - name: Album
+    primary_key: [AlbumId]
+    grain: "Una fila por disco o álbum musical"
+    description: "Agrupador discográfico vinculado al artista"
+
+  - name: Artist
+    primary_key: [ArtistId]
+    grain: "Una fila por intérprete o banda musical"
+    description: "Creadores artísticos y bandas"
+
+  - name: Genre
+    primary_key: [GenreId]
+    grain: "Una fila por género musical"
+    description: "Clasificación de estilos musicales"
+
+  - name: Customer
+    primary_key: [CustomerId]
+    grain: "Una fila por cliente suscriptor"
+    description: "Compradores y usuarios de la plataforma musical"
+
 dimensions:
   - id: Artista
     table: Artist
     column: Name
     synonyms: ["artista", "artistas", "músico", "músicos", "banda", "bandas", "autor"]
     type: categorical
+    description: "Nombre del artista o grupo musical"
 
   - id: Album
     table: Album
     column: Title
     synonyms: ["álbum", "album", "álbumes", "albumes", "disco", "discos"]
     type: categorical
+    description: "Título del álbum discográfico"
 
   - id: Cancion
     table: Track
     column: Name
     synonyms: ["canción", "cancion", "canciones", "track", "tracks", "tema", "temas", "pista"]
     type: categorical
+    description: "Nombre de la pista o canción"
 
   - id: Genero
     table: Genre
     column: Name
     synonyms: ["género", "genero", "géneros", "generos", "estilo", "categoría musical"]
     type: categorical
+    description: "Estilo o género de la música"
 
   - id: Pais
     table: Invoice
     column: BillingCountry
     synonyms: ["país", "pais", "paises", "países", "nación", "mercado"]
     type: geo
+    description: "País de facturación de la transacción"
 
   - id: Fecha
     table: Invoice
     column: InvoiceDate
     synonyms: ["fecha", "día", "dia", "tiempo", "histórico", "mes", "semana"]
     type: temporal
+    allowed_grains: [day, week, month, quarter, year]
+    description: "Fecha de emisión de la factura"
 
   - id: Cliente
     table: Customer
     expression: "Customer.FirstName || ' ' || Customer.LastName"
     synonyms: ["cliente", "clientes", "comprador", "compradores", "usuario"]
     type: categorical
+    description: "Nombre completo del comprador"
+
+measures:
+  - id: invoice_revenue
+    table: InvoiceLine
+    agg_type: sum
+    expression: "SUM(InvoiceLine.UnitPrice * InvoiceLine.Quantity)"
+    unit: "USD"
+    is_currency: true
+    description: "Suma bruta de recaudación"
+
+  - id: total_tracks
+    table: Track
+    agg_type: count_distinct
+    expression: "COUNT(DISTINCT Track.TrackId)"
+    unit: "canciones"
+    is_currency: false
+    description: "Total de canciones en catálogo"
 
 metrics:
   - id: Facturacion_USD
     table: InvoiceLine
     expression: "ROUND(SUM(InvoiceLine.UnitPrice * InvoiceLine.Quantity), 2)"
+    metric_type: atomic
     unit: "USD"
     is_currency: true
     synonyms: ["facturación", "facturacion", "ventas", "venta", "ingresos", "desempeño", "recaudación", "monto"]
+    description: "Recaudación total por venta digital de canciones"
+
+  - id: Ticket_Promedio_USD
+    table: InvoiceLine
+    required_tables: [Invoice]
+    expression: "ROUND(SUM(InvoiceLine.UnitPrice * InvoiceLine.Quantity) * 1.0 / NULLIF(COUNT(DISTINCT Invoice.InvoiceId), 0), 2)"
+    metric_type: ratio
+    unit: "USD"
+    is_currency: true
+    synonyms: ["ticket promedio", "gasto promedio", "aov", "facturación promedio", "promedio por factura"]
+    description: "Monto medio gastado por factura musical"
+
+  - id: Canciones_Por_Factura
+    table: InvoiceLine
+    required_tables: [Invoice]
+    expression: "ROUND(SUM(InvoiceLine.Quantity) * 1.0 / NULLIF(COUNT(DISTINCT Invoice.InvoiceId), 0), 1)"
+    metric_type: ratio
+    unit: "canciones"
+    is_currency: false
+    synonyms: ["canciones por factura", "canciones por compra", "tracks por orden"]
+    description: "Cantidad media de canciones adquiridas en cada factura"
+
+  - id: Duracion_Promedio_Minutos
+    table: Track
+    expression: "ROUND(AVG(Track.Milliseconds) / 60000.0, 2)"
+    metric_type: derived
+    unit: "minutos"
+    is_currency: false
+    synonyms: ["duración promedio", "duracion promedio", "minutos promedio", "longitud media"]
+    description: "Duración promedio de las canciones en minutos"
 
   - id: Canciones
     table: Track
     expression: "COUNT(DISTINCT Track.TrackId)"
+    metric_type: atomic
     unit: "canciones"
     is_currency: false
     synonyms: ["canciones", "tracks", "total canciones", "conteo de canciones", "catálogo"]
+    description: "Conteo único de títulos y pistas musicales"
 
   - id: Facturas
     table: Invoice
     expression: "COUNT(DISTINCT Invoice.InvoiceId)"
+    metric_type: atomic
     unit: "órdenes"
     is_currency: false
     synonyms: ["facturas", "pedidos", "compras", "transacciones"]
+    description: "Total de facturas emitidas"
 
   - id: Clientes
     table: Customer
     expression: "COUNT(DISTINCT Customer.CustomerId)"
+    metric_type: atomic
     unit: "clientes"
     is_currency: false
     synonyms: ["clientes", "total clientes", "usuarios"]
+    description: "Total de compradores registrados"
 
 relationships:
   - from_table: Invoice

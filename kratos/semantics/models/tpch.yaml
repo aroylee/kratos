@@ -2,71 +2,162 @@ engine_id: tpch
 name: "TPC-H Decision Support Benchmark"
 description: "Modelado semántico Wren MDL para cadena de suministro global: proveedores, partes, órdenes, envíos y clientes por nación."
 
+entities:
+  - name: lineitem
+    primary_key: [l_orderkey, l_linenumber]
+    grain: "Una fila por línea de suministro o parte embarcada"
+    description: "Detalle transaccional de envíos y logística de partes"
+
+  - name: orders
+    primary_key: [o_orderkey]
+    grain: "Una fila por orden de pedido global"
+    description: "Cabecera de pedidos de compra y estado del envío"
+
+  - name: customer
+    primary_key: [c_custkey]
+    grain: "Una fila por cliente o importador comercial"
+    description: "Empresas compradoras y saldo de balance"
+
+  - name: nation
+    primary_key: [n_nationkey]
+    grain: "Una fila por país o nación"
+    description: "Distribución geopolítica global"
+
+  - name: part
+    primary_key: [p_partkey]
+    grain: "Una fila por componente o parte de manufactura"
+    description: "Catálogo de piezas industriales"
+
+  - name: supplier
+    primary_key: [s_suppkey]
+    grain: "Una fila por proveedor o fabricante global"
+    description: "Red de abastecimiento internacional"
+
 dimensions:
   - id: Cliente
     table: customer
     column: c_name
     synonyms: ["cliente", "clientes", "comprador", "cuenta"]
     type: categorical
+    description: "Identificador del comprador comercial"
 
   - id: Pais
     table: nation
     column: n_name
     synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado"]
     type: geo
+    description: "País o nación del cliente"
 
   - id: Segmento
     table: customer
     column: c_mktsegment
     synonyms: ["segmento", "sector", "mercado objetivo"]
     type: categorical
+    description: "Segmento de mercado de la cuenta"
 
   - id: Parte
     table: part
     column: p_name
     synonyms: ["parte", "partes", "pieza", "piezas", "componente", "material"]
     type: categorical
+    description: "Descripción de la pieza o parte"
 
   - id: Proveedor
     table: supplier
     column: s_name
     synonyms: ["proveedor", "proveedores", "distribuidor", "supplier"]
     type: categorical
+    description: "Razón social del fabricante proveedor"
 
   - id: Fecha
     table: orders
     column: o_orderdate
     synonyms: ["fecha", "día", "dia", "tiempo", "mes", "año"]
     type: temporal
+    allowed_grains: [day, week, month, quarter, year]
+    description: "Fecha de colocación de la orden internacional"
+
+measures:
+  - id: total_extended_price
+    table: lineitem
+    agg_type: sum
+    expression: "SUM(lineitem.l_extendedprice * (1 - lineitem.l_discount))"
+    unit: "USD"
+    is_currency: true
+    description: "Suma neta de precios facturados con descuento"
+
+  - id: order_count
+    table: orders
+    agg_type: count_distinct
+    expression: "COUNT(DISTINCT orders.o_orderkey)"
+    unit: "órdenes"
+    is_currency: false
+    description: "Conteo único de pedidos internacionales"
 
 metrics:
   - id: Monto_USD
     table: lineitem
     expression: "ROUND(SUM(lineitem.l_extendedprice * (1 - lineitem.l_discount)), 2)"
+    metric_type: atomic
     unit: "USD"
     is_currency: true
     synonyms: ["monto", "ventas", "facturación", "ingresos", "volumen financiero", "desempeño"]
+    description: "Volumen financiero neto facturado en dólares"
+
+  - id: Ticket_Promedio_USD
+    table: lineitem
+    required_tables: [orders]
+    expression: "ROUND(SUM(lineitem.l_extendedprice * (1 - lineitem.l_discount)) * 1.0 / NULLIF(COUNT(DISTINCT orders.o_orderkey), 0), 2)"
+    metric_type: ratio
+    unit: "USD"
+    is_currency: true
+    synonyms: ["ticket promedio", "orden promedio", "aov", "promedio por pedido"]
+    description: "Gasto promedio por orden global de suministro"
+
+  - id: Precio_Promedio_USD
+    table: lineitem
+    expression: "ROUND(SUM(lineitem.l_extendedprice * (1 - lineitem.l_discount)) * 1.0 / NULLIF(SUM(lineitem.l_quantity), 0), 2)"
+    metric_type: ratio
+    unit: "USD"
+    is_currency: true
+    synonyms: ["precio promedio", "precio unitario", "asp"]
+    description: "Precio unitario promedio por pieza embarcada"
+
+  - id: Descuento_Promedio_Pct
+    table: lineitem
+    expression: "ROUND(AVG(lineitem.l_discount) * 100.0, 1)"
+    metric_type: derived
+    unit: "%"
+    is_currency: false
+    synonyms: ["descuento promedio", "porcentaje de descuento", "tasa de descuento"]
+    description: "Tasa porcentual media de descuento aplicada en embarque"
 
   - id: Ordenes
     table: orders
     expression: "COUNT(DISTINCT orders.o_orderkey)"
+    metric_type: atomic
     unit: "órdenes"
     is_currency: false
     synonyms: ["órdenes", "ordenes", "pedidos", "transacciones"]
+    description: "Total de transacciones de compra registradas"
 
   - id: Volumen
     table: lineitem
     expression: "SUM(lineitem.l_quantity)"
+    metric_type: atomic
     unit: "unidades"
     is_currency: false
     synonyms: ["volumen", "cantidad", "unidades", "toneladas"]
+    description: "Cantidad total de piezas y unidades físicas embarcadas"
 
   - id: Clientes
     table: customer
     expression: "COUNT(DISTINCT customer.c_custkey)"
+    metric_type: atomic
     unit: "clientes"
     is_currency: false
     synonyms: ["clientes", "total clientes"]
+    description: "Total de importadores y clientes corporativos"
 
 relationships:
   - from_table: orders

@@ -20,6 +20,7 @@ from kratos.semantics.bi_engine import compile_echarts
 from kratos.semantics.unit_utils import infer_column_unit, format_metric_value
 from kratos.semantics.mdl import SemanticCatalog
 from kratos.semantics.compiler import SemanticCompiler
+from kratos.analytics.statistics import analyze_distribution, analyze_time_series
 from kratos.inference.schema_pruner import SchemaPruner
 from kratos.inference.client import LLMClient
 
@@ -45,6 +46,7 @@ class InterpreterAgent:
         # 2. Time-series & Temporal Grain Detection
         is_time_series = any(w in lowered for w in [
             "tendencia", "tiempo", "semanal", "semana", "mensual", "mes",
+            "trimestral", "trimestre", "quarter", "quarterly",
             "anual", "año", "ano", "diario", "dia", "día", "diaria", "evolucion", "evolución",
             "historico", "histórico", "a través del tiempo", "traves del tiempo"
         ])
@@ -59,6 +61,9 @@ class InterpreterAgent:
             elif any(w in lowered for w in ["semanal", "semana", "semanas", "week", "weekly"]):
                 time_granularity = TimeGranularity.WEEKLY
                 time_dimension = "Semana"
+            elif any(w in lowered for w in ["trimestral", "trimestre", "trimestres", "quarter", "quarterly", "q1", "q2", "q3", "q4"]):
+                time_granularity = TimeGranularity.QUARTERLY
+                time_dimension = "Trimestre"
             elif any(w in lowered for w in ["mensual", "mes", "meses", "month", "monthly"]):
                 time_granularity = TimeGranularity.MONTHLY
                 time_dimension = "Mes"
@@ -197,56 +202,147 @@ class InterpreterAgent:
         if not evidence.observations:
             return ExecutiveStorytelling(
                 key_takeaway=f"No se registraron datos en el motor '{task.engine_id}' para la consulta solicitada.",
+                diagnostic_metrics={},
                 quantitative_findings=["Registros encontrados: 0"],
+                risk_alerts=["Sin datos suficientes para emitir alertas de concentración o riesgo."],
                 strategic_recommendations=["Verificar filtros o explorar tablas disponibles en el esquema."],
             )
 
-        top_obs = evidence.observations[0]
+        rows = evidence.queries[0].rows if evidence.queries else []
+        dim_hint = task.dimensions[0] if task.dimensions else None
+        met_hint = task.metrics[0] if task.metrics else None
 
-        if task.analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:
-            s_name = task.series_dimension or "segmento"
-            g_name = task.time_granularity.value.lower()
-            distinct_series = []
-            if evidence.queries and evidence.queries[0].rows and task.series_dimension:
-                s_col = task.series_dimension
-                distinct_series = list(dict.fromkeys(r[s_col] for r in evidence.queries[0].rows if s_col in r))
+        # -------------------------------------------------------------------------
+        # CASE 1: TIME SERIES (Mono o Multi-serie)
+        # -------------------------------------------------------------------------
+        if task.analytical_pattern in [AnalyticalPattern.TIME_SERIES, AnalyticalPattern.MULTI_SERIES_TIME_SERIES] and rows:
+            ts_diag = analyze_time_series(rows, time_hint=task.time_dimension or "Fecha", met_hint=met_hint)
+            if ts_diag:
+                g_str = task.time_granularity.value.lower()
+                s_name = task.series_dimension or "Categoria"
+                distinct_series = []
+                if task.series_dimension:
+                    distinct_series = list(dict.fromkeys(r[s_name] for r in rows if s_name in r))
 
-            if task.top_n and distinct_series:
-                series_str = ", ".join(distinct_series[:task.top_n])
-                key_takeaway = f"Tendencia multi-serie ({g_name}) para las Top {task.top_n} {s_name} de {task.ranking_criterion or 'mejor desempeño'} ({series_str}): {top_obs}."
+                if task.top_n and distinct_series:
+                    cohort_str = f" para las Top {task.top_n} {s_name} ({', '.join(distinct_series[:task.top_n])})"
+                else:
+                    cohort_str = ""
+
+                key_takeaway = (
+                    f"Evolución temporal ({g_str}){cohort_str}: Trayectoria {ts_diag.trend_direction.lower()} "
+                    f"con pico histórico el {ts_diag.peak_date} ({format_metric_value(ts_diag.peak_val, ts_diag.unit)})."
+                )
+
+                findings = [
+                    f"Volumen acumulado del período: {format_metric_value(ts_diag.total_volume, ts_diag.unit)} a lo largo de {ts_diag.period_count} intervalos {g_str}s.",
+                    f"Media por intervalo: {format_metric_value(ts_diag.mean_val, ts_diag.unit)} (Rango: {format_metric_value(ts_diag.trough_val, ts_diag.unit)} el {ts_diag.trough_date} a {format_metric_value(ts_diag.peak_val, ts_diag.unit)} el {ts_diag.peak_date}).",
+                    f"Volatilidad de la demanda: Clasificada como {ts_diag.volatility_level} (Coeficiente de variación CV: {ts_diag.coefficient_of_variation}, Desviación estándar σ: {format_metric_value(ts_diag.std_dev, ts_diag.unit)}).",
+                ]
+
+                if ts_diag.anomalies:
+                    anom_desc = ", ".join([f"{a['date']} ({format_metric_value(a['value'], ts_diag.unit)}, {a['type']})" for a in ts_diag.anomalies])
+                    findings.append(f"Puntos anómalos (|z| > 2σ): {anom_desc}.")
+
+                risk_alerts = []
+                if ts_diag.volatility_level == "Alta":
+                    risk_alerts.append(f"Alta Volatilidad Estacional: El coeficiente de variación de {ts_diag.coefficient_of_variation} indica picos y valles impredecibles; riesgo de rotura de stock en picos o sobrecosto de almacenamiento en valles.")
+                if ts_diag.anomalies:
+                    risk_alerts.append(f"Anomalías fuera de rango: Se detectaron {len(ts_diag.anomalies)} eventos atípicos con desviación mayor a 2 sigma del promedio histórico.")
+                if not risk_alerts:
+                    risk_alerts.append("Estabilidad Operativa: Variación temporal moderada sin disrupciones estadísticas atípicas.")
+
+                recommendations = [
+                    f"Alinear buffers de seguridad operativa con los períodos de alta demanda detectados alrededor de {ts_diag.peak_date}.",
+                    "Investigar los factores causales de las anomalías estadísticas para anticipar futuras fluctuaciones de volumen.",
+                ]
+
+                return ExecutiveStorytelling(
+                    key_takeaway=key_takeaway,
+                    diagnostic_metrics=ts_diag.model_dump(),
+                    quantitative_findings=findings,
+                    risk_alerts=risk_alerts,
+                    strategic_recommendations=recommendations,
+                )
+
+        # -------------------------------------------------------------------------
+        # CASE 2: RANKINGS, CATEGORICAL BREAKDOWNS & GEO DISTRIBUTIONS
+        # -------------------------------------------------------------------------
+        dist_diag = analyze_distribution(rows, dim_hint=dim_hint, met_hint=met_hint)
+        if dist_diag and dist_diag.top_1_label:
+            dim_lbl = dist_diag.dimension_col
+            unit = dist_diag.unit
+
+            n_prefix = f"Top {task.top_n} {dim_lbl} - " if task.top_n else f"Distribución de {dim_lbl} - "
+            # Key Takeaway with Gap Context
+            if dist_diag.dominance_gap_pct is not None and dist_diag.dominance_gap_pct > 25.0:
+                key_takeaway = (
+                    f"{n_prefix}Liderazgo consolidado: '{dist_diag.top_1_label}' encabeza con "
+                    f"{format_metric_value(dist_diag.top_1_val, unit)} ({dist_diag.top_1_share_pct}% de cuota del segmento), "
+                    f"superando al 2º lugar ('{dist_diag.top_2_label}') por un margen de +{dist_diag.dominance_gap_pct}%."
+                )
+            elif dist_diag.top_2_label:
+                key_takeaway = (
+                    f"{n_prefix}Competencia reñida: '{dist_diag.top_1_label}' lidera con "
+                    f"{format_metric_value(dist_diag.top_1_val, unit)} ({dist_diag.top_1_share_pct}% de cuota), "
+                    f"seguido de cerca por '{dist_diag.top_2_label}' ({format_metric_value(dist_diag.top_2_val, unit)})."
+                )
             else:
-                key_takeaway = f"Tendencia multi-serie identificada ({g_name} por {s_name}): {top_obs}."
+                key_takeaway = f"{n_prefix}Líder identificado: '{dist_diag.top_1_label}' con {format_metric_value(dist_diag.top_1_val, unit)}."
+
+            findings = []
+            # Rank items with individual shares
+            for idx, r in enumerate(rows[:5], 1):
+                lbl = r.get(dist_diag.dimension_col, f"Item {idx}")
+                v = float(r.get(dist_diag.metric_col, 0) or 0)
+                share = (v / dist_diag.total_volume * 100) if dist_diag.total_volume > 0 else 0.0
+                findings.append(f"#{idx} {lbl}: {format_metric_value(v, unit)} ({share:.1f}% del volumen analizado)")
+
+            findings.append(
+                f"Concentración Pareto: Los 3 primeros puestos absorben el {dist_diag.top_3_share_pct}% "
+                f"del volumen total ({format_metric_value(dist_diag.total_volume, unit)} acumulado)."
+            )
+            findings.append(
+                f"Métricas de dispersión: Promedio de {format_metric_value(dist_diag.mean_val, unit)} "
+                f"y mediana de {format_metric_value(dist_diag.median_val, unit)}."
+            )
+
+            risk_alerts = []
+            if dist_diag.is_concentrated:
+                risk_alerts.append(
+                    f"Alerta de Riesgo de Concentración: El Top 1 ('{dist_diag.top_1_label}') representa el {dist_diag.top_1_share_pct}% de la muestra. "
+                    f"Cualquier fallo de cadena de suministro o caída de demanda en esta entidad comprometería el resultado global."
+                )
+            if dist_diag.dominance_gap_pct and dist_diag.dominance_gap_pct > 50.0:
+                risk_alerts.append(
+                    f"Brecha Competitiva Extrema: Margen del +{dist_diag.dominance_gap_pct}% sobre el segundo competidor denota falta de balance en el portafolio secundario."
+                )
+            if not risk_alerts:
+                risk_alerts.append("Diversificación Saludable: No se observan monopolios individuales en la muestra analizada.")
 
             recommendations = [
-                f"Comparar la evolución temporal relativa entre las diferentes líneas de {s_name}.",
-                "Monitorear los segmentos con mayor dinamismo para anticipar patrones de demanda o abastecimiento.",
-            ]
-        elif task.analytical_pattern == AnalyticalPattern.TIME_SERIES:
-            key_takeaway = f"Tendencia temporal identificada ({task.time_granularity.value.lower()}): {top_obs}."
-            recommendations = [
-                "Evaluar la estacionalidad y puntos de inflexión a lo largo del tiempo.",
-                "Comparar con períodos homólogos anteriores para detectar patrones de crecimiento o desaceleración.",
-            ]
-        elif task.analytical_pattern == AnalyticalPattern.RANKING_TOP_N or task.top_n is not None:
-            dim_label = task.dimensions[0] if task.dimensions else "entidades"
-            n_str = f"Top {task.top_n}" if task.top_n else "Ranking de"
-            crit = task.ranking_criterion or "mejor desempeño"
-            key_takeaway = f"{n_str} {dim_label} con {crit}: {top_obs}."
-            recommendations = [
-                f"Focalizar estrategias comerciales y de inventario en los {dim_label} líderes.",
-                f"Identificar factores clave de éxito de los líderes para potenciar el resto de {dim_label}.",
-            ]
-        else:
-            key_takeaway = f"Análisis completado: {top_obs}."
-            recommendations = [
-                "Monitorear las categorías y entidades líderes observadas en la distribución.",
-                "Profundizar el análisis cruzando con períodos o dimensiones adicionales.",
+                f"Blindar contratos y asegurar disponibilidad de stock crítico para '{dist_diag.top_1_label}' como motor principal de ingresos.",
+                f"Implementar promociones cruzadas o incentivos para impulsar a '{dist_diag.top_2_label or 'los siguientes segmentos'}' y mitigar la dependencia única.",
             ]
 
+            return ExecutiveStorytelling(
+                key_takeaway=key_takeaway,
+                diagnostic_metrics=dist_diag.model_dump(),
+                quantitative_findings=findings,
+                risk_alerts=risk_alerts,
+                strategic_recommendations=recommendations,
+            )
+
+        # Fallback basic storytelling if no diagnostic could be calculated
         return ExecutiveStorytelling(
-            key_takeaway=key_takeaway,
-            quantitative_findings=evidence.observations[:4],
-            strategic_recommendations=recommendations,
+            key_takeaway=f"Análisis completado: {evidence.observations[0] if evidence.observations else 'Sin datos'}.",
+            diagnostic_metrics={},
+            quantitative_findings=evidence.observations[:5],
+            risk_alerts=["Distribución observada dentro de rangos operativos normales."],
+            strategic_recommendations=[
+                "Monitorear las entidades líderes observadas.",
+                "Profundizar cruzando con períodos temporales adicionales.",
+            ],
         )
 
 

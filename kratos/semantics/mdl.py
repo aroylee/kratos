@@ -10,6 +10,14 @@ import yaml
 from pydantic import BaseModel, Field
 
 
+class EntityMDL(BaseModel):
+    """Semantic entity representing a physical table, grain, and key constraints."""
+    name: str
+    primary_key: list[str] = Field(default_factory=list)
+    description: str = ""
+    grain: str = ""
+
+
 class DimensionMDL(BaseModel):
     """Semantic dimension representing an analytical entity or attribute."""
     id: str
@@ -18,6 +26,8 @@ class DimensionMDL(BaseModel):
     expression: str | None = None
     synonyms: list[str] = Field(default_factory=list)
     type: str = "categorical"  # categorical, temporal, geo
+    allowed_grains: list[str] = Field(default_factory=lambda: ["day", "week", "month", "quarter", "year"])
+    description: str = ""
 
     @property
     def select_expression(self) -> str:
@@ -29,14 +39,30 @@ class DimensionMDL(BaseModel):
         return f"{self.table}.{self.id}"
 
 
-class MetricMDL(BaseModel):
-    """Formally curated business metric calculation."""
+class MeasureMDL(BaseModel):
+    """Atomic column-level aggregation measure."""
     id: str
     table: str
+    column: str | None = None
+    agg_type: str = "sum"  # sum, count, count_distinct, avg, min, max
     expression: str
     unit: str = ""
     is_currency: bool = False
     synonyms: list[str] = Field(default_factory=list)
+    description: str = ""
+
+
+class MetricMDL(BaseModel):
+    """Formally curated business metric calculation (atomic or derived/ratio)."""
+    id: str
+    table: str
+    expression: str
+    metric_type: str = "atomic"  # atomic, ratio, derived
+    required_tables: list[str] = Field(default_factory=list)
+    unit: str = ""
+    is_currency: bool = False
+    synonyms: list[str] = Field(default_factory=list)
+    description: str = ""
 
 
 class RelationshipMDL(BaseModel):
@@ -52,9 +78,25 @@ class SemanticModelMDL(BaseModel):
     engine_id: str
     name: str
     description: str
+    entities: list[EntityMDL] = Field(default_factory=list)
     dimensions: list[DimensionMDL] = Field(default_factory=list)
+    measures: list[MeasureMDL] = Field(default_factory=list)
     metrics: list[MetricMDL] = Field(default_factory=list)
     relationships: list[RelationshipMDL] = Field(default_factory=list)
+
+    def get_entity(self, table_name: str) -> EntityMDL | None:
+        t_lower = table_name.lower()
+        for e in self.entities:
+            if e.name.lower() == t_lower:
+                return e
+        return None
+
+    def get_measure(self, measure_id: str) -> MeasureMDL | None:
+        m_lower = measure_id.lower()
+        for m in self.measures:
+            if m.id.lower() == m_lower:
+                return m
+        return None
 
     def get_dimension(self, dim_id: str) -> DimensionMDL | None:
         dim_id_lower = dim_id.lower()

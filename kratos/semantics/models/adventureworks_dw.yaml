@@ -2,52 +2,144 @@ engine_id: adventureworks_dw
 name: "AdventureWorks Data Warehouse"
 description: "Modelado semántico Wren MDL para manufactura y ventas: productos, modelos, categorías, órdenes y clientes corporativos."
 
+entities:
+  - name: SalesOrderHeader
+    primary_key: [SalesOrderID]
+    grain: "Una fila por orden de venta comercial"
+    description: "Cabecera de órdenes corporativas con fecha, cliente y flete"
+
+  - name: SalesOrderDetail
+    primary_key: [SalesOrderDetailID]
+    grain: "Una fila por línea de producto dentro de la orden"
+    description: "Líneas transaccionales con cantidad y monto de línea"
+
+  - name: Product
+    primary_key: [ProductID]
+    grain: "Una fila por artículo manufacturado o componente"
+    description: "Catálogo de productos, modelos y costos estándar"
+
+  - name: ProductCategory
+    primary_key: [ProductCategoryID]
+    grain: "Una fila por familia o categoría de producto"
+    description: "Segmentación de catálogo de bicicletas y repuestos"
+
+  - name: Customer
+    primary_key: [CustomerID]
+    grain: "Una fila por cuenta cliente corporativa"
+    description: "Clientes y distribuidores comerciales"
+
 dimensions:
   - id: Producto
     table: Product
     column: Name
     synonyms: ["producto", "productos", "artículo", "artículos", "bicicleta", "componente", "modelo"]
     type: categorical
+    description: "Nombre del producto manufacturado"
 
   - id: Categoria
     table: ProductCategory
     column: Name
     synonyms: ["categoría", "categoria", "categorías", "linea", "segmento"]
     type: categorical
+    description: "Categoría de manufactura y venta"
 
   - id: Cliente
     table: Customer
     column: CompanyName
     synonyms: ["cliente", "clientes", "empresa", "cuenta corporativa"]
     type: categorical
+    description: "Razón social del cliente comprador"
 
   - id: Fecha
     table: SalesOrderHeader
     column: OrderDate
     synonyms: ["fecha", "día", "dia", "tiempo", "mes", "año"]
     type: temporal
+    allowed_grains: [day, week, month, quarter, year]
+    description: "Fecha de colocación de la orden"
+
+measures:
+  - id: total_sales
+    table: SalesOrderDetail
+    agg_type: sum
+    expression: "SUM(SalesOrderDetail.LineTotal)"
+    unit: "USD"
+    is_currency: true
+    description: "Suma bruta de montos vendidos"
+
+  - id: order_count
+    table: SalesOrderHeader
+    agg_type: count_distinct
+    expression: "COUNT(DISTINCT SalesOrderHeader.SalesOrderID)"
+    unit: "órdenes"
+    is_currency: false
+    description: "Conteo único de órdenes"
 
 metrics:
   - id: Ventas_USD
     table: SalesOrderDetail
     expression: "ROUND(SUM(SalesOrderDetail.LineTotal), 2)"
+    metric_type: atomic
     unit: "USD"
     is_currency: true
     synonyms: ["ventas", "venta", "facturación", "ingresos", "desempeño", "monto"]
+    description: "Monto total de ventas facturadas en dólares"
+
+  - id: Ticket_Promedio_USD
+    table: SalesOrderDetail
+    required_tables: [SalesOrderHeader]
+    expression: "ROUND(SUM(SalesOrderDetail.LineTotal) * 1.0 / NULLIF(COUNT(DISTINCT SalesOrderHeader.SalesOrderID), 0), 2)"
+    metric_type: ratio
+    unit: "USD"
+    is_currency: true
+    synonyms: ["ticket promedio", "valor promedio de orden", "aov", "promedio por orden"]
+    description: "Monto medio facturado por orden corporativa"
+
+  - id: Precio_Promedio_USD
+    table: SalesOrderDetail
+    expression: "ROUND(SUM(SalesOrderDetail.LineTotal) * 1.0 / NULLIF(SUM(SalesOrderDetail.OrderQty), 0), 2)"
+    metric_type: ratio
+    unit: "USD"
+    is_currency: true
+    synonyms: ["precio promedio", "precio unitario promedio", "asp"]
+    description: "Precio de venta medio por unidad despachada"
+
+  - id: Unidades_Por_Orden
+    table: SalesOrderDetail
+    required_tables: [SalesOrderHeader]
+    expression: "ROUND(SUM(SalesOrderDetail.OrderQty) * 1.0 / NULLIF(COUNT(DISTINCT SalesOrderHeader.SalesOrderID), 0), 1)"
+    metric_type: ratio
+    unit: "unidades"
+    is_currency: false
+    synonyms: ["unidades por orden", "artículos por orden", "upt"]
+    description: "Promedio de piezas por cada orden de compra"
 
   - id: Ordenes
     table: SalesOrderHeader
     expression: "COUNT(DISTINCT SalesOrderHeader.SalesOrderID)"
+    metric_type: atomic
     unit: "órdenes"
     is_currency: false
     synonyms: ["órdenes", "ordenes", "pedidos", "transacciones"]
+    description: "Total de órdenes comerciales completadas"
 
   - id: Cantidad
     table: SalesOrderDetail
     expression: "SUM(SalesOrderDetail.OrderQty)"
+    metric_type: atomic
     unit: "unidades"
     is_currency: false
     synonyms: ["cantidad", "unidades", "volumen", "piezas"]
+    description: "Volumen físico total de artículos solicitados"
+
+  - id: Clientes
+    table: Customer
+    expression: "COUNT(DISTINCT Customer.CustomerID)"
+    metric_type: atomic
+    unit: "clientes"
+    is_currency: false
+    synonyms: ["clientes", "total clientes", "cuentas"]
+    description: "Total de empresas compradoras"
 
 relationships:
   - from_table: SalesOrderHeader

@@ -14,7 +14,8 @@ from typing import Any, Tuple
 MONEY_KEYWORDS = [
     "total", "subtotal", "price", "unitprice", "cost", "revenue", "sales",
     "ingreso", "precio", "monto", "importe", "venta", "ventas", "costo",
-    "valor", "tarifa", "freight", "flete", "facturacion", "totalamount", "amount"
+    "valor", "tarifa", "freight", "flete", "facturacion", "totalamount", "amount",
+    "usd", "ticket", "aov", "asp"
 ]
 
 PERCENTAGE_KEYWORDS = [
@@ -37,6 +38,12 @@ STOCK_KEYWORDS = [
 ]
 
 
+COUNT_ENTITY_KEYWORDS = [
+    "canciones", "tracks", "cancion", "peliculas", "películas", "films",
+    "clientes", "customers", "lineas", "items_count"
+]
+
+
 def infer_column_unit(column_name: str) -> str:
     """Infers the precise business semantic unit for any column."""
     clean = re.sub(r"[_\-\s]+", "", column_name.lower())
@@ -44,6 +51,10 @@ def infer_column_unit(column_name: str) -> str:
     if any(k in clean for k in PERCENTAGE_KEYWORDS):
         return "%"
     if any(k in clean for k in DURATION_KEYWORDS):
+        if "minuto" in clean or "minute" in clean:
+            return "minutos"
+        if "hora" in clean or "hour" in clean:
+            return "horas"
         return "días"
     if any(k in clean for k in ORDER_COUNT_KEYWORDS):
         return "pedidos"
@@ -51,6 +62,10 @@ def infer_column_unit(column_name: str) -> str:
         return "unidades"
     if any(k in clean for k in MONEY_KEYWORDS):
         return "$ USD"
+    if any(k in clean for k in COUNT_ENTITY_KEYWORDS):
+        for k in COUNT_ENTITY_KEYWORDS:
+            if k in clean:
+                return k
 
     return ""
 
@@ -65,7 +80,7 @@ def format_metric_value(val: Any, unit: str) -> str:
     except (ValueError, TypeError):
         return str(val)
 
-    if unit == "$ USD":
+    if unit in ("$ USD", "USD"):
         if abs(num) >= 1_000_000:
             return f"${num / 1_000_000:.2f}M"
         if abs(num) >= 1_000:
@@ -76,10 +91,13 @@ def format_metric_value(val: Any, unit: str) -> str:
         val_pct = num * 100 if abs(num) <= 1.0 and num != 0 else num
         return f"{val_pct:.1f}%"
 
-    if unit in ("días", "horas"):
+    if unit in ("días", "horas", "minutos"):
         return f"{num:.1f} {unit}"
 
-    if unit in ("pedidos", "unidades"):
+    if unit == "uds/pedido":
+        return f"{num:.1f} uds/pedido"
+
+    if unit in ("pedidos", "unidades", "canciones", "películas", "clientes", "lineas", "órdenes"):
         return f"{int(round(num)):,} {unit}"
 
     if num.is_integer():

@@ -2,65 +2,169 @@ engine_id: sakila
 name: "Sakila DVD Rental Store"
 description: "Modelado semántico Wren MDL para videoclub: actores, películas, categorías, alquileres, pagos y clientes."
 
+entities:
+  - name: film
+    primary_key: [film_id]
+    grain: "Una fila por título cinematográfico"
+    description: "Catálogo de películas, duración, tarifa de alquiler y calificación"
+
+  - name: actor
+    primary_key: [actor_id]
+    grain: "Una fila por actor o actriz"
+    description: "Elenco artístico y biografías"
+
+  - name: film_actor
+    primary_key: [actor_id, film_id]
+    grain: "Una fila por participación de actor en una película"
+    description: "Tabla asociativa M:N de reparto cinematográfico"
+
+  - name: category
+    primary_key: [category_id]
+    grain: "Una fila por categoría o género de película"
+    description: "Géneros temáticos de cintas"
+
+  - name: film_category
+    primary_key: [film_id, category_id]
+    grain: "Una fila por categorización de película"
+    description: "Tabla asociativa M:N entre películas y géneros"
+
+  - name: inventory
+    primary_key: [inventory_id]
+    grain: "Una fila por copia física de DVD en tienda"
+    description: "Inventario físico disponible en sucursales"
+
+  - name: rental
+    primary_key: [rental_id]
+    grain: "Una fila por transacción de préstamo o alquiler"
+    description: "Registros de retiro y devolución de DVDs"
+
+  - name: payment
+    primary_key: [payment_id]
+    grain: "Una fila por cobro monetario registrado"
+    description: "Flujos de caja y facturación transaccional"
+
+  - name: customer
+    primary_key: [customer_id]
+    grain: "Una fila por cliente socio del videoclub"
+    description: "Cuentas de socios y comportamiento de alquiler"
+
 dimensions:
   - id: Actor
     table: actor
     expression: "actor.first_name || ' ' || actor.last_name"
     synonyms: ["actor", "actores", "actriz", "actrices", "elenco", "protagonista", "estrella"]
     type: categorical
+    description: "Nombre completo del intérprete"
 
   - id: Pelicula
     table: film
     column: title
     synonyms: ["película", "pelicula", "películas", "peliculas", "film", "films", "título", "cinta"]
     type: categorical
+    description: "Título del largometraje"
 
   - id: Categoria
     table: category
     column: name
     synonyms: ["categoría", "categoria", "categorías", "categorias", "género cinematográfico", "tipo de película"]
     type: categorical
+    description: "Género temático de la película"
 
   - id: Cliente
     table: customer
     expression: "customer.first_name || ' ' || customer.last_name"
     synonyms: ["cliente", "clientes", "miembro", "suscriptor"]
     type: categorical
+    description: "Nombre completo del socio registrado"
 
   - id: Fecha
     table: payment
     column: payment_date
     synonyms: ["fecha", "día", "dia", "tiempo", "mes", "semana"]
     type: temporal
+    allowed_grains: [day, week, month, quarter, year]
+    description: "Fecha en que se cobró el alquiler"
+
+measures:
+  - id: total_revenue
+    table: payment
+    agg_type: sum
+    expression: "SUM(payment.amount)"
+    unit: "USD"
+    is_currency: true
+    description: "Total de ingresos por cobros"
+
+  - id: rental_count
+    table: rental
+    agg_type: count_distinct
+    expression: "COUNT(DISTINCT rental.rental_id)"
+    unit: "alquileres"
+    is_currency: false
+    description: "Total de transacciones de alquiler"
 
 metrics:
   - id: Ingresos_USD
     table: payment
     expression: "ROUND(SUM(payment.amount), 2)"
+    metric_type: atomic
     unit: "USD"
     is_currency: true
     synonyms: ["ingresos", "ventas", "facturación", "recaudación", "desempeño", "monto", "dinero"]
+    description: "Facturación total acumulada por alquiler de películas"
+
+  - id: Ticket_Promedio_USD
+    table: payment
+    expression: "ROUND(SUM(payment.amount) * 1.0 / NULLIF(COUNT(DISTINCT payment.rental_id), 0), 2)"
+    metric_type: ratio
+    unit: "USD"
+    is_currency: true
+    synonyms: ["ticket promedio", "pago promedio", "aov", "promedio por renta"]
+    description: "Ingreso promedio generado por cada operación de renta"
+
+  - id: Duracion_Promedio_Horas
+    table: film
+    expression: "ROUND(AVG(film.length) / 60.0, 1)"
+    metric_type: derived
+    unit: "horas"
+    is_currency: false
+    synonyms: ["duración promedio", "duracion promedio", "horas promedio", "longitud de película"]
+    description: "Duración media de los largometrajes en horas"
+
+  - id: Tarifa_Promedio_USD
+    table: film
+    expression: "ROUND(AVG(film.rental_rate), 2)"
+    metric_type: derived
+    unit: "USD"
+    is_currency: true
+    synonyms: ["tarifa promedio", "precio promedio de alquiler", "precio medio"]
+    description: "Tarifa estándar promedio de alquiler por película"
 
   - id: Alquileres
     table: rental
     expression: "COUNT(DISTINCT rental.rental_id)"
+    metric_type: atomic
     unit: "alquileres"
     is_currency: false
     synonyms: ["alquileres", "rentas", "préstamos", "operaciones", "movimientos"]
+    description: "Total de operaciones y préstamos registrados"
 
   - id: Peliculas
     table: film
     expression: "COUNT(DISTINCT film.film_id)"
+    metric_type: atomic
     unit: "películas"
     is_currency: false
     synonyms: ["películas", "conteo de películas", "total películas", "títulos"]
+    description: "Total de películas en el catálogo del videoclub"
 
   - id: Actores
     table: actor
     expression: "COUNT(DISTINCT actor.actor_id)"
+    metric_type: atomic
     unit: "actores"
     is_currency: false
     synonyms: ["actores", "total actores"]
+    description: "Total de actores en la base de datos"
 
 relationships:
   - from_table: payment

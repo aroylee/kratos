@@ -94,3 +94,76 @@ def test_wren_mdl_time_series_compilation(catalog, registry):
     assert "Mes" in cols
     assert "Ventas_USD" in cols
     assert len(rows) > 0
+
+
+def test_wren_mdl_ratio_metric_multi_table(catalog, registry):
+    """Tests compiled execution of a derived ratio metric requiring multiple tables."""
+    model = catalog.get_model("northwind")
+    task = DataTask(
+        intent=Intent.QUERY_DATA,
+        engine_id="northwind",
+        goal="ticket promedio por categoría",
+        analytical_pattern=AnalyticalPattern.CATEGORICAL_BREAKDOWN,
+        dimensions=["Categoria"],
+        metrics=["Ticket_Promedio_USD"],
+        top_n=5,
+        ranking_criterion="mejor desempeño",
+    )
+
+    sql = SemanticCompiler.compile(task, model)
+    assert "Ticket_Promedio_USD" in sql
+    # Must join order_details, orders, and categories
+    assert "order_details" in sql
+    assert "orders" in sql
+    assert "categories" in sql
+
+    allowed_tables = set(registry.engines["northwind"].introspect().keys())
+    guard_res = validate_sql(sql, allowed_tables=allowed_tables, dialect="sqlite")
+    assert guard_res.allowed
+
+    cols, rows, _, _ = registry.engines["northwind"].execute_readonly(guard_res.sanitized_sql)
+    assert "Categoria" in cols
+    assert "Ticket_Promedio_USD" in cols
+    assert len(rows) > 0
+    # Values should be realistic positive numbers
+    assert float(rows[0]["Ticket_Promedio_USD"]) > 0
+
+
+def test_wren_mdl_quarterly_time_series(catalog, registry):
+    """Tests quarterly time grain compilation and execution."""
+    model = catalog.get_model("northwind")
+    task = DataTask(
+        intent=Intent.QUERY_DATA,
+        engine_id="northwind",
+        goal="tendencia de ventas trimestral",
+        analytical_pattern=AnalyticalPattern.TIME_SERIES,
+        time_granularity=TimeGranularity.QUARTERLY,
+        time_dimension="Trimestre",
+        metrics=["Ventas_USD"],
+    )
+
+    sql = SemanticCompiler.compile(task, model)
+    assert "-Q" in sql
+
+    allowed_tables = set(registry.engines["northwind"].introspect().keys())
+    guard_res = validate_sql(sql, allowed_tables=allowed_tables, dialect="sqlite")
+    assert guard_res.allowed
+
+    cols, rows, _, _ = registry.engines["northwind"].execute_readonly(guard_res.sanitized_sql)
+    assert "Trimestre" in cols
+    assert "Ventas_USD" in cols
+    assert len(rows) > 0
+    # First row should have format YYYY-Q#
+    assert "-Q" in str(rows[0]["Trimestre"])
+
+
+def test_wren_mdl_entity_and_measure_metadata(catalog):
+    """Tests discovery of entities, primary keys, and atomic measures."""
+    for engine_id in ["northwind", "chinook", "sakila", "adventureworks_dw", "tpch"]:
+        model = catalog.get_model(engine_id)
+        assert model is not None
+        assert len(model.entities) >= 4, f"Model {engine_id} missing entities"
+        for entity in model.entities:
+            assert len(entity.primary_key) >= 1, f"Entity {entity.name} in {engine_id} missing PK"
+            assert entity.grain != "", f"Entity {entity.name} in {engine_id} missing grain"
+        assert len(model.metrics) >= 4, f"Model {engine_id} missing metrics"
