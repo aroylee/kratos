@@ -544,7 +544,7 @@ def index_page():
         }
 
         function getColumnMetadata(col) {
-            const clean = col.toLowerCase().replace(/[_\-\s]+/g, '');
+            const clean = col.toLowerCase().replace(/[\\-_\\s]+/g, '');
             const isMoney = ['usd', 'total', 'subtotal', 'price', 'unitprice', 'cost', 'revenue', 'sales', 'ingreso', 'precio', 'monto', 'importe', 'venta', 'ventas', 'costo', 'valor', 'tarifa', 'freight', 'facturacion', 'amount'].some(k => clean.includes(k));
             const isPct = ['discount', 'descuento', 'margin', 'margen', 'rate', 'tasa', 'pct', 'ratio'].some(k => clean.includes(k));
             const isCount = ['pedidos', 'ordenes', 'canciones', 'peliculas', 'alquileres', 'clientes', 'unidades', 'piezas', 'tracks', 'actores', 'count', 'cantidad', 'volumen', 'orders'].some(k => clean.includes(k));
