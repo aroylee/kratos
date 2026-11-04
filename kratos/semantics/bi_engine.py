@@ -113,6 +113,167 @@ def _compile_multi_series_echarts(
     return option
 
 
+COUNTRY_NAME_MAPPINGS = {
+    "usa": "United States",
+    "united states": "United States",
+    "estados unidos": "United States",
+    "eeuu": "United States",
+    "ee.uu.": "United States",
+    "uk": "United Kingdom",
+    "united kingdom": "United Kingdom",
+    "reino unido": "United Kingdom",
+    "gran bretaña": "United Kingdom",
+    "germany": "Germany",
+    "alemania": "Germany",
+    "france": "France",
+    "francia": "France",
+    "brazil": "Brazil",
+    "brasil": "Brazil",
+    "canada": "Canada",
+    "canadá": "Canada",
+    "mexico": "Mexico",
+    "méxico": "Mexico",
+    "spain": "Spain",
+    "españa": "Spain",
+    "italy": "Italy",
+    "italia": "Italy",
+    "austria": "Austria",
+    "belgium": "Belgium",
+    "bélgica": "Belgium",
+    "switzerland": "Switzerland",
+    "suiza": "Switzerland",
+    "sweden": "Sweden",
+    "suecia": "Sweden",
+    "norway": "Norway",
+    "noruega": "Norway",
+    "finland": "Finland",
+    "finlandia": "Finland",
+    "poland": "Poland",
+    "polonia": "Poland",
+    "portugal": "Portugal",
+    "ireland": "Ireland",
+    "irlanda": "Ireland",
+    "denmark": "Denmark",
+    "dinamarca": "Denmark",
+    "argentina": "Argentina",
+    "venezuela": "Venezuela",
+    "australia": "Australia",
+    "japan": "Japan",
+    "japón": "Japan",
+    "china": "China",
+    "india": "India",
+    "russia": "Russia",
+    "rusia": "Russia",
+    "chile": "Chile",
+    "colombia": "Colombia",
+    "peru": "Peru",
+    "perú": "Peru",
+    "czech republic": "Czech Rep.",
+    "republica checa": "Czech Rep.",
+    "república checa": "Czech Rep.",
+    "netherlands": "Netherlands",
+    "holanda": "Netherlands",
+    "países bajos": "Netherlands",
+    "paises bajos": "Netherlands",
+    "south africa": "South Africa",
+    "sudáfrica": "South Africa",
+    "hungary": "Hungary",
+    "hungría": "Hungary",
+}
+
+
+def normalize_country_name(name: str) -> str:
+    cleaned = name.strip()
+    return COUNTRY_NAME_MAPPINGS.get(cleaned.lower(), cleaned)
+
+
+def _compile_geo_map_echarts(
+    rows: List[Dict[str, Any]],
+    dim_col: str,
+    metric_col: str,
+    title: str
+) -> Dict[str, Any]:
+    """Compiles an interactive choropleth World Map with visualMap heat gradient."""
+    geo_data = []
+    numeric_vals = []
+    categories = []
+
+    for r in rows:
+        raw_name = str(r.get(dim_col, ""))
+        norm_name = normalize_country_name(raw_name)
+        try:
+            val = float(r.get(metric_col, 0) or 0)
+        except (ValueError, TypeError):
+            val = 0.0
+
+        geo_data.append({
+            "name": norm_name,
+            "value": round(val, 2),
+            "raw_name": raw_name,
+        })
+        numeric_vals.append(val)
+        categories.append(raw_name)
+
+    min_val = min(numeric_vals) if numeric_vals else 0
+    max_val = max(numeric_vals) if numeric_vals else 100
+    primary_unit = infer_column_unit(metric_col)
+
+    return {
+        "title": {"text": title, "textStyle": {"color": "#E2E8F0"}},
+        "tooltip": {
+            "trigger": "item",
+            "backgroundColor": "#0F172A",
+            "borderColor": "#334155",
+            "textStyle": {"color": "#E2E8F0"},
+            "formatter": f"{{b}}: {{c}} {primary_unit}".strip()
+        },
+        "visualMap": {
+            "min": min_val,
+            "max": max_val,
+            "text": ["Alto", "Bajo"],
+            "realtime": False,
+            "calculable": True,
+            "inRange": {
+                "color": ["#1E293B", "#312E81", "#4F46E5", "#818CF8", "#F43F5E"]
+            },
+            "textStyle": {"color": "#94A3B8"},
+            "left": 10,
+            "bottom": 10
+        },
+        "geo": {
+            "map": "world",
+            "roam": True,
+            "zoom": 1.15,
+            "emphasis": {
+                "label": {"show": True, "color": "#FFFFFF"},
+                "itemStyle": {"areaColor": "#6366F1"}
+            },
+            "itemStyle": {
+                "areaColor": "#1E293B",
+                "borderColor": "#334155",
+                "borderWidth": 0.8
+            }
+        },
+        "series": [
+            {
+                "name": metric_col,
+                "type": "map",
+                "geoIndex": 0,
+                "data": geo_data
+            }
+        ],
+        "_meta": {
+            "chart_type": "map",
+            "is_geo": True,
+            "dim_col": dim_col,
+            "metric_col": metric_col,
+            "categories": categories,
+            "values": numeric_vals,
+            "unit": primary_unit
+        }
+    }
+
+
 def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overview") -> Dict[str, Any] | None:
     """Produces valid, production-grade ECharts 5 options with strict unit compliance."""
     if not rows:
@@ -141,6 +302,11 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
     # Detect dimension (categorical/temporal) vs measure (numeric)
     dim_col = columns[0]
     metric_cols = columns[1:]
+
+    # Detect Geo Pattern: dim_col is Pais / Country / Nation / BillingCountry
+    is_geo = any(w in dim_col.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación"])
+    if is_geo and len(metric_cols) >= 1:
+        return _compile_geo_map_echarts(rows, dim_col, metric_cols[0], title)
 
     categories = [str(r.get(dim_col, "")) for r in rows]
     series = []

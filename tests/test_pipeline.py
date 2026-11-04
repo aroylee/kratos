@@ -311,6 +311,28 @@ def test_interpreter_and_cte_multi_series_bottom_3_products(registry):
     assert "Producto" in storytelling.key_takeaway
 
 
+def test_geo_map_echarts_compilation():
+    sample_rows = [
+        {"Pais": "USA", "Ventas_USD": 245584.61},
+        {"Pais": "Germany", "Ventas_USD": 230284.63},
+        {"Pais": "Brasil", "Ventas_USD": 106925.78},
+        {"Pais": "Reino Unido", "Ventas_USD": 58971.31},
+    ]
+    vis = compile_echarts(sample_rows, title="Ventas Globales")
+    assert vis is not None
+    assert vis["geo"]["map"] == "world"
+    assert vis["series"][0]["type"] == "map"
+    assert vis["_meta"]["is_geo"] is True
+    assert vis["_meta"]["chart_type"] == "map"
+    assert vis["_meta"]["unit"] == "$ USD"
+    # Ensure name normalization mapped 'Brasil' to 'Brazil' and 'Reino Unido' to 'United Kingdom'
+    names = [item["name"] for item in vis["series"][0]["data"]]
+    assert "United States" in names
+    assert "Brazil" in names
+    assert "United Kingdom" in names
+
+
+
 
 
 

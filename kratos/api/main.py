@@ -143,6 +143,7 @@ def index_page():
     <title>KRATOS // Sovereign Data Intelligence</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
     <style>
         body { background: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     </style>
@@ -197,80 +198,121 @@ def index_page():
     <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <!-- Columna Izquierda: Entrada y Auditoría -->
         <section class="lg:col-span-1 space-y-4">
-            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Consulta en Lenguaje Natural</label>
-                    <span class="text-[10px] text-slate-500 font-mono">Presiona Enter ↵</span>
+            <!-- Tarjeta 1: Entrada de Consulta -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+                <div class="flex justify-between items-center p-3.5 bg-slate-900 border-b border-slate-800/80 cursor-pointer select-none hover:bg-slate-850 transition" onclick="toggleCardCollapse('query-card')">
+                    <div class="flex items-center gap-2">
+                        <span class="text-indigo-400 text-sm">💬</span>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 pointer-events-none">Consulta en Lenguaje Natural</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-500 font-mono hidden sm:inline">Enter ↵</span>
+                        <button id="toggle-query-card" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800">▼</button>
+                    </div>
                 </div>
-                <textarea id="query-input" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-indigo-500" placeholder="Ej: dame una tendencia de ventas diaria por categoría de las 3 categorías con mejor desempeño"></textarea>
-                
-                <!-- Chips de Contrato Interpretado (Grounding) -->
-                <div id="contract-chips" class="mt-2 empty:hidden flex flex-wrap gap-1.5 text-[11px]"></div>
+                <div id="body-query-card" class="p-4 transition-all">
+                    <textarea id="query-input" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-indigo-500" placeholder="Ej: dame las ventas por país en el mundo"></textarea>
+                    
+                    <!-- Chips de Contrato Interpretado (Grounding) -->
+                    <div id="contract-chips" class="mt-2 empty:hidden flex flex-wrap gap-1.5 text-[11px]"></div>
 
-                <!-- Chips de Preguntas Rápidas -->
-                <div class="mt-2.5 flex flex-wrap gap-1.5" id="sample-chips">
-                    <button onclick="setQuery('ventas por categoría')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Ventas por categoría</button>
-                    <button onclick="setQuery('ventas por empleado')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Ventas por empleado</button>
-                    <button onclick="setQuery('tendencia de ventas diaria por categoría de las 3 categorías con mejor desempeño')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Top 3 Categorías diario</button>
+                    <!-- Chips de Preguntas Rápidas -->
+                    <div class="mt-2.5 flex flex-wrap gap-1.5" id="sample-chips">
+                        <button onclick="setQuery('ventas por país')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">🗺️ Ventas por país</button>
+                        <button onclick="setQuery('ventas por categoría')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Ventas por categoría</button>
+                        <button onclick="setQuery('tendencia de ventas diaria por categoría de las 3 categorías con mejor desempeño')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Top 3 Categorías diario</button>
+                    </div>
+
+                    <button id="run-btn" onclick="executeQuery()" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-500 font-medium py-2 rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+                        <span>⚡</span> Ejecutar Análisis
+                    </button>
                 </div>
-
-                <button id="run-btn" onclick="executeQuery()" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-500 font-medium py-2 rounded-lg text-sm transition flex items-center justify-center gap-2">
-                    <span>⚡</span> Ejecutar Análisis
-                </button>
             </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Resumen Ejecutivo (Storytelling)</h3>
-                <div id="storytelling-container" class="text-sm space-y-2 text-slate-300">
-                    <p class="text-slate-500 italic">Escribe una pregunta o selecciona un chip y presiona ejecutar.</p>
+            <!-- Tarjeta 2: Resumen Ejecutivo (Storytelling) -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+                <div class="flex justify-between items-center p-3.5 bg-slate-900 border-b border-slate-800/80 cursor-pointer select-none hover:bg-slate-850 transition" onclick="toggleCardCollapse('storytelling-card')">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 text-sm">📑</span>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Resumen Ejecutivo (Storytelling)</h3>
+                    </div>
+                    <button id="toggle-storytelling-card" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800">▼</button>
+                </div>
+                <div id="body-storytelling-card" class="p-4 transition-all">
+                    <div id="storytelling-container" class="text-sm space-y-2 text-slate-300">
+                        <p class="text-slate-500 italic">Escribe una pregunta o selecciona un chip y presiona ejecutar.</p>
+                    </div>
                 </div>
             </div>
 
-            <div id="suggested-container" class="hidden bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-2 flex items-center gap-1.5">
-                    <span>💡</span> Preguntas Analíticas Sugeridas
-                </h3>
-                <div id="suggested-chips" class="flex flex-wrap gap-1.5 text-xs"></div>
+            <!-- Tarjeta 3: Preguntas Analíticas Sugeridas -->
+            <div id="suggested-container" class="hidden bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+                <div class="flex justify-between items-center p-3.5 bg-slate-900 border-b border-slate-800/80 cursor-pointer select-none hover:bg-slate-850 transition" onclick="toggleCardCollapse('suggested-card')">
+                    <div class="flex items-center gap-2">
+                        <span class="text-indigo-400 text-sm">💡</span>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-indigo-300">Preguntas Analíticas Sugeridas</h3>
+                    </div>
+                    <button id="toggle-suggested-card" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800">▼</button>
+                </div>
+                <div id="body-suggested-card" class="p-4 transition-all">
+                    <div id="suggested-chips" class="flex flex-wrap gap-1.5 text-xs"></div>
+                </div>
             </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Auditoría DataTask & 4-Layer AST</h3>
-                <div id="audit-container" class="text-xs font-mono space-y-1 text-slate-400 overflow-x-auto">
-                    <p class="text-slate-600">Sin ejecuciones recientes.</p>
+            <!-- Tarjeta 4: Auditoría DataTask & 4-Layer AST -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+                <div class="flex justify-between items-center p-3.5 bg-slate-900 border-b border-slate-800/80 cursor-pointer select-none hover:bg-slate-850 transition" onclick="toggleCardCollapse('audit-card')">
+                    <div class="flex items-center gap-2">
+                        <span class="text-emerald-400 text-sm">🛡️</span>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Auditoría DataTask & 4-Layer AST</h3>
+                    </div>
+                    <button id="toggle-audit-card" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800">▼</button>
+                </div>
+                <div id="body-audit-card" class="p-4 transition-all">
+                    <div id="audit-container" class="text-xs font-mono space-y-1 text-slate-400 overflow-x-auto">
+                        <p class="text-slate-600">Sin ejecuciones recientes.</p>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Columna Derecha: Gráficos y Tablas -->
         <section class="lg:col-span-2 space-y-4">
-            <!-- Tarjeta de Gráfico con Controles Interactivos -->
-            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-xl">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-slate-800/80 mb-3 gap-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm">📈</span>
+            <!-- Tarjeta 5: Gráfico con Controles Interactivos -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-slate-900 border-b border-slate-800/80 gap-2">
+                    <div class="flex items-center gap-2 cursor-pointer select-none" onclick="toggleCardCollapse('chart-card')">
+                        <span class="text-indigo-400 text-sm">📈</span>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Visualización Analítica Interactiva</h3>
                         <span id="chart-type-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950/80 text-indigo-400 border border-indigo-800">ECharts 5</span>
+                        <button id="toggle-chart-card" class="text-slate-400 hover:text-white text-xs font-mono px-1 py-0.5 rounded hover:bg-slate-800 ml-1">▼</button>
                     </div>
                     <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="text-[11px] text-slate-500 mr-1 hidden sm:inline">Modo:</span>
+                        <button onclick="changeChartType('map')" id="btn-chart-map" class="chart-type-btn hidden px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1">🗺️ Mapa</button>
                         <button onclick="changeChartType('line')" id="btn-chart-line" class="chart-type-btn px-2.5 py-1 text-xs rounded bg-indigo-600 border border-indigo-500 text-white font-medium transition shadow-sm">📈 Línea</button>
                         <button onclick="changeChartType('bar')" id="btn-chart-bar" class="chart-type-btn px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">📊 Barra</button>
                         <button onclick="changeChartType('area')" id="btn-chart-area" class="chart-type-btn px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">🏔️ Área</button>
-                        <button onclick="downloadChartImage()" title="Descargar Imagen PNG" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
+                        <button onclick="downloadChartImage()" title="Descargar Imagen PNG" class="px-2 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
                             <span>📸</span> PNG
+                        </button>
+                        <button onclick="openFullscreen('chart')" title="Expandir a Pantalla Completa" class="px-2 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-indigo-300 hover:text-white hover:border-indigo-600 transition flex items-center gap-1">
+                            <span>⛶</span>
                         </button>
                     </div>
                 </div>
-                <div id="chart-container" style="height: 390px; width: 100%;"></div>
+                <div id="body-chart-card" class="p-4 transition-all">
+                    <div id="chart-container" style="height: 400px; width: 100%;"></div>
+                </div>
             </div>
 
-            <!-- Tarjeta de Tabla de Evidencias con Búsqueda y Exportación -->
-            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-xl">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-slate-800/80 mb-3 gap-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm">📋</span>
+            <!-- Tarjeta 6: Tabla de Evidencias con Búsqueda y Exportación -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-slate-900 border-b border-slate-800/80 gap-2">
+                    <div class="flex items-center gap-2 cursor-pointer select-none" onclick="toggleCardCollapse('table-card')">
+                        <span class="text-emerald-400 text-sm">📋</span>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Registros de Evidencia Auditada</h3>
                         <span id="table-row-count-badge" class="hidden text-[11px] font-mono bg-slate-950 text-slate-400 px-2 py-0.5 rounded border border-slate-800"></span>
+                        <button id="toggle-table-card" class="text-slate-400 hover:text-white text-xs font-mono px-1 py-0.5 rounded hover:bg-slate-800 ml-1">▼</button>
                     </div>
                     <div class="flex items-center gap-2 w-full sm:w-auto">
                         <div class="relative flex-1 sm:w-48">
@@ -279,24 +321,116 @@ def index_page():
                         <button onclick="exportTableToCSV()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
                             <span>📥</span> CSV
                         </button>
+                        <button onclick="openFullscreen('table')" title="Expandir a Pantalla Completa" class="px-2 py-1 text-xs rounded-lg bg-slate-950 border border-slate-800 text-indigo-300 hover:text-white hover:border-indigo-600 transition flex items-center gap-1">
+                            <span>⛶</span>
+                        </button>
                     </div>
                 </div>
-                <div id="table-container" class="text-xs overflow-x-auto">
-                    <p class="text-slate-600 p-2 italic">Sin registros cargados.</p>
+                <div id="body-table-card" class="p-4 transition-all">
+                    <div id="table-container" class="text-xs overflow-x-auto">
+                        <p class="text-slate-600 p-2 italic">Sin registros cargados.</p>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- Modal de Pantalla Completa Expandida (⛶) -->
+    <div id="fullscreen-modal" class="hidden fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md p-6 flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <span id="modal-icon" class="text-xl">📈</span>
+                <h2 id="modal-title" class="text-lg font-bold text-white tracking-wide">Vista Expandida</h2>
+            </div>
+            <button onclick="closeFullscreen()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-rose-500 hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-1 transition">
+                <span>✕</span> Cerrar (ESC)
+            </button>
+        </div>
+        <div id="modal-content" class="flex-1 my-4 overflow-auto flex flex-col justify-center">
+            <div id="modal-chart-container" class="w-full h-full min-h-[550px]"></div>
+            <div id="modal-table-container" class="w-full hidden overflow-auto"></div>
+        </div>
+        <div class="text-xs text-slate-500 flex justify-between items-center pt-2 border-t border-slate-800/80">
+            <span>KRATOS Sovereign Data Intelligence &bull; Modo Inmersivo Expandido</span>
+            <span>Presiona ESC o clic en Cerrar para salir</span>
+        </div>
+    </div>
 
     <script>
         let chartInstance = echarts.init(document.getElementById('chart-container'), 'dark');
         let currentEngine = 'northwind';
         let enginesData = [];
         let currentChartOption = null;
+        let originalGeoOption = null;
         let currentChartMode = 'line';
         let currentRawRows = [];
         let currentRawCols = [];
         let currentColMeta = [];
+        let fullscreenChartInstance = null;
+        let currentFullscreenType = null;
+
+        function toggleCardCollapse(cardId) {
+            const body = document.getElementById(`body-${cardId}`);
+            const btn = document.getElementById(`toggle-${cardId}`);
+            if (!body) return;
+            const isHidden = body.classList.contains('hidden');
+            if (isHidden) {
+                body.classList.remove('hidden');
+                if (btn) btn.innerText = '▼';
+                if (cardId === 'chart-card' && chartInstance) {
+                    setTimeout(() => chartInstance.resize(), 60);
+                }
+            } else {
+                body.classList.add('hidden');
+                if (btn) btn.innerText = '▲';
+            }
+        }
+
+        function openFullscreen(type) {
+            currentFullscreenType = type;
+            const modal = document.getElementById('fullscreen-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalIcon = document.getElementById('modal-icon');
+            const chartBox = document.getElementById('modal-chart-container');
+            const tableBox = document.getElementById('modal-table-container');
+
+            modal.classList.remove('hidden');
+
+            if (type === 'chart') {
+                modalIcon.innerText = '📈';
+                modalTitle.innerText = `Visualización Analítica Expandida (${currentEngine.toUpperCase()})`;
+                chartBox.classList.remove('hidden');
+                tableBox.classList.add('hidden');
+
+                if (!fullscreenChartInstance) {
+                    fullscreenChartInstance = echarts.init(chartBox, 'dark');
+                }
+                if (currentChartOption) {
+                    fullscreenChartInstance.setOption(currentChartOption, true);
+                }
+                setTimeout(() => {
+                    if (fullscreenChartInstance) fullscreenChartInstance.resize();
+                }, 60);
+            } else if (type === 'table') {
+                modalIcon.innerText = '📋';
+                modalTitle.innerText = `Registros de Evidencia Auditada (${currentEngine.toUpperCase()})`;
+                chartBox.classList.add('hidden');
+                tableBox.classList.remove('hidden');
+                tableBox.innerHTML = document.getElementById('table-container').innerHTML;
+            }
+        }
+
+        function closeFullscreen() {
+            const modal = document.getElementById('fullscreen-modal');
+            modal.classList.add('hidden');
+            currentFullscreenType = null;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeFullscreen();
+            }
+        });
 
         function setQuery(text) {
             document.getElementById('query-input').value = text;
@@ -610,10 +744,28 @@ def index_page():
                 // Render Chart & store options for dynamic switching
                 if (data.visualization) {
                     currentChartOption = data.visualization;
+                    const isGeo = !!(data.visualization._meta && data.visualization._meta.is_geo);
+                    const mapBtn = document.getElementById('btn-chart-map');
+                    if (isGeo) {
+                        mapBtn.classList.remove('hidden');
+                        originalGeoOption = JSON.parse(JSON.stringify(data.visualization));
+                        currentChartMode = 'map';
+                    } else {
+                        mapBtn.classList.add('hidden');
+                        originalGeoOption = null;
+                        if (currentChartOption.series && currentChartOption.series.length > 0) {
+                            const firstType = currentChartOption.series[0].type;
+                            currentChartMode = (firstType === 'bar') ? 'bar' : 'line';
+                        } else {
+                            currentChartMode = 'line';
+                        }
+                    }
                     chartInstance.setOption(currentChartOption, true);
                     updateChartTypeButtons(currentChartMode);
                 } else {
                     currentChartOption = null;
+                    originalGeoOption = null;
+                    document.getElementById('btn-chart-map').classList.add('hidden');
                     chartInstance.clear();
                 }
             } catch (err) {
@@ -729,37 +881,109 @@ def index_page():
         }
 
         function changeChartType(newType) {
-            if (!currentChartOption || !currentChartOption.series) return;
+            if (!currentChartOption) return;
             currentChartMode = newType;
             updateChartTypeButtons(newType);
 
-            currentChartOption.series.forEach(s => {
-                if (newType === 'bar') {
-                    s.type = 'bar';
-                    s.itemStyle = Object.assign({}, s.itemStyle || {}, { borderRadius: [4, 4, 0, 0] });
-                    delete s.areaStyle;
-                } else if (newType === 'area') {
-                    s.type = 'line';
-                    s.smooth = true;
-                    s.areaStyle = { opacity: 0.25 };
-                } else {
-                    s.type = 'line';
-                    s.smooth = true;
-                    delete s.areaStyle;
+            // Switching back to Geo Map
+            if (newType === 'map' && originalGeoOption) {
+                currentChartOption = JSON.parse(JSON.stringify(originalGeoOption));
+                chartInstance.setOption(currentChartOption, true);
+                if (fullscreenChartInstance && currentFullscreenType === 'chart') {
+                    fullscreenChartInstance.setOption(currentChartOption, true);
                 }
-            });
+                return;
+            }
 
-            chartInstance.setOption(currentChartOption, true);
+            // Converting Geo Map to Bar / Line / Area
+            if (originalGeoOption && newType !== 'map') {
+                const meta = originalGeoOption._meta || {};
+                const cats = meta.categories || [];
+                const vals = meta.values || [];
+                const unit = meta.unit || '';
+                const metricCol = meta.metric_col || 'Valor';
+
+                const pairs = cats.map((c, i) => ({ name: c, val: vals[i] || 0 }));
+                pairs.sort((a, b) => b.val - a.val);
+                const topPairs = pairs.slice(0, 15);
+                const chartCats = topPairs.map(p => p.name);
+                const chartVals = topPairs.map(p => p.val);
+
+                currentChartOption = {
+                    title: {
+                        text: `${originalGeoOption.title?.text || 'Distribución'} (Top 15)`,
+                        textStyle: { color: '#E2E8F0' }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: '#0F172A',
+                        borderColor: '#334155',
+                        textStyle: { color: '#E2E8F0' },
+                        formatter: `{b}: {c} ${unit}`.trim()
+                    },
+                    grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+                    xAxis: {
+                        type: 'category',
+                        data: chartCats,
+                        axisLabel: { color: '#94A3B8', interval: 0, rotate: 25 },
+                        axisLine: { lineStyle: { color: '#334155' } }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLabel: { color: '#94A3B8' },
+                        splitLine: { lineStyle: { color: '#1E293B' } }
+                    },
+                    series: [{
+                        name: metricCol,
+                        type: (newType === 'bar') ? 'bar' : 'line',
+                        data: chartVals,
+                        smooth: true,
+                        areaStyle: (newType === 'area') ? { opacity: 0.25 } : undefined,
+                        itemStyle: (newType === 'bar') ? { borderRadius: [4, 4, 0, 0], color: '#6366F1' } : { color: '#6366F1' }
+                    }],
+                    _meta: originalGeoOption._meta
+                };
+
+                chartInstance.setOption(currentChartOption, true);
+                if (fullscreenChartInstance && currentFullscreenType === 'chart') {
+                    fullscreenChartInstance.setOption(currentChartOption, true);
+                }
+                return;
+            }
+
+            // Standard series transformation
+            if (currentChartOption.series) {
+                currentChartOption.series.forEach(s => {
+                    if (newType === 'bar') {
+                        s.type = 'bar';
+                        s.itemStyle = Object.assign({}, s.itemStyle || {}, { borderRadius: [4, 4, 0, 0] });
+                        delete s.areaStyle;
+                    } else if (newType === 'area') {
+                        s.type = 'line';
+                        s.smooth = true;
+                        s.areaStyle = { opacity: 0.25 };
+                    } else {
+                        s.type = 'line';
+                        s.smooth = true;
+                        delete s.areaStyle;
+                    }
+                });
+
+                chartInstance.setOption(currentChartOption, true);
+                if (fullscreenChartInstance && currentFullscreenType === 'chart') {
+                    fullscreenChartInstance.setOption(currentChartOption, true);
+                }
+            }
         }
 
         function updateChartTypeButtons(activeType) {
-            ['line', 'bar', 'area'].forEach(t => {
+            ['map', 'line', 'bar', 'area'].forEach(t => {
                 const btn = document.getElementById(`btn-chart-${t}`);
                 if (!btn) return;
                 if (t === activeType) {
-                    btn.className = "chart-type-btn px-2.5 py-1 text-xs rounded bg-indigo-600 border border-indigo-500 text-white font-medium transition shadow-sm";
+                    btn.className = "chart-type-btn px-2.5 py-1 text-xs rounded bg-indigo-600 border border-indigo-500 text-white font-medium transition shadow-sm flex items-center gap-1";
                 } else {
-                    btn.className = "chart-type-btn px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition";
+                    btn.className = "chart-type-btn px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1";
                 }
             });
         }
@@ -788,7 +1012,12 @@ def index_page():
         });
 
         loadEngines();
-        window.addEventListener('resize', () => chartInstance.resize());
+        window.addEventListener('resize', () => {
+            if (chartInstance) chartInstance.resize();
+            if (fullscreenChartInstance && !document.getElementById('fullscreen-modal').classList.contains('hidden')) {
+                fullscreenChartInstance.resize();
+            }
+        });
     </script>
 </body>
 </html>"""
