@@ -185,4 +185,47 @@ def test_end_to_end_multi_series_daily_sales(registry):
     assert len(echarts["legend"]["data"]) > 1
 
 
+def test_interpreter_and_cte_multi_series_top_3(registry):
+    interpreter = InterpreterAgent()
+    investigator = InvestigatorAgent(registry)
+
+    query = "dame una tendencia de ventas diaria a través del tiempo por categoría de las 3 categorías con mejor desempeño"
+    interpreted = interpreter.interpret(query, "northwind")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES
+    assert interpreted.time_granularity == TimeGranularity.DAILY
+    assert interpreted.top_n == 3
+    assert interpreted.ranking_criterion == "mejor desempeño"
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="northwind",
+        goal=interpreted.goal,
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        series_dimension=interpreted.series_dimension,
+        metric_target=interpreted.metric_target,
+        top_n=interpreted.top_n,
+        ranking_criterion=interpreted.ranking_criterion,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+    evidence = investigator.execute_task(task)
+    assert evidence.confidence > 0.8
+    assert len(evidence.queries) == 1
+    q = evidence.queries[0]
+    assert "with top_categories as" in q.sql.lower()
+
+    # Verify exactly 3 distinct categories are returned in the rows
+    distinct_cats = set(r["Categoria"] for r in q.rows)
+    assert len(distinct_cats) == 3
+    assert distinct_cats == {"Beverages", "Dairy Products", "Confections"}
+
+    storytelling = interpreter.formulate_storytelling(task, evidence)
+    assert "Top 3" in storytelling.key_takeaway
+    assert "Dairy Products" in storytelling.key_takeaway
+
+
+
 

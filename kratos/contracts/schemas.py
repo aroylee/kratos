@@ -79,6 +79,14 @@ class InterpretedRequest(BaseModel):
         default=MetricTarget.REVENUE,
         description="Primary business metric targeted"
     )
+    top_n: int | None = Field(
+        default=None,
+        description="Top N entities limit extracted from query (e.g. Top 3, Top 5)"
+    )
+    ranking_criterion: str | None = Field(
+        default=None,
+        description="Criterion for ranking (e.g. 'desempeño', 'ventas', 'pedidos')"
+    )
     dimensions: list[str] = Field(
         default_factory=list,
         description="Extracted dimensions e.g. ['Fecha', 'Categoria']"
@@ -120,6 +128,14 @@ class DataTask(BaseModel):
     metric_target: MetricTarget = Field(
         default=MetricTarget.REVENUE,
         description="Primary metric to compute"
+    )
+    top_n: int | None = Field(
+        default=None,
+        description="Top N cohort limit (e.g. 3 for '3 mejores')"
+    )
+    ranking_criterion: str | None = Field(
+        default=None,
+        description="Ranking metric criterion (e.g. 'desempeño', 'volumen')"
     )
     dimensions: list[str] = Field(default_factory=list)
     metrics: list[str] = Field(default_factory=list)
@@ -166,4 +182,5 @@ class FinalAnswer(BaseModel):
     storytelling: ExecutiveStorytelling
     evidence: DataEvidence
     visualization: dict[str, Any] | None = None
+    task: DataTask | None = None
     suggested_questions: list[str] = Field(default_factory=list)

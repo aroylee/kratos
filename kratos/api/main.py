@@ -91,6 +91,8 @@ def run_query(req: QueryRequest):
         time_dimension=interpreted.time_dimension,
         series_dimension=interpreted.series_dimension,
         metric_target=interpreted.metric_target,
+        top_n=interpreted.top_n,
+        ranking_criterion=interpreted.ranking_criterion,
         dimensions=interpreted.dimensions,
         metrics=interpreted.metrics,
         constraints=interpreted.constraints,
@@ -109,6 +111,7 @@ def run_query(req: QueryRequest):
         storytelling=storytelling,
         evidence=evidence,
         visualization=echarts,
+        task=task,
         suggested_questions=[
             "Ver distribución por país",
             "Consultar top 5 entidades líderes",
@@ -185,18 +188,30 @@ def index_page():
     <!-- Píldoras de Tablas del Motor -->
     <div id="tables-container" class="mt-3 flex flex-wrap gap-1.5 text-xs text-slate-400"></div>
 
+    <!-- Alert / Feedback Banner -->
+    <div id="alert-banner" class="hidden mt-4 p-3 rounded-xl border text-sm flex items-center justify-between transition">
+        <div id="alert-content" class="flex items-center gap-2"></div>
+        <button onclick="dismissAlert()" class="text-slate-400 hover:text-white font-bold px-2 py-0.5 rounded">&times;</button>
+    </div>
+
     <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <!-- Columna Izquierda: Entrada y Auditoría -->
         <section class="lg:col-span-1 space-y-4">
             <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Consulta en Lenguaje Natural</label>
-                <textarea id="query-input" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-indigo-500" placeholder="Ej: ¿Cuáles son las ventas por categoría?"></textarea>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Consulta en Lenguaje Natural</label>
+                    <span class="text-[10px] text-slate-500 font-mono">Presiona Enter ↵</span>
+                </div>
+                <textarea id="query-input" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-indigo-500" placeholder="Ej: dame una tendencia de ventas diaria por categoría de las 3 categorías con mejor desempeño"></textarea>
                 
+                <!-- Chips de Contrato Interpretado (Grounding) -->
+                <div id="contract-chips" class="mt-2 empty:hidden flex flex-wrap gap-1.5 text-[11px]"></div>
+
                 <!-- Chips de Preguntas Rápidas -->
-                <div class="mt-2 flex flex-wrap gap-1.5" id="sample-chips">
+                <div class="mt-2.5 flex flex-wrap gap-1.5" id="sample-chips">
                     <button onclick="setQuery('ventas por categoría')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Ventas por categoría</button>
                     <button onclick="setQuery('ventas por empleado')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Ventas por empleado</button>
-                    <button onclick="setQuery('clientes por país')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Clientes por país</button>
+                    <button onclick="setQuery('tendencia de ventas diaria por categoría de las 3 categorías con mejor desempeño')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Top 3 Categorías diario</button>
                 </div>
 
                 <button id="run-btn" onclick="executeQuery()" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-500 font-medium py-2 rounded-lg text-sm transition flex items-center justify-center gap-2">
@@ -299,7 +314,7 @@ def index_page():
                 chips.innerHTML = `
                     <button onclick="setQuery('canciones por artista')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Canciones por artista</button>
                     <button onclick="setQuery('facturación por país')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Facturación por país</button>
-                    <button onclick="setQuery('canciones por género')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Canciones por género</button>
+                    <button onclick="setQuery('tendencia semanal de facturación por género de los 3 mejores')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Top 3 Géneros semanal</button>
                 `;
             } else if (engineId === 'sakila') {
                 chips.innerHTML = `
@@ -310,12 +325,49 @@ def index_page():
                 chips.innerHTML = `
                     <button onclick="setQuery('ventas por categoría')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Ventas por categoría</button>
                     <button onclick="setQuery('ventas por empleado')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Ventas por empleado</button>
-                    <button onclick="setQuery('clientes por país')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Clientes por país</button>
+                    <button onclick="setQuery('tendencia de ventas diaria por categoría de las 3 categorías con mejor desempeño')" class="text-[11px] bg-slate-950 hover:bg-indigo-950 hover:text-indigo-300 text-slate-400 border border-slate-800 px-2 py-0.5 rounded transition">Top 3 Categorías diario</button>
                 `;
             }
         }
 
+        function showAlert(msg, isError = true) {
+            const banner = document.getElementById('alert-banner');
+            banner.className = `mt-4 p-3 rounded-xl border text-sm flex items-center justify-between transition ${isError ? 'bg-red-950/80 border-red-800 text-red-200' : 'bg-amber-950/80 border-amber-800 text-amber-200'}`;
+            document.getElementById('alert-content').innerHTML = `<span>${isError ? '❌' : '⚠️'}</span> <span>${msg}</span>`;
+            banner.classList.remove('hidden');
+        }
+
+        function dismissAlert() {
+            document.getElementById('alert-banner').classList.add('hidden');
+        }
+
+        function renderContractChips(task) {
+            const container = document.getElementById('contract-chips');
+            if (!task) {
+                container.innerHTML = '';
+                return;
+            }
+            const chips = [];
+            if (task.analytical_pattern) {
+                chips.push(`<span class="bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 px-2 py-0.5 rounded font-mono">🎯 Patrón: ${task.analytical_pattern}</span>`);
+            }
+            if (task.time_granularity && task.time_granularity !== 'NONE') {
+                chips.push(`<span class="bg-blue-950/80 border border-blue-700/60 text-blue-300 px-2 py-0.5 rounded font-mono">⏱️ Grano: ${task.time_granularity}</span>`);
+            }
+            if (task.top_n) {
+                chips.push(`<span class="bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 px-2 py-0.5 rounded font-mono">🏆 Top ${task.top_n} (${task.ranking_criterion || 'Líderes'})</span>`);
+            }
+            if (task.metric_target) {
+                chips.push(`<span class="bg-purple-950/80 border border-purple-700/60 text-purple-300 px-2 py-0.5 rounded font-mono">📊 Métrica: ${task.metric_target}</span>`);
+            }
+            if (task.dimensions && task.dimensions.length > 0) {
+                chips.push(`<span class="bg-slate-950 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">🗂️ Dimensiones: ${task.dimensions.join(', ')}</span>`);
+            }
+            container.innerHTML = chips.join('');
+        }
+
         async function executeQuery() {
+            dismissAlert();
             const query = document.getElementById('query-input').value.trim();
             if (!query) return;
 
@@ -332,11 +384,14 @@ def index_page():
 
                 if (!res.ok) {
                     const err = await res.json();
-                    alert("Error en consulta: " + (err.detail || "Fallo desconocido"));
+                    showAlert("Error en consulta: " + (err.detail || "Fallo desconocido"));
                     return;
                 }
 
                 const data = await res.json();
+
+                // Render Grounding Contract Chips
+                renderContractChips(data.task);
 
                 // Render Storytelling
                 const story = data.storytelling;
@@ -368,7 +423,7 @@ def index_page():
                                 <tbody>
                                     ${q.rows.slice(0, 10).map(r => `
                                         <tr class="border-b border-slate-900 hover:bg-slate-800/50">
-                                            ${cols.map(c => `<td class="p-2 text-slate-300">${r[c]}</td>`).join('')}
+                                             ${cols.map(c => `<td class="p-2 text-slate-300">${r[c]}</td>`).join('')}
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -391,12 +446,20 @@ def index_page():
                     chartInstance.clear();
                 }
             } catch (err) {
-                alert("Error de conexión: " + err.message);
+                showAlert("Error de conexión: " + err.message);
             } finally {
                 runBtn.disabled = false;
                 runBtn.innerHTML = '<span>⚡</span> Ejecutar Análisis';
             }
         }
+
+        // Enter key to submit
+        document.getElementById('query-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                executeQuery();
+            }
+        });
 
         loadEngines();
         window.addEventListener('resize', () => chartInstance.resize());

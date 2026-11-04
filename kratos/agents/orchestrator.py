@@ -1,6 +1,7 @@
 """Kratos Two-Agent System: Interpreter & Investigator with Auto-Reflection."""
 
 import os
+import re
 from kratos.contracts.schemas import (
     Intent,
     InterpretedRequest,
@@ -89,7 +90,26 @@ class InterpreterAgent:
         else:
             analytical_pattern = AnalyticalPattern.CATEGORICAL_BREAKDOWN
 
-        # 4. Metric Target Detection
+        # 4. Top-N and Ranking Extraction
+        top_n = None
+        ranking_criterion = None
+
+        top_match = re.search(r"(?:top|primeras?|primeros?|las?|los?)\s*(\d+)", lowered)
+        if top_match:
+            top_n = int(top_match.group(1))
+        else:
+            word_to_num = {"dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "diez": 10}
+            for w, n in word_to_num.items():
+                if re.search(rf"(?:top|primeras?|primeros?|las?|los?)\s+{w}", lowered):
+                    top_n = n
+                    break
+
+        if any(w in lowered for w in ["mejor desempeño", "mejores desempeños", "mejor rendimiento", "más ventas", "mas ventas", "mayores ventas", "mejores"]):
+            ranking_criterion = "mejor desempeño"
+        elif any(w in lowered for w in ["peor desempeño", "menos ventas", "menores ventas"]):
+            ranking_criterion = "menor desempeño"
+
+        # 5. Metric Target Detection
         metric_target = MetricTarget.REVENUE
         if any(w in lowered for w in ["pedido", "pedidos", "orden", "ordenes", "órdenes", "orders"]):
             metric_target = MetricTarget.ORDERS
@@ -100,7 +120,7 @@ class InterpreterAgent:
         elif any(w in lowered for w in ["cancion", "canciones", "track", "pelicula", "peliculas", "películas"]):
             metric_target = MetricTarget.COUNT_ENTITIES
 
-        # 5. Dimensions & Metrics Aliases
+        # 6. Dimensions & Metrics Aliases
         dimensions: list[str] = []
         metrics: list[str] = []
 
@@ -140,6 +160,8 @@ class InterpreterAgent:
             time_dimension=time_dimension,
             series_dimension=series_dimension,
             metric_target=metric_target,
+            top_n=top_n,
+            ranking_criterion=ranking_criterion,
             dimensions=dimensions,
             metrics=metrics,
             needs_investigation=True,
@@ -160,7 +182,17 @@ class InterpreterAgent:
         if task.analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:
             s_name = task.series_dimension or "segmento"
             g_name = task.time_granularity.value.lower()
-            key_takeaway = f"Tendencia multi-serie identificada ({g_name} por {s_name}): {top_obs}."
+            distinct_series = []
+            if evidence.queries and evidence.queries[0].rows and task.series_dimension:
+                s_col = task.series_dimension
+                distinct_series = list(dict.fromkeys(r[s_col] for r in evidence.queries[0].rows if s_col in r))
+
+            if task.top_n and distinct_series:
+                series_str = ", ".join(distinct_series[:task.top_n])
+                key_takeaway = f"Tendencia multi-serie ({g_name}) para las Top {task.top_n} {s_name} de {task.ranking_criterion or 'mejor desempeño'} ({series_str}): {top_obs}."
+            else:
+                key_takeaway = f"Tendencia multi-serie identificada ({g_name} por {s_name}): {top_obs}."
+
             recommendations = [
                 f"Comparar la evolución temporal relativa entre las diferentes líneas de {s_name}.",
                 "Monitorear los segmentos con mayor dinamismo para anticipar patrones de demanda o abastecimiento.",
@@ -297,6 +329,49 @@ class InvestigatorAgent:
             series_dim = task.series_dimension or "Categoria"
 
             if eid == "northwind":
+                if task.top_n:
+                    top_limit = task.top_n
+                    if series_dim == "Empleado":
+                        return (
+                            f"WITH top_employees AS (\n"
+                            f"    SELECT e.employeeID, e.lastName || ', ' || e.firstName AS Empleado\n"
+                            f"    FROM employees e\n"
+                            f"    JOIN orders o ON e.employeeID = o.employeeID\n"
+                            f"    JOIN order_details od ON o.orderID = od.orderID\n"
+                            f"    GROUP BY e.employeeID, Empleado\n"
+                            f"    ORDER BY SUM(od.unitPrice * od.quantity * (1 - od.discount)) DESC\n"
+                            f"    LIMIT {top_limit}\n"
+                            f")\n"
+                            f"SELECT {time_expr} AS {time_alias}, "
+                            f"te.Empleado AS Empleado, "
+                            f"ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD "
+                            f"FROM orders o "
+                            f"JOIN order_details od ON o.orderID = od.orderID "
+                            f"JOIN top_employees te ON o.employeeID = te.employeeID "
+                            f"GROUP BY {time_alias}, Empleado "
+                            f"ORDER BY {time_alias} ASC, Ventas_USD DESC;"
+                        )
+                    else:
+                        return (
+                            f"WITH top_categories AS (\n"
+                            f"    SELECT c.categoryID, c.categoryName\n"
+                            f"    FROM categories c\n"
+                            f"    JOIN products p ON c.categoryID = p.categoryID\n"
+                            f"    JOIN order_details od ON p.productID = od.productID\n"
+                            f"    GROUP BY c.categoryID, c.categoryName\n"
+                            f"    ORDER BY SUM(od.unitPrice * od.quantity * (1 - od.discount)) DESC\n"
+                            f"    LIMIT {top_limit}\n"
+                            f")\n"
+                            f"SELECT {time_expr} AS {time_alias}, "
+                            f"tc.categoryName AS Categoria, "
+                            f"ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD "
+                            f"FROM orders o "
+                            f"JOIN order_details od ON o.orderID = od.orderID "
+                            f"JOIN products p ON od.productID = p.productID "
+                            f"JOIN top_categories tc ON p.categoryID = tc.categoryID "
+                            f"GROUP BY {time_alias}, Categoria "
+                            f"ORDER BY {time_alias} ASC, Ventas_USD DESC;"
+                        )
                 if series_dim == "Empleado":
                     return (
                         f"SELECT {time_expr} AS {time_alias}, "
@@ -328,6 +403,28 @@ class InvestigatorAgent:
                     "strftime('%Y-W%W', i.InvoiceDate)" if grain == TimeGranularity.WEEKLY else "strftime('%Y-%m', i.InvoiceDate)"
                 )
                 time_alias_ch = task.time_dimension or ("Fecha" if grain == TimeGranularity.DAILY else ("Semana" if grain == TimeGranularity.WEEKLY else "Mes"))
+                if task.top_n:
+                    top_limit = task.top_n
+                    return (
+                        f"WITH top_genres AS (\n"
+                        f"    SELECT g.GenreId, g.Name AS Genero\n"
+                        f"    FROM Genre g\n"
+                        f"    JOIN Track t ON g.GenreId = t.GenreId\n"
+                        f"    JOIN InvoiceLine il ON t.TrackId = il.TrackId\n"
+                        f"    GROUP BY g.GenreId, Genero\n"
+                        f"    ORDER BY SUM(il.UnitPrice * il.Quantity) DESC\n"
+                        f"    LIMIT {top_limit}\n"
+                        f")\n"
+                        f"SELECT {time_expr_ch} AS {time_alias_ch}, "
+                        f"tg.Genero AS Genero, "
+                        f"ROUND(SUM(il.UnitPrice * il.Quantity), 2) AS Facturacion_USD "
+                        f"FROM Invoice i "
+                        f"JOIN InvoiceLine il ON i.InvoiceId = il.InvoiceId "
+                        f"JOIN Track t ON il.TrackId = t.TrackId "
+                        f"JOIN top_genres tg ON t.GenreId = tg.GenreId "
+                        f"GROUP BY {time_alias_ch}, Genero "
+                        f"ORDER BY {time_alias_ch} ASC, Facturacion_USD DESC;"
+                    )
                 return (
                     f"SELECT {time_expr_ch} AS {time_alias_ch}, "
                     f"g.Name AS Genero, "
