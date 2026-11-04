@@ -242,7 +242,12 @@ def index_page():
             </div>
 
             <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl overflow-x-auto">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Registros de Evidencia Auditada</h3>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <span>📋</span> Registros de Evidencia Auditada
+                    </h3>
+                    <span id="table-row-count-badge" class="hidden text-[11px] font-mono bg-slate-950 text-slate-400 px-2 py-0.5 rounded border border-slate-800"></span>
+                </div>
                 <div id="table-container" class="text-xs">
                     <p class="text-slate-600 p-2 italic">Sin registros cargados.</p>
                 </div>
@@ -366,6 +371,92 @@ def index_page():
             container.innerHTML = chips.join('');
         }
 
+        function getColumnMetadata(col) {
+            const clean = col.toLowerCase().replace(/[_\-\s]+/g, '');
+            const isMoney = ['usd', 'total', 'subtotal', 'price', 'unitprice', 'cost', 'revenue', 'sales', 'ingreso', 'precio', 'monto', 'importe', 'venta', 'ventas', 'costo', 'valor', 'tarifa', 'freight', 'facturacion', 'amount'].some(k => clean.includes(k));
+            const isPct = ['discount', 'descuento', 'margin', 'margen', 'rate', 'tasa', 'pct', 'ratio'].some(k => clean.includes(k));
+            const isCount = ['pedidos', 'ordenes', 'canciones', 'peliculas', 'alquileres', 'clientes', 'unidades', 'piezas', 'tracks', 'actores', 'count', 'cantidad', 'volumen', 'orders'].some(k => clean.includes(k));
+            const isDate = ['fecha', 'date', 'orderdate', 'paymentdate', 'invoicedate', 'ano', 'mes', 'semana'].some(k => clean.includes(k));
+
+            let label = col.replace(/_USD$/i, '').replace(/_/g, ' ');
+            label = label.charAt(0).toUpperCase() + label.slice(1);
+
+            if (isMoney) {
+                return {
+                    label: label,
+                    badge: '<span class="bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px] px-1.5 py-0.5 rounded font-mono font-medium ml-1.5">$ USD</span>',
+                    unitType: 'currency',
+                    align: 'text-right'
+                };
+            }
+            if (isPct) {
+                return {
+                    label: label,
+                    badge: '<span class="bg-amber-950/80 text-amber-400 border border-amber-800 text-[10px] px-1.5 py-0.5 rounded font-mono font-medium ml-1.5">%</span>',
+                    unitType: 'percentage',
+                    align: 'text-right'
+                };
+            }
+            if (isCount) {
+                return {
+                    label: label,
+                    badge: '<span class="bg-purple-950/80 text-purple-400 border border-purple-800 text-[10px] px-1.5 py-0.5 rounded font-mono font-medium ml-1.5">Conteo</span>',
+                    unitType: 'count',
+                    align: 'text-right'
+                };
+            }
+            if (isDate) {
+                return {
+                    label: label,
+                    badge: '<span class="bg-blue-950/80 text-blue-400 border border-blue-800 text-[10px] px-1.5 py-0.5 rounded font-mono font-medium ml-1.5">Fecha</span>',
+                    unitType: 'date',
+                    align: 'text-center'
+                };
+            }
+            return {
+                label: label,
+                badge: '',
+                unitType: 'text',
+                align: 'text-left'
+            };
+        }
+
+        function formatTableCell(val, unitType) {
+            if (val === null || val === undefined) {
+                return '<span class="text-slate-600">—</span>';
+            }
+            const num = Number(val);
+            const isNumeric = !isNaN(num) && typeof val !== 'boolean' && val !== '';
+
+            if (unitType === 'currency' && isNumeric) {
+                const formatted = new Intl.NumberFormat('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(num);
+                return `<span class="font-mono text-emerald-400 font-semibold tracking-tight"><span class="text-emerald-500/80 font-bold mr-0.5">$</span>${formatted}</span>`;
+            }
+
+            if (unitType === 'percentage' && isNumeric) {
+                const pctVal = (Math.abs(num) <= 1.0 && num !== 0) ? num * 100 : num;
+                return `<span class="font-mono text-amber-300 font-medium">${pctVal.toFixed(1)}%</span>`;
+            }
+
+            if (unitType === 'count' && isNumeric) {
+                const formatted = new Intl.NumberFormat('en-US').format(Math.round(num));
+                return `<span class="font-mono text-blue-300 font-medium">${formatted}</span>`;
+            }
+
+            if (unitType === 'date') {
+                return `<span class="font-mono text-slate-300">${val}</span>`;
+            }
+
+            if (isNumeric) {
+                return `<span class="font-mono text-slate-200">${val}</span>`;
+            }
+
+            return `<span class="text-slate-200 font-medium">${val}</span>`;
+        }
+
         async function executeQuery() {
             dismissAlert();
             const query = document.getElementById('query-input').value.trim();
@@ -415,27 +506,52 @@ def index_page():
                         <p class="mt-2 text-slate-400"><span class="text-emerald-400 font-semibold">Latencia:</span> ${q.execution_ms} ms &bull; <span class="text-blue-400 font-semibold">Filas:</span> ${q.row_count} &bull; <span class="text-purple-400 font-semibold">Motor:</span> ${data.evidence.engine_id.toUpperCase()}</p>
                     `;
 
-                    // Render Table
+                    // Render Table with Semantic Formatting and Units
                     if (q.rows && q.rows.length > 0) {
                         const cols = Object.keys(q.rows[0]);
+                        const colMeta = cols.map(c => ({ col: c, ...getColumnMetadata(c) }));
+                        
+                        const badge = document.getElementById('table-row-count-badge');
+                        badge.innerText = `${q.rows.length} ${q.rows.length === 1 ? 'registro' : 'registros'}${q.truncated ? ' (truncado)' : ''}`;
+                        badge.classList.remove('hidden');
+
                         document.getElementById('table-container').innerHTML = `
-                            <table class="w-full text-left border-collapse">
+                            <table class="w-full text-left border-collapse rounded-lg overflow-hidden">
                                 <thead>
-                                    <tr class="border-b border-slate-800 text-slate-400">
-                                        ${cols.map(c => `<th class="p-2">${c}</th>`).join('')}
+                                    <tr class="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+                                        <th class="p-2.5 text-center w-12 font-semibold text-slate-500">#</th>
+                                        ${colMeta.map(m => `
+                                            <th class="p-2.5 ${m.align} font-semibold">
+                                                <span class="inline-flex items-center">${m.label} ${m.badge}</span>
+                                            </th>
+                                        `).join('')}
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    ${q.rows.slice(0, 10).map(r => `
-                                        <tr class="border-b border-slate-900 hover:bg-slate-800/50">
-                                             ${cols.map(c => `<td class="p-2 text-slate-300">${r[c]}</td>`).join('')}
-                                        </tr>
-                                    `).join('')}
+                                <tbody class="divide-y divide-slate-800/40">
+                                    ${q.rows.slice(0, 15).map((r, i) => {
+                                        let rankBadge = `<span class="text-slate-500 font-mono text-[11px]">${i + 1}</span>`;
+                                        if (i === 0) rankBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥇 1</span>`;
+                                        else if (i === 1) rankBadge = `<span class="bg-slate-300/20 text-slate-200 border border-slate-400/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥈 2</span>`;
+                                        else if (i === 2) rankBadge = `<span class="bg-amber-700/20 text-amber-500 border border-amber-600/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥉 3</span>`;
+
+                                        return `
+                                            <tr class="transition hover:bg-indigo-950/20 ${i % 2 === 0 ? 'bg-slate-950/30' : 'bg-transparent'}">
+                                                <td class="p-2.5 text-center font-mono">${rankBadge}</td>
+                                                ${colMeta.map(m => `
+                                                    <td class="p-2.5 ${m.align}">
+                                                        ${formatTableCell(r[m.col], m.unitType)}
+                                                    </td>
+                                                `).join('')}
+                                            </tr>
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
+                            ${q.rows.length > 15 ? `<p class="text-right text-[11px] text-slate-500 mt-2 italic">Mostrando primeros 15 de ${q.rows.length} registros auditados</p>` : ''}
                         `;
                     } else {
-                        document.getElementById('table-container').innerHTML = '<p class="text-slate-500 italic p-2">Sin registros devueltos.</p>';
+                        document.getElementById('table-row-count-badge').classList.add('hidden');
+                        document.getElementById('table-container').innerHTML = '<p class="text-slate-500 italic p-3">Sin registros devueltos.</p>';
                     }
                 } else {
                     document.getElementById('audit-container').innerHTML = `
