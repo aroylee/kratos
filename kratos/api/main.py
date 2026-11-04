@@ -27,6 +27,7 @@ class QueryRequest(BaseModel):
 
 
 @app.get("/api/health")
+@app.get("/health")
 def health():
     return {"status": "ok", "project": "kratos", "engines_available": list(registry.engines.keys())}
 
