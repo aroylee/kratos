@@ -5,8 +5,9 @@ import pytest
 from kratos.engines.registry import EngineRegistry
 from kratos.inference.schema_pruner import SchemaPruner
 from kratos.semantics.unit_utils import infer_column_unit, format_metric_value
-from kratos.contracts.schemas import DataTask, Intent
+from kratos.contracts.schemas import DataTask, Intent, AnalyticalPattern, TimeGranularity, MetricTarget
 from kratos.agents.orchestrator import InterpreterAgent, InvestigatorAgent
+from kratos.semantics.bi_engine import compile_echarts
 
 
 @pytest.fixture
@@ -89,4 +90,48 @@ def test_documentation_page_endpoint():
     index_res = client.get("/")
     assert index_res.status_code == 200
     assert 'href="/documentation"' in index_res.text
+
+
+def test_interpreter_weekly_sales_trend():
+    interpreter = InterpreterAgent()
+    interpreted = interpreter.interpret("dame una tendencia de ventas semanal a través del tiempo", "northwind")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.TIME_SERIES
+    assert interpreted.time_granularity == TimeGranularity.WEEKLY
+    assert interpreted.metric_target == MetricTarget.REVENUE
+    assert "Semana" in interpreted.dimensions
+    assert "Ventas_USD" in interpreted.metrics
+
+
+def test_end_to_end_weekly_sales_trend(registry):
+    interpreter = InterpreterAgent()
+    investigator = InvestigatorAgent(registry)
+
+    interpreted = interpreter.interpret("dame una tendencia de ventas semanal a través del tiempo", "northwind")
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="northwind",
+        goal=interpreted.goal,
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        metric_target=interpreted.metric_target,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+    evidence = investigator.execute_task(task)
+
+    assert evidence.confidence > 0.8
+    assert len(evidence.queries) == 1
+    q = evidence.queries[0]
+    assert "Semana" in q.columns
+    assert "Ventas_USD" in q.columns
+    assert "strftime" in q.sql.lower()
+    assert len(q.rows) > 0
+    assert "1996-W" in str(q.rows[0]["Semana"])
+
+    # Verify chart is line
+    echarts = compile_echarts(q.rows, title=task.goal)
+    assert echarts is not None
+    assert echarts["series"][0]["type"] == "line"
+
 

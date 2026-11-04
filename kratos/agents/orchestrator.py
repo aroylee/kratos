@@ -9,6 +9,9 @@ from kratos.contracts.schemas import (
     DataEvidence,
     ExecutiveStorytelling,
     FinalAnswer,
+    AnalyticalPattern,
+    TimeGranularity,
+    MetricTarget,
 )
 from kratos.security.sql_guard import validate_sql, RejectReason
 from kratos.engines.registry import EngineRegistry, DatabaseEngine
@@ -25,14 +28,98 @@ class InterpreterAgent:
         lowered = query.lower()
         intent = Intent.QUERY_DATA
 
+        # 1. Intent Detection
         if any(w in lowered for w in ["esquema", "tablas", "estructura", "schema", "columnas"]):
             intent = Intent.EXPLORE_SCHEMA
         elif any(w in lowered for w in ["que contiene", "de que trata", "describe", "resumen de base"]):
             intent = Intent.DESCRIBE_DATABASE
+        elif any(w in lowered for w in ["tendencia", "tiempo", "evolucion", "evolución", "comparar", "analiza", "analizar"]):
+            intent = Intent.ANALYZE_DATA
+
+        # 2. Analytical Pattern Detection
+        is_time_series = any(w in lowered for w in [
+            "tendencia", "tiempo", "semanal", "semana", "mensual", "mes",
+            "anual", "año", "ano", "diario", "dia", "día", "evolucion", "evolución",
+            "historico", "histórico", "a través del tiempo", "traves del tiempo"
+        ])
+        is_ranking = any(w in lowered for w in ["top", "mejores", "primeros", "ranking", "lideres", "líderes", "mas", "más"])
+        is_geo = any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región"])
+
+        if is_time_series:
+            analytical_pattern = AnalyticalPattern.TIME_SERIES
+        elif is_ranking:
+            analytical_pattern = AnalyticalPattern.RANKING_TOP_N
+        elif is_geo:
+            analytical_pattern = AnalyticalPattern.GEO_DISTRIBUTION
+        else:
+            analytical_pattern = AnalyticalPattern.CATEGORICAL_BREAKDOWN
+
+        # 3. Time Granularity Detection
+        time_granularity = TimeGranularity.NONE
+        if is_time_series:
+            if any(w in lowered for w in ["semanal", "semana", "semanas", "week", "weekly"]):
+                time_granularity = TimeGranularity.WEEKLY
+            elif any(w in lowered for w in ["mensual", "mes", "meses", "month", "monthly"]):
+                time_granularity = TimeGranularity.MONTHLY
+            elif any(w in lowered for w in ["diario", "dia", "día", "dias", "días", "daily"]):
+                time_granularity = TimeGranularity.DAILY
+            elif any(w in lowered for w in ["anual", "año", "ano", "años", "anos", "year", "yearly"]):
+                time_granularity = TimeGranularity.YEARLY
+            else:
+                time_granularity = TimeGranularity.MONTHLY
+
+        # 4. Metric Target Detection
+        metric_target = MetricTarget.REVENUE
+        if any(w in lowered for w in ["pedido", "pedidos", "orden", "ordenes", "órdenes", "orders"]):
+            metric_target = MetricTarget.ORDERS
+        elif any(w in lowered for w in ["cliente", "clientes", "customers"]):
+            metric_target = MetricTarget.CUSTOMERS
+        elif any(w in lowered for w in ["unidad", "unidades", "stock", "cantidad", "piezas"]):
+            metric_target = MetricTarget.QUANTITY
+        elif any(w in lowered for w in ["cancion", "canciones", "track", "pelicula", "peliculas", "películas"]):
+            metric_target = MetricTarget.COUNT_ENTITIES
+
+        # 5. Dimensions & Metrics Aliases
+        dimensions: list[str] = []
+        metrics: list[str] = []
+
+        if analytical_pattern == AnalyticalPattern.TIME_SERIES:
+            if time_granularity == TimeGranularity.WEEKLY:
+                dimensions.append("Semana")
+            elif time_granularity == TimeGranularity.MONTHLY:
+                dimensions.append("Mes")
+            elif time_granularity == TimeGranularity.YEARLY:
+                dimensions.append("Ano")
+            else:
+                dimensions.append("Fecha")
+        elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION:
+            dimensions.append("Pais")
+        elif "empleado" in lowered:
+            dimensions.append("Empleado")
+        elif "artista" in lowered:
+            dimensions.append("Artista")
+        elif "actor" in lowered or "actores" in lowered:
+            dimensions.append("Actor")
+        else:
+            dimensions.append("Categoria")
+
+        if metric_target == MetricTarget.REVENUE:
+            metrics.append("Ventas_USD" if active_engine_id in ["northwind", "adventureworks_dw"] else "Facturacion_USD")
+        elif metric_target == MetricTarget.ORDERS:
+            metrics.append("Pedidos")
+        elif metric_target == MetricTarget.CUSTOMERS:
+            metrics.append("Clientes")
+        else:
+            metrics.append("Total")
 
         return InterpretedRequest(
             intent=intent,
             goal=query,
+            analytical_pattern=analytical_pattern,
+            time_granularity=time_granularity,
+            metric_target=metric_target,
+            dimensions=dimensions,
+            metrics=metrics,
             needs_investigation=True,
             constraints=[],
             required_evidence=["Datos numéricos agregados", "Dimensiones analíticas"],
@@ -47,13 +134,24 @@ class InterpreterAgent:
             )
 
         top_obs = evidence.observations[0]
-        return ExecutiveStorytelling(
-            key_takeaway=f"Análisis completado: {top_obs}.",
-            quantitative_findings=evidence.observations[:4],
-            strategic_recommendations=[
+
+        if task.analytical_pattern == AnalyticalPattern.TIME_SERIES:
+            key_takeaway = f"Tendencia temporal identificada ({task.time_granularity.value.lower()}): {top_obs}."
+            recommendations = [
+                "Evaluar la estacionalidad y puntos de inflexión a lo largo del tiempo.",
+                "Comparar con períodos homólogos anteriores para detectar patrones de crecimiento o desaceleración.",
+            ]
+        else:
+            key_takeaway = f"Análisis completado: {top_obs}."
+            recommendations = [
                 "Monitorear las categorías y entidades líderes observadas en la distribución.",
                 "Profundizar el análisis cruzando con períodos o dimensiones adicionales.",
-            ],
+            ]
+
+        return ExecutiveStorytelling(
+            key_takeaway=key_takeaway,
+            quantitative_findings=evidence.observations[:4],
+            strategic_recommendations=recommendations,
         )
 
 
@@ -156,11 +254,82 @@ class InvestigatorAgent:
         schema: dict,
         rejection_detail: str | None = None
     ) -> str:
-        lowered = task.goal.lower()
+        eid = engine.engine_id
+        pattern = task.analytical_pattern
+        grain = task.time_granularity
 
-        # Northwind
-        if engine.engine_id == "northwind":
-            if "empleado" in lowered or "ventas por empleado" in lowered:
+        # --- TIME SERIES PATTERN ---
+        if pattern == AnalyticalPattern.TIME_SERIES:
+            if eid == "northwind":
+                if grain == TimeGranularity.WEEKLY:
+                    return (
+                        "SELECT strftime('%Y-W%W', o.orderDate) AS Semana, "
+                        "ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD "
+                        "FROM orders o "
+                        "JOIN order_details od ON o.orderID = od.orderID "
+                        "GROUP BY Semana "
+                        "ORDER BY Semana ASC "
+                        "LIMIT 20;"
+                    )
+                return (
+                    "SELECT strftime('%Y-%m', o.orderDate) AS Mes, "
+                    "ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD "
+                    "FROM orders o "
+                    "JOIN order_details od ON o.orderID = od.orderID "
+                    "GROUP BY Mes "
+                    "ORDER BY Mes ASC "
+                    "LIMIT 24;"
+                )
+            elif eid == "chinook":
+                if grain == TimeGranularity.WEEKLY:
+                    return (
+                        "SELECT strftime('%Y-W%W', i.InvoiceDate) AS Semana, "
+                        "ROUND(SUM(i.Total), 2) AS Facturacion_USD "
+                        "FROM Invoice i "
+                        "GROUP BY Semana "
+                        "ORDER BY Semana ASC "
+                        "LIMIT 20;"
+                    )
+                return (
+                    "SELECT strftime('%Y-%m', i.InvoiceDate) AS Mes, "
+                    "ROUND(SUM(i.Total), 2) AS Facturacion_USD "
+                    "FROM Invoice i "
+                    "GROUP BY Mes "
+                    "ORDER BY Mes ASC "
+                    "LIMIT 24;"
+                )
+            elif eid == "sakila":
+                return (
+                    "SELECT strftime('%Y-%m', p.payment_date) AS Mes, "
+                    "ROUND(SUM(p.amount), 2) AS Ingresos_USD "
+                    "FROM payment p "
+                    "GROUP BY Mes "
+                    "ORDER BY Mes ASC "
+                    "LIMIT 24;"
+                )
+            elif eid == "tpch":
+                return (
+                    "SELECT strftime('%Y-%m', o.o_orderdate) AS Mes, "
+                    "ROUND(SUM(o.o_totalprice), 2) AS Monto_USD "
+                    "FROM orders o "
+                    "GROUP BY Mes "
+                    "ORDER BY Mes ASC "
+                    "LIMIT 24;"
+                )
+
+        # --- GEO DISTRIBUTION PATTERN ---
+        if pattern == AnalyticalPattern.GEO_DISTRIBUTION:
+            if eid == "northwind":
+                return "SELECT country AS Pais, COUNT(customerID) AS Clientes FROM customers GROUP BY country ORDER BY Clientes DESC LIMIT 10;"
+            elif eid == "chinook":
+                return "SELECT BillingCountry AS Pais, ROUND(SUM(Total), 2) AS Facturacion_USD FROM Invoice GROUP BY BillingCountry ORDER BY Facturacion_USD DESC LIMIT 10;"
+            elif eid == "tpch":
+                return "SELECT n.n_name AS Pais, COUNT(c.c_custkey) AS Clientes FROM customer c JOIN nation n ON c.c_nationkey = n.n_nationkey GROUP BY Pais ORDER BY Clientes DESC LIMIT 10;"
+
+        # --- RANKINGS & CATEGORIES ---
+        lowered = task.goal.lower()
+        if eid == "northwind":
+            if "empleado" in lowered:
                 return (
                     'SELECT e.lastName || ", " || e.firstName AS Empleado, '
                     'ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD '
@@ -169,8 +338,15 @@ class InvestigatorAgent:
                     'JOIN order_details od ON o.orderID = od.orderID '
                     'GROUP BY Empleado ORDER BY Ventas_USD DESC LIMIT 10;'
                 )
-            if "cliente" in lowered or "clientes" in lowered:
+            if "cliente" in lowered:
                 return "SELECT country AS Pais, COUNT(customerID) AS Clientes FROM customers GROUP BY country ORDER BY Clientes DESC LIMIT 10;"
+            if "producto" in lowered:
+                return (
+                    'SELECT p.productName AS Producto, ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD '
+                    'FROM products p '
+                    'JOIN order_details od ON p.productID = od.productID '
+                    'GROUP BY Producto ORDER BY Ventas_USD DESC LIMIT 10;'
+                )
             return (
                 'SELECT c.categoryName AS Categoria, ROUND(SUM(od.unitPrice * od.quantity * (1 - od.discount)), 2) AS Ventas_USD '
                 'FROM categories c '
@@ -179,8 +355,7 @@ class InvestigatorAgent:
                 'GROUP BY Categoria ORDER BY Ventas_USD DESC LIMIT 10;'
             )
 
-        # Chinook
-        if engine.engine_id == "chinook":
+        if eid == "chinook":
             if "artista" in lowered or "cancion" in lowered or "track" in lowered:
                 return (
                     "SELECT ar.Name AS Artista, COUNT(t.TrackId) AS Canciones "
@@ -202,8 +377,7 @@ class InvestigatorAgent:
                 "GROUP BY Pais ORDER BY Facturacion_USD DESC LIMIT 10;"
             )
 
-        # Sakila
-        if engine.engine_id == "sakila":
+        if eid == "sakila":
             if "actor" in lowered or "actores" in lowered:
                 return (
                     "SELECT a.first_name || ' ' || a.last_name AS Actor, COUNT(fa.film_id) AS Peliculas "
@@ -216,14 +390,12 @@ class InvestigatorAgent:
                 "GROUP BY Categoria ORDER BY Peliculas DESC LIMIT 10;"
             )
 
-        # TPC-H
-        if engine.engine_id == "tpch":
+        if eid == "tpch":
             return (
                 "SELECT n.n_name AS Pais, COUNT(c.c_custkey) AS Clientes "
                 "FROM customer c JOIN nation n ON c.c_nationkey = n.n_nationkey "
                 "GROUP BY Pais ORDER BY Clientes DESC LIMIT 10;"
             )
 
-        # AdventureWorks / Generic fallback
         first_table = list(schema.keys())[0] if schema else "sqlite_master"
         return f"SELECT * FROM {first_table} LIMIT 10;"

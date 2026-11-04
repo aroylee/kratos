@@ -1,0 +1,48 @@
+flowchart TD
+    User([Analyst · conversational UI]) --> API["FastAPI :8888<br/>web dashboard + REST<br/><i>kratos.cli / uvicorn</i>"]
+
+    subgraph Runtime["Kratos Runtime — single process (pydantic · sqlglot · litellm)"]
+        direction TB
+        A["<b>Agent A · Interpreter</b><br/>request → typed intent"]
+        B["<b>Agent B · Investigator</b><br/>SQL planning · evidence"]
+        P["<b>Schema Pruner</b><br/>business rules · column selection"]
+
+        subgraph Guard["🛡️ 4-Layer AST Guard (sqlglot)"]
+            G["mutations · CTE exploits<br/>system tables · complexity<br/><b>force LIMIT 500</b>"]
+        end
+
+        E["<b>EngineRegistry</b><br/>SQLite mode=ro · DuckDB in-process<br/><i>hot auto-discovery</i>"]
+        BI["<b>BI &amp; Semantics</b><br/>units · metric integrity<br/>$ USD · % · días · unidades"]
+        H["<b>Harness 2-Agent</b><br/>audit_components · benchmarks"]
+    end
+
+    LLM["<b>LLM Providers</b><br/>litellm (local / cloud)"]
+    DATA[("data/<br/>northwind · chinook · sakila<br/>adventureworks_dw · tpch (".db")]
+
+    User -.->|"HTTP query"| API
+    API -->|"natural language"| A
+    A -->|"<b>DataTask</b> (typed contract)"| B
+    B <-.->|"chat / SQL-gen"| LLM
+    B --> P
+    P -->|"candidate SQL"| G
+    G -->|"validated SELECT"| E
+    E -.->|read-only| DATA
+    E -->|"<b>DataEvidence</b> (typed contract)"| BI
+    BI -->|"<b>FinalAnswer</b> · storytelling"| API
+    G -->|"reject → polite decline"| API
+
+    C["<b>Typed Contracts (pydantic)</b><br/>InterpretedRequest → DataTask → DataEvidence → FinalAnswer"]
+    Runtime -.- C
+    H -.- Runtime
+
+    classDef contract fill:#78350f,stroke:#fbbf24,color:#fff
+    classDef security fill:#881337,stroke:#fb7185,color:#fff
+    classDef agent fill:#064e3b,stroke:#34d399,color:#fff
+    classDef db fill:#4c1d95,stroke:#a78bfa,color:#fff
+    classDef ext fill:#1e293b,stroke:#94a3b8,color:#fff
+    class C contract
+    class Guard security
+    class G security
+    class A,B,P,BI,H agent
+    class E db
+    class LLM,DATA ext

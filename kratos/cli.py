@@ -53,6 +53,11 @@ def main():
             intent=interpreted.intent,
             engine_id=args.engine,
             goal=interpreted.goal,
+            analytical_pattern=interpreted.analytical_pattern,
+            time_granularity=interpreted.time_granularity,
+            metric_target=interpreted.metric_target,
+            dimensions=interpreted.dimensions,
+            metrics=interpreted.metrics,
             constraints=interpreted.constraints,
             required_evidence=interpreted.required_evidence,
         )

@@ -23,10 +23,61 @@ class Intent(StrEnum):
     FOLLOW_UP = "FOLLOW_UP"
 
 
+class AnalyticalPattern(StrEnum):
+    """Core analytical pattern requested in natural language."""
+    TIME_SERIES = "TIME_SERIES"                     # Tendencias temporales (semanal, mensual, anual)
+    CATEGORICAL_BREAKDOWN = "CATEGORICAL_BREAKDOWN" # Distribución por categorías o grupos
+    RANKING_TOP_N = "RANKING_TOP_N"                 # Rankings líderes (Top 5, Top 10)
+    GEO_DISTRIBUTION = "GEO_DISTRIBUTION"           # Distribución por país, región o ciudad
+    AGGREGATE_KPI = "AGGREGATE_KPI"                 # Métrica agregada global (total, promedio)
+    SCHEMA_OVERVIEW = "SCHEMA_OVERVIEW"             # Estructura del esquema
+
+
+class TimeGranularity(StrEnum):
+    """Temporal grain for time-series analysis."""
+    DAILY = "DAILY"
+    WEEKLY = "WEEKLY"
+    MONTHLY = "MONTHLY"
+    QUARTERLY = "QUARTERLY"
+    YEARLY = "YEARLY"
+    NONE = "NONE"
+
+
+class MetricTarget(StrEnum):
+    """Business metric requested."""
+    REVENUE = "REVENUE"       # Ventas / Facturación ($ USD)
+    ORDERS = "ORDERS"         # Conteo de pedidos / transacciones
+    QUANTITY = "QUANTITY"     # Unidades físicas de producto
+    CUSTOMERS = "CUSTOMERS"   # Conteo de clientes
+    AVERAGE = "AVERAGE"       # Promedio
+    COUNT_ENTITIES = "COUNT_ENTITIES" # Conteo genérico
+    GENERIC = "GENERIC"
+
+
 class InterpretedRequest(BaseModel):
-    """Intent and scope extraction from raw natural language."""
+    """Rich analytical intent and scope extraction from natural language."""
     intent: Intent
     goal: str = Field(description="Clear single-sentence analytical objective")
+    analytical_pattern: AnalyticalPattern = Field(
+        default=AnalyticalPattern.CATEGORICAL_BREAKDOWN,
+        description="Analytical archetype extracted from user intent"
+    )
+    time_granularity: TimeGranularity = Field(
+        default=TimeGranularity.NONE,
+        description="Temporal granularity (weekly, monthly, etc.) if applicable"
+    )
+    metric_target: MetricTarget = Field(
+        default=MetricTarget.REVENUE,
+        description="Primary business metric targeted"
+    )
+    dimensions: list[str] = Field(
+        default_factory=list,
+        description="Extracted dimensions e.g. ['semana', 'categoria', 'pais']"
+    )
+    metrics: list[str] = Field(
+        default_factory=list,
+        description="Extracted target metric aliases e.g. ['Ventas_USD']"
+    )
     needs_investigation: bool = Field(
         default=True,
         description="False if the schema/profile metadata alone is sufficient"
@@ -37,10 +88,24 @@ class InterpretedRequest(BaseModel):
 
 
 class DataTask(BaseModel):
-    """Structured contract dispatched to the Investigator Agent."""
+    """Structured, immutable contract dispatched to the Investigator Agent."""
     intent: Intent
     engine_id: str = Field(description="Target analytical database engine ID")
     goal: str = Field(description="Precise analytical objective")
+    analytical_pattern: AnalyticalPattern = Field(
+        default=AnalyticalPattern.CATEGORICAL_BREAKDOWN,
+        description="Analytical archetype (TIME_SERIES, RANKING_TOP_N, etc.)"
+    )
+    time_granularity: TimeGranularity = Field(
+        default=TimeGranularity.NONE,
+        description="Temporal frequency extracted from the user inquiry"
+    )
+    metric_target: MetricTarget = Field(
+        default=MetricTarget.REVENUE,
+        description="Primary metric to compute"
+    )
+    dimensions: list[str] = Field(default_factory=list)
+    metrics: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     required_evidence: list[str] = Field(default_factory=list)
     prior_context: str = ""

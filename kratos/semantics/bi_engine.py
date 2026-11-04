@@ -30,9 +30,13 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
             except (ValueError, TypeError):
                 values.append(0.0)
 
-        # Decide chart type
-        chart_type = "line" if any(w in dim_col.lower() for w in ["date", "fecha", "mes", "month", "year", "ano", "day"]) else "bar"
-        if len(rows) <= 6 and len(metric_cols) == 1:
+        # Decide chart type: time-series always prefers line
+        is_temporal = any(w in dim_col.lower() for w in [
+            "date", "fecha", "mes", "month", "year", "ano", "day", "dia",
+            "semana", "week", "periodo", "trimestre", "quarter"
+        ])
+        chart_type = "line" if is_temporal else "bar"
+        if not is_temporal and len(rows) <= 6 and len(metric_cols) == 1:
             chart_type = "pie"
 
         if chart_type == "pie":
