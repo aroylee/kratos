@@ -33,6 +33,11 @@ entities:
     grain: "Una fila por proveedor o fabricante global"
     description: "Red de abastecimiento internacional"
 
+  - name: region
+    primary_key: [r_regionkey]
+    grain: "Una fila por macro-región continental"
+    description: "Continentes o macro-regiones globales"
+
 dimensions:
   - id: Cliente
     table: customer
@@ -44,9 +49,16 @@ dimensions:
   - id: Pais
     table: nation
     column: n_name
-    synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado"]
+    synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado", "destino"]
     type: geo
     description: "País o nación del cliente"
+
+  - id: Region
+    table: region
+    column: r_name
+    synonyms: ["región", "region", "regiones", "continente", "continentes", "macroregión", "macroregiones", "zonas", "zona"]
+    type: geo
+    description: "Macro-región continental de la cadena de suministro"
 
   - id: Segmento
     table: customer
@@ -138,7 +150,7 @@ metrics:
     metric_type: atomic
     unit: "órdenes"
     is_currency: false
-    synonyms: ["órdenes", "ordenes", "pedidos", "transacciones"]
+    synonyms: ["órdenes", "ordenes", "pedidos", "transacciones", "envíos", "envios", "envío", "envio", "despachos", "embarques"]
     description: "Total de transacciones de compra registradas"
 
   - id: Volumen
@@ -173,6 +185,11 @@ relationships:
   - from_table: customer
     to_table: nation
     on_clause: "customer.c_nationkey = nation.n_nationkey"
+    cardinality: many_to_one
+
+  - from_table: nation
+    to_table: region
+    on_clause: "nation.n_regionkey = region.r_regionkey"
     cardinality: many_to_one
 
   - from_table: lineitem

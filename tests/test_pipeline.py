@@ -148,6 +148,44 @@ def test_end_to_end_sakila_execution(registry):
     assert "SUSAN DAVIS" in str(evidence.queries[0].rows)
 
 
+def test_northwind_regiones_con_mas_envios_geo_map(registry):
+    """Verifies that 'muestrame las regiones con mas envíos' resolves to geographic dimension and map."""
+    interp = InterpreterAgent()
+    inv = InvestigatorAgent(registry)
+
+    interpreted = interp.interpret("muestrame las regiones con mas envíos", "northwind")
+    assert "Pais" in interpreted.dimensions
+    assert "Pedidos" in interpreted.metrics
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="northwind",
+        goal=interpreted.goal,
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        series_dimension=interpreted.series_dimension,
+        metric_target=interpreted.metric_target,
+        top_n=interpreted.top_n,
+        ranking_criterion=interpreted.ranking_criterion,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+    evidence = inv.execute_task(task)
+    assert len(evidence.queries) == 1
+    rows = evidence.queries[0].rows
+    assert len(rows) > 0
+    assert "Pais" in rows[0]
+    assert "Pedidos" in rows[0]
+    assert rows[0]["Pedidos"] > 0
+
+    from kratos.semantics.bi_engine import compile_echarts
+    chart = compile_echarts(rows, title=task.goal)
+    assert chart is not None
+    assert chart["_meta"]["is_geo"] is True
+    assert chart["series"][0]["type"] == "map"
+
+
 def test_documentation_page_endpoint():
     from fastapi.testclient import TestClient
     from kratos.api.main import app

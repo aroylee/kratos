@@ -65,9 +65,9 @@ dimensions:
   - id: Pais
     table: customers
     column: country
-    synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado"]
+    synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado", "región", "region", "regiones", "territorio", "territorios", "zonas", "zona", "destino", "destinos"]
     type: geo
-    description: "País de destino del cliente"
+    description: "País o región geográfica de destino del cliente"
 
   - id: Fecha
     table: orders
@@ -156,7 +156,7 @@ metrics:
     metric_type: atomic
     unit: "pedidos"
     is_currency: false
-    synonyms: ["pedidos", "pedido", "órdenes", "ordenes", "orden", "transacciones", "compras"]
+    synonyms: ["pedidos", "pedido", "órdenes", "ordenes", "orden", "transacciones", "compras", "envíos", "envios", "envío", "envio", "despachos", "despacho", "embarques", "embarque", "entregas", "entrega"]
     description: "Total de transacciones y pedidos completados"
 
   - id: Unidades

@@ -70,9 +70,9 @@ dimensions:
   - id: Pais
     table: Invoice
     column: BillingCountry
-    synonyms: ["país", "pais", "paises", "países", "nación", "mercado"]
+    synonyms: ["país", "pais", "paises", "países", "nación", "mercado", "región", "region", "regiones", "territorios", "territorio", "zonas", "zona", "destino", "destinos"]
     type: geo
-    description: "País de facturación de la transacción"
+    description: "País o región geográfica de facturación de la transacción"
 
   - id: Fecha
     table: Invoice
@@ -160,7 +160,7 @@ metrics:
     metric_type: atomic
     unit: "órdenes"
     is_currency: false
-    synonyms: ["facturas", "pedidos", "compras", "transacciones"]
+    synonyms: ["facturas", "pedidos", "compras", "transacciones", "envíos", "envios", "órdenes", "ordenes"]
     description: "Total de facturas emitidas"
 
   - id: Clientes
