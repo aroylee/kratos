@@ -1,6 +1,7 @@
 """Kratos FastAPI Web Application & Sovereign API Endpoints."""
 
 from pathlib import Path
+import json
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ from kratos.contracts.schemas import DataTask, FinalAnswer
 from kratos.semantics.bi_engine import compile_echarts
 from kratos.semantics.archify_generator import generate_archify_erd_spec, compile_archify_diagram, enrich_entities_for_ui
 from kratos.web.docs_page import get_documentation_html
+from kratos.web.database_docs import DATABASE_CATALOG, get_database_doc, get_all_database_docs
 
 app = FastAPI(title="Kratos Intelligence", version="0.1.0")
 
@@ -68,6 +70,19 @@ def select_engine(payload: dict):
 def get_schema():
     active = registry.get_active()
     return {"engine_id": active.engine_id, "schema": active.introspect()}
+
+
+@app.get("/api/databases/catalog")
+def api_database_catalog():
+    return {"catalog": get_all_database_docs()}
+
+
+@app.get("/api/databases/{engine_id}/docs")
+def api_database_docs(engine_id: str):
+    doc = get_database_doc(engine_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Base de datos '{engine_id}' no encontrada en el catálogo")
+    return doc
 
 
 @app.post("/api/query")
@@ -185,8 +200,12 @@ def index_page():
     <!-- Prism.js for SQL Syntax Color Coding -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <!-- Mermaid.js for Entity-Relationship Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <style>
         body { background: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .mermaid { background: #0f172a; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #1e293b; overflow-x: auto; }
+        .mermaid svg { max-width: 100%; height: auto; margin: 0 auto; }
         /* SQL Syntax Color Tokens */
         .token.comment, .token.prolog, .token.doctype, .token.cdata {
             color: #64748b !important;
@@ -252,12 +271,23 @@ def index_page():
     </header>
 
     <!-- Barra de Selección de Motores Soberanos -->
-    <div class="mt-6 bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-        <div>
-            <span class="text-xs uppercase tracking-wider font-semibold text-slate-400">Motor Analítico Activo:</span>
-            <span id="active-engine-badge" class="ml-2 font-mono text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">Cargando...</span>
+    <div class="mt-6 bg-slate-900/60 border border-slate-800 p-4 rounded-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 mb-3 border-b border-slate-800/80 gap-3">
+            <div class="flex items-center gap-2">
+                <span class="text-xs uppercase tracking-wider font-semibold text-slate-400">Motor Analítico Activo:</span>
+                <span id="active-engine-badge" class="font-mono text-xs px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-semibold shadow-sm">Cargando...</span>
+            </div>
+            <!-- Link arriba del selector para explorar qué contiene la base de datos, ER general y ejemplos -->
+            <button id="btn-open-db-docs" onclick="openDatabaseDocsModal(currentEngine)" class="text-xs text-indigo-300 hover:text-white font-semibold flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-700/70 transition shadow-sm hover:shadow-indigo-500/20 group">
+                <span class="text-sm">📖</span>
+                <span class="underline decoration-indigo-400/60 group-hover:decoration-white">¿En qué consiste esta base de datos?</span>
+                <span class="text-[11px] text-indigo-300/80 font-normal hidden sm:inline">(Qué contiene, ER General &amp; Ejemplos) &rarr;</span>
+            </button>
         </div>
-        <div id="engine-selector-container" class="flex flex-wrap gap-2"></div>
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <span class="text-[11px] text-slate-400">Selecciona el motor de datos para tu consulta:</span>
+            <div id="engine-selector-container" class="flex flex-wrap gap-2"></div>
+        </div>
     </div>
 
     <!-- Píldoras de Tablas del Motor -->
@@ -512,7 +542,68 @@ def index_page():
         </div>
     </div>
 
+    <!-- Modal de Documentación de Base de Datos (Kaggle & ER General) -->
+    <div id="database-docs-modal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md p-3 sm:p-6 flex items-center justify-center overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-950/70">
+                <div class="flex items-center gap-3">
+                    <span id="db-modal-emoji" class="text-3xl p-2 rounded-xl bg-slate-900 border border-slate-800">🗄️</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 id="db-modal-title" class="text-base sm:text-lg font-bold text-white tracking-wide">Explorador de Bases de Datos</h2>
+                            <span id="db-modal-badge" class="text-xs font-mono font-bold bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded border border-indigo-800">NORTHWIND</span>
+                        </div>
+                        <p id="db-modal-subtitle" class="text-xs text-slate-400 mt-0.5">Qué contiene, cómo se relacionan sus tablas y cómo consultarla en lenguaje natural</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <a id="db-modal-docs-link" href="/documentation#databases" target="_blank" class="px-3 py-1.5 text-xs rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition flex items-center gap-1.5 font-medium">
+                        <span>📖</span> Documentación Completa &nearr;
+                    </a>
+                    <button onclick="closeDatabaseDocsModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-200 border border-slate-700 hover:border-rose-700 text-xs font-semibold flex items-center gap-1 transition">
+                        <span>✕</span> Cerrar <kbd class="text-[10px] bg-slate-950 px-1 py-0.5 rounded border border-slate-800 ml-1">ESC</kbd>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs de Selección de Motores -->
+            <div class="px-4 py-2.5 bg-slate-950/90 border-b border-slate-800/80 flex items-center gap-2 overflow-x-auto text-xs">
+                <span class="text-slate-500 font-semibold mr-1 shrink-0">Seleccionar Base:</span>
+                <button onclick="switchDatabaseDocsTab('northwind')" id="db-tab-northwind" class="db-tab px-3 py-1 rounded-lg font-medium transition border flex items-center gap-1.5 bg-indigo-600 border-indigo-500 text-white">
+                    <span>🚢</span> Northwind
+                </button>
+                <button onclick="switchDatabaseDocsTab('chinook')" id="db-tab-chinook" class="db-tab px-3 py-1 rounded-lg font-medium transition border flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <span>🎧</span> Chinook
+                </button>
+                <button onclick="switchDatabaseDocsTab('sakila')" id="db-tab-sakila" class="db-tab px-3 py-1 rounded-lg font-medium transition border flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <span>🎬</span> Sakila
+                </button>
+                <button onclick="switchDatabaseDocsTab('adventureworks_dw')" id="db-tab-adventureworks_dw" class="db-tab px-3 py-1 rounded-lg font-medium transition border flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <span>🚲</span> AdventureWorks DW
+                </button>
+                <button onclick="switchDatabaseDocsTab('tpch')" id="db-tab-tpch" class="db-tab px-3 py-1 rounded-lg font-medium transition border flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-400 hover:text-white">
+                    <span>🌐</span> TPC-H
+                </button>
+            </div>
+
+            <!-- Modal Body Scrollable -->
+            <div id="db-modal-body" class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 text-slate-300 text-sm">
+                <!-- Se llena dinámicamente con JavaScript -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 bg-slate-950 border-t border-slate-800 text-xs flex flex-col sm:flex-row justify-between items-center gap-2 text-slate-500">
+                <span id="db-modal-footer-tip" class="flex items-center gap-1.5">
+                    <span>💡</span> Haz clic en <strong class="text-indigo-400">⚡ Probar Consulta</strong> para aplicarla automáticamente al dashboard.
+                </span>
+                <span class="font-mono text-[11px] text-slate-400">Fuente: Kaggle Datasets &bull; Validación AST: sqlglot</span>
+            </div>
+        </div>
+    </div>
+
     <script>
+        /* DATABASE_CATALOG_PLACEHOLDER */
         let chartInstance = echarts.init(document.getElementById('chart-container'), 'dark');
         let currentEngine = 'northwind';
         let enginesData = [];
@@ -980,9 +1071,202 @@ def index_page():
             currentFullscreenType = null;
         }
 
+        let activeDocsEngine = 'northwind';
+
+        function openDatabaseDocsModal(engineId) {
+            const targetEngine = engineId || currentEngine || 'northwind';
+            activeDocsEngine = targetEngine;
+            const modal = document.getElementById('database-docs-modal');
+            modal.classList.remove('hidden');
+            renderDatabaseDocsModalContent(targetEngine);
+        }
+
+        function closeDatabaseDocsModal() {
+            const modal = document.getElementById('database-docs-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function switchDatabaseDocsTab(engineId) {
+            activeDocsEngine = engineId;
+            renderDatabaseDocsModalContent(engineId);
+        }
+
+        function renderDatabaseDocsModalContent(engineId) {
+            const doc = DATABASE_CATALOG[engineId] || DATABASE_CATALOG['northwind'];
+            if (!doc) return;
+
+            document.getElementById('db-modal-emoji').innerText = doc.emoji || '🗄️';
+            document.getElementById('db-modal-title').innerText = doc.title;
+            document.getElementById('db-modal-badge').innerText = doc.id.toUpperCase();
+            document.getElementById('db-modal-subtitle').innerText = doc.subtitle;
+            document.getElementById('db-modal-docs-link').href = `/documentation#database-${doc.id}`;
+
+            ['northwind', 'chinook', 'sakila', 'adventureworks_dw', 'tpch'].forEach(id => {
+                const btn = document.getElementById(`db-tab-${id}`);
+                if (btn) {
+                    if (id === doc.id) {
+                        btn.className = "db-tab px-3 py-1 rounded-lg font-medium transition border flex items-center gap-1.5 bg-indigo-600 border-indigo-500 text-white shadow-sm shadow-indigo-500/30";
+                    } else {
+                        btn.className = "db-tab px-3 py-1 rounded-lg font-medium transition border flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700";
+                    }
+                }
+            });
+
+            const kaggle = doc.kaggle_source;
+            const modulesHtml = doc.modules.map(mod => `
+                <div class="bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-xl">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <h5 class="text-xs font-bold text-indigo-300">${mod.name}</h5>
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">${mod.tables.join(', ')}</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">${mod.description}</p>
+                </div>
+            `).join('');
+
+            const tablesPillsHtml = doc.tables_detail.map(t => `
+                <span class="text-[11px] font-mono bg-slate-950 border border-slate-800/80 px-2 py-0.5 rounded text-slate-300" title="${t.desc}">${t.table}</span>
+            `).join('');
+
+            const examplesHtml = doc.example_queries.map(ex => {
+                const safeQuery = ex.query.replace(/'/g, "\\'");
+                return `
+                <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between hover:border-indigo-500/50 transition group">
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <span class="text-[10px] uppercase tracking-wider font-semibold text-indigo-400 font-mono bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-900/50">${ex.pattern}</span>
+                        </div>
+                        <p class="text-xs font-semibold text-white mb-1.5 flex items-start gap-1.5">
+                            <span class="text-indigo-400">💬</span> "${ex.query}"
+                        </p>
+                        <p class="text-[11px] text-slate-400 leading-snug">${ex.insight}</p>
+                    </div>
+                    <div class="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between">
+                        <span class="text-[10px] text-slate-500">Ejecución con 1 clic</span>
+                        <button onclick="useExampleQuery('${doc.id}', '${safeQuery}')" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center gap-1 shadow-sm transition">
+                            <span>⚡ Probar Consulta</span>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            const nonTechHtml = doc.non_technical_summary.replace(/\\n\\n/g, '<br><br>');
+            const erdExpHtml = doc.erd_explanation.replace(/\\n/g, '<br>');
+
+            const container = document.getElementById('db-modal-body');
+            container.innerHTML = `
+                <!-- Kaggle Primary Source Card -->
+                <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl p-2 rounded-lg bg-sky-950/50 border border-sky-800/60 text-sky-400">📊</span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sky-300 text-xs uppercase tracking-wide">Fuente Primaria: Kaggle Dataset</span>
+                                <span class="text-[10px] font-mono text-slate-500">• ${kaggle.license}</span>
+                            </div>
+                            <a href="${kaggle.url}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1 mt-0.5">
+                                ${kaggle.name} &nearr;
+                            </a>
+                            <p class="text-[11px] text-slate-400 mt-0.5">${kaggle.author} &bull; ${kaggle.scope}</p>
+                        </div>
+                    </div>
+                    <a href="${kaggle.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium flex items-center gap-1 transition self-end sm:self-auto shrink-0">
+                        <span>Ver en Kaggle</span> &nearr;
+                    </a>
+                </div>
+
+                <!-- Explicación No Técnica (En Cristiano) -->
+                <div class="bg-slate-950/90 border border-slate-800 p-5 rounded-xl space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-2">
+                        <span>💡</span> ¿En qué consiste esta base de datos? (Explicación para no técnicos)
+                    </h4>
+                    <div class="text-slate-300 text-sm leading-relaxed">
+                        ${nonTechHtml}
+                    </div>
+                    <div class="pt-3 border-t border-slate-800 flex items-start gap-2 text-xs text-emerald-400">
+                        <span>🎯</span>
+                        <div>
+                            <strong class="text-emerald-300">Valor de Decisión Ejecutiva:</strong>
+                            <span class="text-slate-300 ml-1">${doc.business_value}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Módulos de Información y Tablas -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <span>📦</span> ¿Qué información contiene? (Módulos de Negocio)
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${modulesHtml}
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span class="text-xs text-slate-500 font-semibold mr-1">Tablas del Motor (${doc.tables_detail.length}):</span>
+                        ${tablesPillsHtml}
+                    </div>
+                </div>
+
+                <!-- Diagrama ER General (Mermaid) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <span>🗺️</span> Modelo de Entidad-Relación General (ERD)
+                        </h4>
+                        <span class="text-[10px] font-mono text-slate-500">Mermaid Render</span>
+                    </div>
+                    <div class="mermaid rounded-xl border border-slate-800 p-3 bg-slate-950 overflow-x-auto" id="modal-erd-container">
+${doc.mermaid_erd}
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800/80 p-3 rounded-xl text-xs text-slate-300">
+                        <strong class="text-indigo-300">¿Cómo se relacionan las tablas en cristiano?</strong>
+                        <div class="mt-1 space-y-1 text-slate-400 leading-relaxed">
+                            ${erdExpHtml}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Consultas de Ejemplo en Lenguaje Natural -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <span>💬</span> ¿Cómo utilizarla? Consultas de ejemplo en lenguaje natural
+                        </h4>
+                        <span class="text-[11px] text-slate-500">Haz clic en "⚡ Probar Consulta" para cargarla</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        ${examplesHtml}
+                    </div>
+                </div>
+            `;
+
+            try {
+                if (window.mermaid) {
+                    const el = document.getElementById('modal-erd-container');
+                    if (el) {
+                        el.removeAttribute('data-processed');
+                        mermaid.run({ nodes: [el] });
+                    }
+                }
+            } catch (err) {
+                console.warn("Mermaid render error:", err);
+            }
+        }
+
+        async function useExampleQuery(engineId, queryText) {
+            closeDatabaseDocsModal();
+            if (currentEngine !== engineId) {
+                await switchEngine(engineId);
+            }
+            const input = document.getElementById('query-input');
+            input.value = queryText;
+            input.focus();
+            document.getElementById('query-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeFullscreen();
+                closeDatabaseDocsModal();
             }
         });
 
@@ -1845,6 +2129,21 @@ def index_page():
         });
 
         loadEngines();
+
+        // Check URL parameters for engine and query (e.g. from documentation portal)
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramEngine = urlParams.get('engine');
+        const paramQuery = urlParams.get('q');
+        if (paramEngine) {
+            switchEngine(paramEngine).then(() => {
+                if (paramQuery) {
+                    setQuery(paramQuery);
+                }
+            });
+        } else if (paramQuery) {
+            setQuery(paramQuery);
+        }
+
         window.addEventListener('resize', () => {
             if (chartInstance) chartInstance.resize();
             if (fullscreenChartInstance && !document.getElementById('fullscreen-modal').classList.contains('hidden')) {
@@ -1854,8 +2153,13 @@ def index_page():
     </script>
 </body>
 </html>"""
+    json_catalog = json.dumps(DATABASE_CATALOG)
+    final_content = html_content.replace(
+        "/* DATABASE_CATALOG_PLACEHOLDER */",
+        f"const DATABASE_CATALOG = {json_catalog};"
+    )
     return HTMLResponse(
-        content=html_content,
+        content=final_content,
         headers={
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",

@@ -1,8 +1,12 @@
 """Kratos Interactive Documentation Web Page."""
 
+from kratos.web.database_docs import render_database_docs_section_html
+
+
 def get_documentation_html() -> str:
     """Returns the standalone HTML for the Kratos architecture and documentation portal."""
-    return """<!DOCTYPE html>
+    db_section_html = render_database_docs_section_html()
+    template = """<!DOCTYPE html>
 <html lang="es" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -48,6 +52,7 @@ def get_documentation_html() -> str:
     <div class="sticky top-0 z-30 bg-[#0b0f19]/95 backdrop-blur py-3 border-b border-slate-800/80 my-4 flex gap-2 overflow-x-auto text-xs">
         <a href="#vision" class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 hover:text-white border border-slate-800">🎯 Visión y Problema</a>
         <a href="#restaurante" class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 hover:text-white border border-slate-800">🏛️ Analogía del Restaurante</a>
+        <a href="#databases" class="px-3 py-1 rounded-md bg-indigo-950 text-indigo-300 hover:text-white border border-indigo-800 font-semibold">🗄️ Bases de Datos & Modelos ER</a>
         <a href="#arquitectura" class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 hover:text-white border border-slate-800">🗺️ Diagrama General</a>
         <a href="#componentes" class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 hover:text-white border border-slate-800">🧩 Componentes Clave</a>
         <a href="#seguridad" class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 hover:text-white border border-slate-800">🛡️ Seguridad en 4 Capas</a>
@@ -147,6 +152,9 @@ def get_documentation_html() -> str:
                 </div>
             </div>
         </section>
+
+        <!-- Sección de Catálogo de Bases de Datos & Modelos ER -->
+        <!-- DATABASE_DOCS_SECTION_PLACEHOLDER -->
 
         <!-- Sección 3: Diagrama General de Arquitectura -->
         <section id="arquitectura" class="bg-slate-900/60 border border-slate-800 p-6 md:p-8 rounded-2xl">
@@ -386,3 +394,4 @@ sequenceDiagram
 </body>
 </html>
 """
+    return template.replace("<!-- DATABASE_DOCS_SECTION_PLACEHOLDER -->", db_section_html)

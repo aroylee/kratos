@@ -163,6 +163,59 @@ def test_documentation_page_endpoint():
     index_res = client.get("/")
     assert index_res.status_code == 200
     assert 'href="/documentation"' in index_res.text
+    # Verify link above selector and modal exist in dashboard
+    assert "btn-open-db-docs" in index_res.text
+    assert "¿En qué consiste esta base de datos?" in index_res.text
+    assert "database-docs-modal" in index_res.text
+    assert "DATABASE_CATALOG" in index_res.text
+
+
+def test_database_documentation_catalog_and_details():
+    """Verifies that database documentation endpoints serve Kaggle metadata, ERDs and queries for all 5 databases."""
+    from fastapi.testclient import TestClient
+    from kratos.api.main import app
+
+    client = TestClient(app)
+
+    # 1. Test Catalog Endpoint
+    cat_res = client.get("/api/databases/catalog")
+    assert cat_res.status_code == 200
+    data = cat_res.json()
+    assert "catalog" in data
+    assert len(data["catalog"]) == 5
+    engine_ids = [d["id"] for d in data["catalog"]]
+    assert set(engine_ids) == {"northwind", "chinook", "sakila", "adventureworks_dw", "tpch"}
+
+    # 2. Test Specific Engine Docs (Northwind & Chinook)
+    nw_res = client.get("/api/databases/northwind/docs")
+    assert nw_res.status_code == 200
+    nw_doc = nw_res.json()
+    assert nw_doc["title"] == "Northwind Traders"
+    assert "kaggle.com" in nw_doc["kaggle_source"]["url"]
+    assert "erDiagram" in nw_doc["mermaid_erd"]
+    assert len(nw_doc["example_queries"]) >= 4
+
+    chinook_res = client.get("/api/databases/chinook/docs")
+    assert chinook_res.status_code == 200
+    chinook_doc = chinook_res.json()
+    assert "Chinook" in chinook_doc["title"]
+    assert "Luis Rocha" in chinook_doc["kaggle_source"]["author"]
+    assert any("albumes" in ex["query"] for ex in chinook_doc["example_queries"])
+
+    # 3. Test Unknown Engine returns 404
+    bad_res = client.get("/api/databases/unknown_db/docs")
+    assert bad_res.status_code == 404
+
+    # 4. Test Documentation Page includes Databases section and ERDs
+    docs_res = client.get("/documentation")
+    assert docs_res.status_code == 200
+    assert "Catálogo de Bases de Datos" in docs_res.text
+    assert "database-northwind" in docs_res.text
+    assert "database-chinook" in docs_res.text
+    assert "database-sakila" in docs_res.text
+    assert "database-adventureworks_dw" in docs_res.text
+    assert "database-tpch" in docs_res.text
+    assert "Kaggle Dataset" in docs_res.text
 
 
 def test_interpreter_weekly_sales_trend():
