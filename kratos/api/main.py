@@ -135,7 +135,7 @@ def documentation_page():
 
 @app.get("/", response_class=HTMLResponse)
 def index_page():
-    html_content = """<!DOCTYPE html>
+    html_content = r"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
