@@ -66,12 +66,12 @@ def test_end_to_end_chinook_execution(registry):
 
 
 def test_chinook_albumes_mas_vendidos_por_ano(registry):
-    """Verifies that 'dame los 10 albumes mas vendidos por ano' in Chinook correctly identifies Album and yearly breakdown."""
+    """Verifies that 'dame los 10 albumes mas vendidos por ano' in Chinook correctly identifies Album and yearly breakdown via PARTITIONED_RANKING."""
     interp = InterpreterAgent()
     inv = InvestigatorAgent(registry)
 
     interpreted = interp.interpret("dame los 10 albumes mas vendidos por ano", "chinook")
-    assert interpreted.analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES
+    assert interpreted.analytical_pattern == AnalyticalPattern.PARTITIONED_RANKING
     assert interpreted.series_dimension == "Album"
     assert interpreted.time_dimension == "Ano"
     assert interpreted.time_granularity == TimeGranularity.YEARLY
@@ -98,11 +98,44 @@ def test_chinook_albumes_mas_vendidos_por_ano(registry):
     sql = evidence.queries[0].sql
     assert "Album" in sql
     assert "Ano" in sql or "strftime" in sql.lower()
+    assert "ROW_NUMBER()" in sql.upper()
     assert len(evidence.queries[0].rows) > 0
     first_row = evidence.queries[0].rows[0]
     assert "Album" in first_row
     assert "Ano" in first_row
     assert "Facturacion_USD" in first_row
+
+
+def test_northwind_cohort_multi_series_time_series(registry):
+    """Verifies that 'tendencia diaria de los 3 productos con peor desempeño a través del tiempo' routes to MULTI_SERIES_TIME_SERIES."""
+    interp = InterpreterAgent()
+    inv = InvestigatorAgent(registry)
+
+    query_str = "tendencia diaria de los 3 productos con peor desempeño a través del tiempo"
+    interpreted = interp.interpret(query_str, "northwind")
+    assert interpreted.analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES
+    assert interpreted.series_dimension == "Producto"
+    assert interpreted.top_n == 3
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="northwind",
+        goal=interpreted.goal,
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        series_dimension=interpreted.series_dimension,
+        metric_target=interpreted.metric_target,
+        top_n=interpreted.top_n,
+        ranking_criterion=interpreted.ranking_criterion,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+    evidence = inv.execute_task(task)
+    assert len(evidence.queries) == 1
+    sql = evidence.queries[0].sql
+    assert "top_cohort" in sql.lower() or "with" in sql.lower()
+    assert len(evidence.queries[0].rows) > 0
 
 
 def test_end_to_end_sakila_execution(registry):

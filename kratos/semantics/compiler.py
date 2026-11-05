@@ -128,6 +128,54 @@ class SemanticCompiler:
             )
 
         # =========================================================================
+        # PATTERN A3: PARTITIONED RANKING (Top N per time partition via Window Function)
+        # =========================================================================
+        if pattern == AnalyticalPattern.PARTITIONED_RANKING and time_dim and primary_dim and metric:
+            time_expr, time_alias = cls._build_time_expr(time_dim, grain, task.time_dimension)
+            s_alias = primary_dim.id
+            s_expr = primary_dim.select_expression
+            limit_n = top_n or 10
+
+            fact_tables = {time_dim.table, metric.table, primary_dim.table}
+            if metric.required_tables:
+                fact_tables.update(metric.required_tables)
+            fact_joins = cls._build_joins(fact_tables, model, base_table=time_dim.table)
+            fact_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in fact_joins])
+            from_fact = f"FROM {time_dim.table} {fact_join_sql}".strip()
+
+            is_lowest = order_dir == "ASC"
+            rank_label = f"Bottom {limit_n} por período ({time_alias})" if is_lowest else f"Top {limit_n} por período ({time_alias})"
+
+            return (
+                f"/* =========================================================================\n"
+                f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
+                f"   Objetivo: {task.goal}\n"
+                f"   Patrón: Ranking Particionado con Window Function ({rank_label})\n"
+                f"   Capa Semántica: Wren AI MDL ({model.name})\n"
+                f"   ========================================================================= */\n"
+                f"-- Paso 1: Particionar y clasificar filas por {time_alias} usando ROW_NUMBER()\n"
+                f"WITH RankedPartition AS (\n"
+                f"    SELECT {time_expr} AS {time_alias}, -- Eje de partición temporal\n"
+                f"           {s_expr} AS {s_alias}, -- Entidad analítica clasificada\n"
+                f"           {metric.expression} AS {metric.id}, -- Métrica de rendimiento ({metric.unit})\n"
+                f"           ROW_NUMBER() OVER (\n"
+                f"               PARTITION BY {time_expr}\n"
+                f"               ORDER BY {metric.expression} {order_dir}\n"
+                f"           ) AS rnk\n"
+                f"    {from_fact}\n"
+                f"    GROUP BY {time_alias}, {s_alias}\n"
+                f")\n"
+                f"-- Paso 2: Filtrar la élite de cada partición ({rank_label})\n"
+                f"SELECT {time_alias},\n"
+                f"       {s_alias},\n"
+                f"       {metric.id}\n"
+                f"FROM RankedPartition\n"
+                f"WHERE rnk <= {limit_n}\n"
+                f"ORDER BY {time_alias} ASC, {metric.id} DESC\n"
+                f"LIMIT 500;"
+            )
+
+        # =========================================================================
         # PATTERN B: TIME SERIES (Mono-serie)
         # =========================================================================
         if pattern == AnalyticalPattern.TIME_SERIES and time_dim and metric:

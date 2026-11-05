@@ -27,6 +27,7 @@ class AnalyticalPattern(StrEnum):
     """Core analytical pattern requested in natural language."""
     TIME_SERIES = "TIME_SERIES"                     # Tendencias temporales mono-serie
     MULTI_SERIES_TIME_SERIES = "MULTI_SERIES_TIME_SERIES" # Tendencias temporales multi-serie (desglose por categoría/grupo)
+    PARTITIONED_RANKING = "PARTITIONED_RANKING"     # Rankings particionados por período (Window Function ROW_NUMBER() OVER PARTITION BY)
     CATEGORICAL_BREAKDOWN = "CATEGORICAL_BREAKDOWN" # Distribución por categorías o grupos
     RANKING_TOP_N = "RANKING_TOP_N"                 # Rankings líderes (Top 5, Top 10)
     GEO_DISTRIBUTION = "GEO_DISTRIBUTION"           # Distribución por país, región o ciudad

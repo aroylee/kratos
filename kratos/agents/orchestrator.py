@@ -20,7 +20,7 @@ from kratos.semantics.bi_engine import compile_echarts
 from kratos.semantics.unit_utils import infer_column_unit, format_metric_value
 from kratos.semantics.mdl import SemanticCatalog
 from kratos.semantics.compiler import SemanticCompiler
-from kratos.analytics.statistics import analyze_distribution, analyze_time_series
+from kratos.analytics.statistics import analyze_distribution, analyze_time_series, analyze_partitioned_ranking
 from kratos.inference.schema_pruner import SchemaPruner
 from kratos.inference.client import LLMClient
 
@@ -119,7 +119,15 @@ class InterpreterAgent:
             ranking_criterion = "menor desempeño"
 
         # 5. Analytical Pattern Detection
-        if is_time_series and series_dimension:
+        if is_time_series and series_dimension and top_n:
+            is_cohort_trend = any(w in lowered for w in [
+                "a través del tiempo", "traves del tiempo", "tendencia", "historico", "histórico", "comportamiento", "evolución", "evolucion"
+            ])
+            if is_cohort_trend:
+                analytical_pattern = AnalyticalPattern.MULTI_SERIES_TIME_SERIES
+            else:
+                analytical_pattern = AnalyticalPattern.PARTITIONED_RANKING
+        elif is_time_series and series_dimension:
             analytical_pattern = AnalyticalPattern.MULTI_SERIES_TIME_SERIES
         elif is_time_series:
             analytical_pattern = AnalyticalPattern.TIME_SERIES
@@ -145,7 +153,7 @@ class InterpreterAgent:
         dimensions: list[str] = []
         metrics: list[str] = []
 
-        if analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:
+        if analytical_pattern in [AnalyticalPattern.MULTI_SERIES_TIME_SERIES, AnalyticalPattern.PARTITIONED_RANKING]:
             if time_dimension:
                 dimensions.append(time_dimension)
             if series_dimension:
@@ -212,6 +220,63 @@ class InterpreterAgent:
         met_hint = task.metrics[0] if task.metrics else None
 
         # -------------------------------------------------------------------------
+        # CASE 0: PARTITIONED RANKING (Top N por período temporal con Window Function)
+        # -------------------------------------------------------------------------
+        if task.analytical_pattern == AnalyticalPattern.PARTITIONED_RANKING and rows:
+            part_diag = analyze_partitioned_ranking(
+                rows,
+                time_hint=task.time_dimension,
+                dim_hint=task.series_dimension,
+                met_hint=met_hint
+            )
+            if part_diag and part_diag.partition_leaders:
+                time_lbl = part_diag.time_col
+                dim_lbl = part_diag.dimension_col
+                limit_n = task.top_n or 10
+                cohort_prefix = "Bottom" if task.ranking_criterion == "menor desempeño" else "Top"
+
+                leaders_summary = ", ".join([f"{p['period']}: '{p['leader']}' ({format_metric_value(p['value'], part_diag.unit)})" for p in part_diag.partition_leaders[:4]])
+                period_leaders_str = ", ".join([f"{p['period']} → {p['leader']}" for p in part_diag.partition_leaders])
+
+                key_takeaway = (
+                    f"Ranking Particionado ({cohort_prefix} {limit_n} {dim_lbl} por {time_lbl}): Dinámica competitiva en {part_diag.partitions_count} períodos evaluados. "
+                    f"Líderes destacados: {leaders_summary}."
+                )
+
+                findings = [
+                    f"Volumen acumulado evaluado: {format_metric_value(part_diag.total_volume, part_diag.unit)} a lo largo de {part_diag.partitions_count} cortes temporales de {time_lbl}.",
+                    f"Distribución de líderes por período: {period_leaders_str}.",
+                ]
+
+                if part_diag.persistent_leaders:
+                    findings.append(
+                        f"Liderazgo recurrente / Dominancia: {', '.join(part_diag.persistent_leaders)} se mantuvieron en el #1 en múltiples particiones temporales."
+                    )
+                else:
+                    findings.append(
+                        f"Alta alternancia competitiva: Ninguna entidad monopolizó el primer puesto en períodos consecutivos, denotando rotación orgánica de demanda."
+                    )
+
+                risk_alerts = []
+                if part_diag.persistent_leaders:
+                    risk_alerts.append(f"Riesgo de Concentración de Catálogo: '{part_diag.persistent_leaders[0]}' acapara la cima recurrente; evaluar si existe saturación de oferta o canibalización de nuevos lanzamientos.")
+                else:
+                    risk_alerts.append("Volatilidad de Preferencias del Consumidor: La rotación continua de líderes en cada período requiere reposición ágil y flexibilidad de catálogo.")
+
+                recommendations = [
+                    f"Focalizar estrategias de fidelización en los líderes recurrentes ({', '.join([p['leader'] for p in part_diag.partition_leaders[:2]])}).",
+                    f"Adaptar el aprovisionamiento de {dim_lbl} anticipando los ciclos de alternancia detectados por {time_lbl}.",
+                ]
+
+                return ExecutiveStorytelling(
+                    key_takeaway=key_takeaway,
+                    diagnostic_metrics=part_diag.model_dump(),
+                    quantitative_findings=findings,
+                    risk_alerts=risk_alerts,
+                    strategic_recommendations=recommendations,
+                )
+
+        # -------------------------------------------------------------------------
         # CASE 1: TIME SERIES (Mono o Multi-serie)
         # -------------------------------------------------------------------------
         if task.analytical_pattern in [AnalyticalPattern.TIME_SERIES, AnalyticalPattern.MULTI_SERIES_TIME_SERIES] and rows:
@@ -239,6 +304,10 @@ class InterpreterAgent:
                     f"Media por intervalo: {format_metric_value(ts_diag.mean_val, ts_diag.unit)} (Rango: {format_metric_value(ts_diag.trough_val, ts_diag.unit)} el {ts_diag.trough_date} a {format_metric_value(ts_diag.peak_val, ts_diag.unit)} el {ts_diag.peak_date}).",
                     f"Volatilidad de la demanda: Clasificada como {ts_diag.volatility_level} (Coeficiente de variación CV: {ts_diag.coefficient_of_variation}, Desviación estándar σ: {format_metric_value(ts_diag.std_dev, ts_diag.unit)}).",
                 ]
+
+                if ts_diag.period_change_pct is not None:
+                    cagr_str = f" (CAGR anualizado: {ts_diag.cagr_pct:+.1f}%)" if ts_diag.cagr_pct is not None else ""
+                    findings.append(f"Variación neta en la ventana temporal: {ts_diag.period_change_pct:+.1f}%{cagr_str}.")
 
                 if ts_diag.anomalies:
                     anom_desc = ", ".join([f"{a['date']} ({format_metric_value(a['value'], ts_diag.unit)}, {a['type']})" for a in ts_diag.anomalies])
@@ -303,6 +372,10 @@ class InterpreterAgent:
                 f"Concentración Pareto: Los 3 primeros puestos absorben el {dist_diag.top_3_share_pct}% "
                 f"del volumen total ({format_metric_value(dist_diag.total_volume, unit)} acumulado)."
             )
+            if dist_diag.hhi_index is not None:
+                findings.append(
+                    f"Índice Herfindahl-Hirschman (HHI): {dist_diag.hhi_index} pts — Clasificación: {dist_diag.hhi_classification}."
+                )
             findings.append(
                 f"Métricas de dispersión: Promedio de {format_metric_value(dist_diag.mean_val, unit)} "
                 f"y mediana de {format_metric_value(dist_diag.median_val, unit)}."
@@ -313,6 +386,10 @@ class InterpreterAgent:
                 risk_alerts.append(
                     f"Alerta de Riesgo de Concentración: El Top 1 ('{dist_diag.top_1_label}') representa el {dist_diag.top_1_share_pct}% de la muestra. "
                     f"Cualquier fallo de cadena de suministro o caída de demanda en esta entidad comprometería el resultado global."
+                )
+            if dist_diag.hhi_index and dist_diag.hhi_index > 2500:
+                risk_alerts.append(
+                    f"Riesgo Estructural Severo (HHI {dist_diag.hhi_index}): Alta vulnerabilidad ante fluctuaciones de los líderes consolidados."
                 )
             if dist_diag.dominance_gap_pct and dist_diag.dominance_gap_pct > 50.0:
                 risk_alerts.append(
@@ -388,6 +465,21 @@ class InvestigatorAgent:
 
             # Layer 3 Security Check: AST validation with sqlglot
             guard_res = validate_sql(sql, allowed_tables=allowed_tables, dialect="sqlite")
+
+            # Semantic Guardrail: Ensure required dimension tables are present in AST
+            if guard_res.allowed and (task.series_dimension or task.dimensions):
+                model = self.semantic_catalog.get_model(task.engine_id)
+                if model:
+                    dims_to_check = [task.series_dimension] if task.series_dimension else task.dimensions
+                    for dim_name in dims_to_check:
+                        target_dim = model.get_dimension(dim_name)
+                        if target_dim and target_dim.type != "temporal":
+                            if target_dim.table.lower() not in [t.lower() for t in guard_res.tables]:
+                                guard_res.allowed = False
+                                guard_res.detail = f"Semantic Guardrail: Table '{target_dim.table}' for dimension '{dim_name}' is missing from query AST."
+                                warnings.append(f"Intento {attempt}: Guardarraíl Semántico detectó omisión de '{target_dim.table}'. Auto-reflejando...")
+                                last_rejection_detail = guard_res.detail
+                                break
 
             if guard_res.allowed:
                 try:
