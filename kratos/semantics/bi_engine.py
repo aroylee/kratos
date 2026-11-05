@@ -192,32 +192,53 @@ def _compile_geo_map_echarts(
     rows: List[Dict[str, Any]],
     dim_col: str,
     metric_col: str,
-    title: str
+    title: str,
+    category_col: str | None = None
 ) -> Dict[str, Any]:
-    """Compiles an interactive choropleth World Map with visualMap heat gradient."""
+    """Compiles an interactive choropleth World Map with visualMap heat gradient and optional category attribution."""
     geo_data = []
     numeric_vals = []
     categories = []
+    categories_secondary = []
 
     for r in rows:
         raw_name = str(r.get(dim_col, ""))
         norm_name = normalize_country_name(raw_name)
+        cat_val = str(r.get(category_col, "")) if category_col else None
         try:
             val = float(r.get(metric_col, 0) or 0)
         except (ValueError, TypeError):
             val = 0.0
 
-        geo_data.append({
+        item = {
             "name": norm_name,
             "value": round(val, 2),
             "raw_name": raw_name,
-        })
+        }
+        if cat_val:
+            item["category"] = cat_val
+            categories_secondary.append(cat_val)
+
+        geo_data.append(item)
         numeric_vals.append(val)
         categories.append(raw_name)
 
     min_val = min(numeric_vals) if numeric_vals else 0
     max_val = max(numeric_vals) if numeric_vals else 100
     primary_unit = infer_column_unit(metric_col)
+
+    meta = {
+        "chart_type": "map",
+        "is_geo": True,
+        "dim_col": dim_col,
+        "metric_col": metric_col,
+        "categories": categories,
+        "values": numeric_vals,
+        "unit": primary_unit
+    }
+    if category_col:
+        meta["category_col"] = category_col
+        meta["categories_secondary"] = categories_secondary
 
     return {
         "title": {"text": title, "textStyle": {"color": "#E2E8F0"}},
@@ -263,15 +284,7 @@ def _compile_geo_map_echarts(
                 "data": geo_data
             }
         ],
-        "_meta": {
-            "chart_type": "map",
-            "is_geo": True,
-            "dim_col": dim_col,
-            "metric_col": metric_col,
-            "categories": categories,
-            "values": numeric_vals,
-            "unit": primary_unit
-        }
+        "_meta": meta
     }
 
 
@@ -284,12 +297,9 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
     if len(columns) < 2:
         return None
 
-    # Detect Multi-Series Pivot Pattern: (time_col, category_col, metric_col)
+    # Detect 3-Column Patterns
     if len(columns) == 3:
         c0, c1, c2 = columns[0], columns[1], columns[2]
-        is_c0_time = any(w in c0.lower() for w in [
-            "date", "fecha", "mes", "month", "year", "ano", "day", "dia", "semana", "week"
-        ])
         sample_val = rows[0].get(c2)
         try:
             float(sample_val) if sample_val is not None else 0.0
@@ -297,6 +307,18 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
         except (ValueError, TypeError):
             is_c2_numeric = False
 
+        # 1. Geo-Partitioned Pattern: (geo_col, category_col, metric_col)
+        is_c0_geo = any(w in c0.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación", "region", "región"])
+        is_c1_geo = any(w in c1.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación", "region", "región"])
+        if is_c0_geo and is_c2_numeric:
+            return _compile_geo_map_echarts(rows, dim_col=c0, metric_col=c2, title=title, category_col=c1)
+        elif is_c1_geo and is_c2_numeric:
+            return _compile_geo_map_echarts(rows, dim_col=c1, metric_col=c2, title=title, category_col=c0)
+
+        # 2. Multi-Series Pivot Pattern: (time_col, category_col, metric_col)
+        is_c0_time = any(w in c0.lower() for w in [
+            "date", "fecha", "mes", "month", "year", "ano", "day", "dia", "semana", "week"
+        ])
         if is_c0_time and is_c2_numeric:
             return _compile_multi_series_echarts(rows, c0, c1, c2, title)
 

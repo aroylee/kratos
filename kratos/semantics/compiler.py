@@ -176,6 +176,80 @@ class SemanticCompiler:
             )
 
         # =========================================================================
+        # PATTERN A4: GEO PARTITIONED RANKING (Top N per geographic partition via Window Function)
+        # =========================================================================
+        if pattern == AnalyticalPattern.GEO_PARTITIONED_RANKING and metric:
+            geo_dim = None
+            cat_dim = None
+            for d_name in (task.dimensions or []):
+                d = model.get_dimension(d_name)
+                if not d:
+                    continue
+                if d.type == "geo" or any(w in d.id.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación", "region", "región"]) or \
+                   any(w in (d.column or "").lower() for w in ["country", "nation", "pais", "region"]):
+                    geo_dim = d
+                else:
+                    cat_dim = d
+
+            if not geo_dim:
+                for d in model.dimensions:
+                    if d.type == "geo" or any(w in d.id.lower() for w in ["pais", "país", "country", "nation"]):
+                        geo_dim = d
+                        break
+
+            if not cat_dim:
+                for d in model.dimensions:
+                    if d.type != "temporal" and d != geo_dim:
+                        cat_dim = d
+                        break
+
+            if geo_dim and cat_dim:
+                geo_alias = geo_dim.id
+                geo_expr = geo_dim.select_expression
+                cat_alias = cat_dim.id
+                cat_expr = cat_dim.select_expression
+                limit_n = top_n or 1
+
+                fact_tables = {geo_dim.table, cat_dim.table, metric.table}
+                if metric.required_tables:
+                    fact_tables.update(metric.required_tables)
+                fact_joins = cls._build_joins(fact_tables, model, base_table=geo_dim.table)
+                fact_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in fact_joins])
+                from_fact = f"FROM {geo_dim.table} {fact_join_sql}".strip()
+
+                is_lowest = order_dir == "ASC"
+                rank_label = f"Bottom {limit_n} {cat_alias} por {geo_alias}" if is_lowest else f"Top {limit_n} {cat_alias} por {geo_alias}"
+
+                return (
+                    f"/* =========================================================================\n"
+                    f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
+                    f"   Objetivo: {task.goal}\n"
+                    f"   Patrón: Ranking Geo-Particionado con Window Function ({rank_label})\n"
+                    f"   Capa Semántica: Wren AI MDL ({model.name})\n"
+                    f"   ========================================================================= */\n"
+                    f"-- Paso 1: Particionar métricas por {geo_alias} y clasificar {cat_alias} con ROW_NUMBER()\n"
+                    f"WITH RankedGeoPartition AS (\n"
+                    f"    SELECT {geo_expr} AS {geo_alias}, -- Dimensión geográfica\n"
+                    f"           {cat_expr} AS {cat_alias}, -- Dimensión categórica clasificada\n"
+                    f"           {metric.expression} AS {metric.id}, -- Métrica de volumen ({metric.unit})\n"
+                    f"           ROW_NUMBER() OVER (\n"
+                    f"               PARTITION BY {geo_expr}\n"
+                    f"               ORDER BY {metric.expression} {order_dir}\n"
+                    f"           ) AS rnk\n"
+                    f"    {from_fact}\n"
+                    f"    GROUP BY {geo_alias}, {cat_alias}\n"
+                    f")\n"
+                    f"-- Paso 2: Filtrar la categoría líder de cada territorio ({rank_label})\n"
+                    f"SELECT {geo_alias},\n"
+                    f"       {cat_alias},\n"
+                    f"       {metric.id}\n"
+                    f"FROM RankedGeoPartition\n"
+                    f"WHERE rnk <= {limit_n}\n"
+                    f"ORDER BY {metric.id} DESC\n"
+                    f"LIMIT 500;"
+                )
+
+        # =========================================================================
         # PATTERN B: TIME SERIES (Mono-serie)
         # =========================================================================
         if pattern == AnalyticalPattern.TIME_SERIES and time_dim and metric:

@@ -542,6 +542,76 @@ def test_archify_erd_generation(registry):
     assert "14 atributos" in html
 
 
+def test_chinook_generos_mas_vendidos_por_pais_geo_partitioned(registry):
+    """Verifies multi-dimensional geo category ranking in Chinook compiles to interactive choropleth map."""
+    interpreter = InterpreterAgent()
+    interpreted = interpreter.interpret("cuales son los géneros que se venden mas por pais", "chinook")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.GEO_PARTITIONED_RANKING
+    assert "Pais" in interpreted.dimensions
+    assert "Genero" in interpreted.dimensions
+    assert interpreted.series_dimension == "Genero"
+    assert interpreted.top_n == 1
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="chinook",
+        goal=interpreted.goal,
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        series_dimension=interpreted.series_dimension,
+        metric_target=interpreted.metric_target,
+        top_n=interpreted.top_n,
+        ranking_criterion=interpreted.ranking_criterion,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+        constraints=interpreted.constraints,
+        required_evidence=interpreted.required_evidence,
+    )
+
+    inv = InvestigatorAgent(registry)
+    evidence = inv.execute_task(task)
+
+    assert len(evidence.queries) == 1
+    assert "RankedGeoPartition" in evidence.queries[0].sql
+    assert "ROW_NUMBER() OVER" in evidence.queries[0].sql
+    assert "PARTITION BY" in evidence.queries[0].sql
+
+    rows = evidence.queries[0].rows
+    assert len(rows) == 24
+
+    # USA should be top volume with Rock
+    assert rows[0]["Pais"] == "USA"
+    assert rows[0]["Genero"] == "Rock"
+    assert rows[0]["Facturacion_USD"] > 100
+
+    # Business exceptions must be identified
+    ireland = next(r for r in rows if r["Pais"] == "Ireland")
+    assert ireland["Genero"] == "TV Shows"
+
+    sweden = next(r for r in rows if r["Pais"] == "Sweden")
+    assert sweden["Genero"] == "Latin"
+
+    # Compile ECharts & verify 3D Geo Choropleth Map with Category Attribution
+    echarts = compile_echarts(rows, title=task.goal)
+    assert echarts is not None
+    assert echarts["_meta"]["is_geo"] is True
+    assert echarts["_meta"]["category_col"] == "Genero"
+    assert echarts["series"][0]["type"] == "map"
+    us_data = next(d for d in echarts["series"][0]["data"] if d["raw_name"] == "USA")
+    assert us_data["category"] == "Rock"
+
+    # Formulate Executive Storytelling
+    storytelling = interpreter.formulate_storytelling(task, evidence)
+    assert "Rock" in storytelling.key_takeaway
+    assert storytelling.diagnostic_metrics["total_territories"] == 24
+    assert storytelling.diagnostic_metrics["dominant_category"] == "Rock"
+    assert storytelling.diagnostic_metrics["dominant_territories_count"] == 22
+    assert any("Ireland" in f and "TV Shows" in f for f in storytelling.quantitative_findings)
+
+
+
 
 
 

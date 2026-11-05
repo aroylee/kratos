@@ -126,17 +126,28 @@ class SemanticModelMDL(BaseModel):
 
     def find_non_temporal_dimension(self, text: str) -> DimensionMDL | None:
         """Finds a non-temporal dimension (categorical, geo, entity) whose ID or synonyms appear in text."""
+        dims = self.find_all_non_temporal_dimensions(text)
+        return dims[0] if dims else None
+
+    def find_all_non_temporal_dimensions(self, text: str) -> list[DimensionMDL]:
+        """Finds all non-temporal dimensions (categorical, geo, entity) whose ID or synonyms appear in text."""
         import re
         lowered = text.lower()
+        matched = []
         for d in self.dimensions:
             if d.type == "temporal":
                 continue
+            has_match = False
             if re.search(rf"\b{re.escape(d.id.lower())}\b", lowered):
-                return d
-            for syn in d.synonyms:
-                if re.search(rf"\b{re.escape(syn.lower())}\b", lowered):
-                    return d
-        return None
+                has_match = True
+            else:
+                for syn in d.synonyms:
+                    if re.search(rf"\b{re.escape(syn.lower())}\b", lowered):
+                        has_match = True
+                        break
+            if has_match and d not in matched:
+                matched.append(d)
+        return matched
 
     def find_metric_by_synonym(self, text: str) -> MetricMDL | None:
         """Finds a metric whose ID or synonyms appear in text using word boundary matching."""

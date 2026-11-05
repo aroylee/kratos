@@ -31,6 +31,7 @@ class AnalyticalPattern(StrEnum):
     CATEGORICAL_BREAKDOWN = "CATEGORICAL_BREAKDOWN" # Distribución por categorías o grupos
     RANKING_TOP_N = "RANKING_TOP_N"                 # Rankings líderes (Top 5, Top 10)
     GEO_DISTRIBUTION = "GEO_DISTRIBUTION"           # Distribución por país, región o ciudad
+    GEO_PARTITIONED_RANKING = "GEO_PARTITIONED_RANKING" # Categoría dominante o ranking particionado por geografía (Window Function)
     AGGREGATE_KPI = "AGGREGATE_KPI"                 # Métrica agregada global (total, promedio)
     SCHEMA_OVERVIEW = "SCHEMA_OVERVIEW"             # Estructura del esquema
 

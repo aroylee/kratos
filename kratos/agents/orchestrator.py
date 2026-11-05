@@ -2,6 +2,7 @@
 
 import os
 import re
+from collections import Counter
 from kratos.contracts.schemas import (
     Intent,
     InterpretedRequest,
@@ -72,32 +73,37 @@ class InterpreterAgent:
                 time_granularity = TimeGranularity.DAILY if "diar" in lowered else TimeGranularity.MONTHLY
                 time_dimension = "Fecha" if time_granularity == TimeGranularity.DAILY else "Mes"
 
-        # 3. Model-Driven Semantic Dimension Detection
+        # 3. Model-Driven Semantic Dimension Detection (Multi-dimensional aware)
         model = self.semantic_catalog.get_model(active_engine_id)
-        matched_non_temporal = model.find_non_temporal_dimension(query) if model else None
+        matched_dims = model.find_all_non_temporal_dimensions(query) if model else []
+
+        geo_dim = next((d for d in matched_dims if d.type == "geo" or d.id in ["Pais", "Region"]), None)
+        cat_dim = next((d for d in matched_dims if d.type != "geo" and d.id not in ["Pais", "Region"]), None)
 
         # Fallback keyword matching across standard entities if not found in model
-        if not matched_non_temporal:
+        if not cat_dim:
             if any(w in lowered for w in ["categoria", "categoría", "categorias", "categorías", "lineas", "líneas"]):
-                matched_non_temporal = model.get_dimension("Categoria") if model else None
+                cat_dim = model.get_dimension("Categoria") if model else None
             elif any(w in lowered for w in ["producto", "productos", "articulo", "artículos", "articulos", "item", "items", "mercancía"]):
-                matched_non_temporal = model.get_dimension("Producto") if model else None
+                cat_dim = model.get_dimension("Producto") if model else None
             elif any(w in lowered for w in ["album", "álbum", "albumes", "álbumes", "disco", "discos"]):
-                matched_non_temporal = model.get_dimension("Album") if model else None
+                cat_dim = model.get_dimension("Album") if model else None
             elif any(w in lowered for w in ["cancion", "canción", "canciones", "track", "tracks"]):
-                matched_non_temporal = model.get_dimension("Cancion") if model else None
+                cat_dim = model.get_dimension("Cancion") if model else None
             elif any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"]):
-                matched_non_temporal = model.get_dimension("Empleado") if model else None
+                cat_dim = model.get_dimension("Empleado") if model else None
             elif any(w in lowered for w in ["cliente", "clientes", "comprador", "compradores"]):
-                matched_non_temporal = model.get_dimension("Cliente") if model else None
-            elif any(w in lowered for w in ["pais", "país", "paises", "países"]):
-                matched_non_temporal = model.get_dimension("Pais") if model else None
+                cat_dim = model.get_dimension("Cliente") if model else None
             elif any(w in lowered for w in ["genero", "género", "generos", "géneros"]):
-                matched_non_temporal = model.get_dimension("Genero") if model else None
+                cat_dim = model.get_dimension("Genero") if model else None
             elif any(w in lowered for w in ["artista", "artistas", "banda", "bandas"]):
-                matched_non_temporal = model.get_dimension("Artista") if model else None
+                cat_dim = model.get_dimension("Artista") if model else None
 
-        series_dimension = matched_non_temporal.id if matched_non_temporal else None
+        if not geo_dim:
+            if any(w in lowered for w in ["pais", "país", "paises", "países", "region", "región", "regiones", "territorios", "territorio", "destino"]):
+                geo_dim = (model.get_dimension("Pais") if model else None) or (model.get_dimension("Region") if model else None)
+
+        series_dimension = cat_dim.id if cat_dim else (geo_dim.id if geo_dim else None)
 
         # 4. Top-N and Ranking Extraction
         top_n = None
@@ -118,8 +124,20 @@ class InterpreterAgent:
         elif any(w in lowered for w in ["peor desempeño", "menos ventas", "menores ventas", "menos vendidos", "peores", "peor"]):
             ranking_criterion = "menor desempeño"
 
+        # Check for Geographic Partitioned Ranking (e.g. "géneros más vendidos por país", "top productos por región")
+        is_geo_partition = bool(
+            geo_dim and cat_dim and any(w in lowered for w in [
+                "por pais", "por país", "por region", "por región", "por territorio", "en cada pais", "en cada país",
+                "en cada region", "en cada región", "cada pais", "cada país", "más vendidos por", "mas vendidos por",
+                "más vendido por", "mas vendido por", "se venden mas por", "se venden más por", "líder por", "lider por", "dominante por"
+            ])
+        )
+
         # 5. Analytical Pattern Detection
-        if is_time_series and series_dimension and top_n:
+        if is_geo_partition:
+            analytical_pattern = AnalyticalPattern.GEO_PARTITIONED_RANKING
+            top_n = top_n or 1 # Default to dominant category per territory
+        elif is_time_series and series_dimension and top_n:
             is_cohort_trend = any(w in lowered for w in [
                 "a través del tiempo", "traves del tiempo", "tendencia", "historico", "histórico", "comportamiento", "evolución", "evolucion"
             ])
@@ -133,14 +151,14 @@ class InterpreterAgent:
             analytical_pattern = AnalyticalPattern.TIME_SERIES
         elif top_n is not None or any(w in lowered for w in ["top", "mejores", "mejor", "primeros", "primeras", "ranking", "lideres", "líderes", "lider", "líder", "mas", "más", "peor", "peores"]):
             analytical_pattern = AnalyticalPattern.RANKING_TOP_N
-        elif any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región"]):
+        elif geo_dim or any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región"]):
             analytical_pattern = AnalyticalPattern.GEO_DISTRIBUTION
         else:
             analytical_pattern = AnalyticalPattern.CATEGORICAL_BREAKDOWN
 
         # 6. Metric Target Detection
         metric_target = MetricTarget.REVENUE
-        if any(w in lowered for w in ["pedido", "pedidos", "orden", "ordenes", "órdenes", "orders"]):
+        if any(w in lowered for w in ["pedido", "pedidos", "orden", "ordenes", "órdenes", "orders", "envio", "envíos", "envios", "envío"]):
             metric_target = MetricTarget.ORDERS
         elif any(w in lowered for w in ["cliente", "clientes", "customers"]):
             metric_target = MetricTarget.CUSTOMERS
@@ -153,16 +171,27 @@ class InterpreterAgent:
         dimensions: list[str] = []
         metrics: list[str] = []
 
-        if analytical_pattern in [AnalyticalPattern.MULTI_SERIES_TIME_SERIES, AnalyticalPattern.PARTITIONED_RANKING]:
+        if analytical_pattern == AnalyticalPattern.GEO_PARTITIONED_RANKING:
+            if geo_dim:
+                dimensions.append(geo_dim.id)
+            if cat_dim:
+                dimensions.append(cat_dim.id)
+        elif analytical_pattern in [AnalyticalPattern.MULTI_SERIES_TIME_SERIES, AnalyticalPattern.PARTITIONED_RANKING]:
             if time_dimension:
                 dimensions.append(time_dimension)
             if series_dimension:
+                dimensions.append(series_dimension)
+        elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION:
+            if geo_dim:
+                dimensions.append(geo_dim.id)
+            elif series_dimension:
                 dimensions.append(series_dimension)
         elif analytical_pattern == AnalyticalPattern.TIME_SERIES:
             if time_dimension:
                 dimensions.append(time_dimension)
         else:
             if series_dimension:
+                dimensions.append(series_dimension)
                 dimensions.append(series_dimension)
             else:
                 matched_dim = model.find_dimension_by_synonym(query) if model else None
@@ -271,6 +300,87 @@ class InterpreterAgent:
                 return ExecutiveStorytelling(
                     key_takeaway=key_takeaway,
                     diagnostic_metrics=part_diag.model_dump(),
+                    quantitative_findings=findings,
+                    risk_alerts=risk_alerts,
+                    strategic_recommendations=recommendations,
+                )
+
+        # -------------------------------------------------------------------------
+        # CASE 0.2: GEO PARTITIONED RANKING (Dominancia territorial y categorías líderes por país)
+        # -------------------------------------------------------------------------
+        if task.analytical_pattern == AnalyticalPattern.GEO_PARTITIONED_RANKING and rows:
+            cols = list(rows[0].keys())
+            geo_col = next((c for c in cols if any(w in c.lower() for w in ["pais", "país", "country", "nation", "region", "región"])), cols[0])
+            met_col = next((c for c in cols if isinstance(rows[0][c], (int, float)) or c in (task.metrics or [])), cols[-1])
+            cat_col = next((c for c in cols if c != geo_col and c != met_col), cols[1] if len(cols) > 1 else cols[0])
+
+            total_territories = len(rows)
+            total_vol = sum(float(r.get(met_col, 0) or 0) for r in rows)
+            primary_unit = infer_column_unit(met_col)
+
+            cat_counter = Counter(r.get(cat_col) for r in rows if r.get(cat_col))
+            if cat_counter:
+                dom_cat, dom_cnt = cat_counter.most_common(1)[0]
+                pct_countries = round((dom_cnt / total_territories) * 100, 1) if total_territories > 0 else 0
+                exceptions = [(str(r.get(geo_col)), str(r.get(cat_col)), float(r.get(met_col, 0) or 0)) for r in rows if r.get(cat_col) != dom_cat]
+
+                # Top 3 markets by volume
+                sorted_by_vol = sorted(rows, key=lambda r: float(r.get(met_col, 0) or 0), reverse=True)
+                top_3 = sorted_by_vol[:3]
+                top_3_vol = sum(float(r.get(met_col, 0) or 0) for r in top_3)
+                top_3_pct = round((top_3_vol / total_vol) * 100, 1) if total_vol > 0 else 0
+                top_markets_str = ", ".join([f"{r.get(geo_col)} ({format_metric_value(r.get(met_col, 0), primary_unit)})" for r in top_3])
+
+                key_takeaway = (
+                    f"Hegemonía Territorial de '{dom_cat}': Lidera indiscutiblemente en {dom_cnt} de los {total_territories} países analizados "
+                    f"({pct_countries}% de penetración geográfica), sumando {format_metric_value(total_vol, primary_unit)} de demanda total."
+                )
+
+                findings = [
+                    f"Volumen y Cobertura: {total_territories} mercados geográficos consolidados con un volumen global de {format_metric_value(total_vol, primary_unit)}.",
+                    f"Top 3 Territorios en Demanda: {top_markets_str}, concentrando el {top_3_pct}% del volumen mundial de ventas analizado.",
+                ]
+
+                if exceptions:
+                    exc_summary = ", ".join([f"{e[0]} → '{e[1]}' ({format_metric_value(e[2], primary_unit)})" for e in exceptions[:4]])
+                    findings.append(f"Excepciones y Preferencias Regionales: Se identificaron {len(exceptions)} mercados con preferencias alternativas frente a la norma global: {exc_summary}.")
+                else:
+                    findings.append(f"Monopolio Geográfico Total: '{dom_cat}' domina el 100% de los países evaluados sin excepciones regionales.")
+
+                risk_alerts = []
+                if pct_countries >= 70:
+                    risk_alerts.append(
+                        f"Riesgo de Monocultivo de Catálogo: La alta concentración en '{dom_cat}' ({pct_countries}% de los países) genera vulnerabilidad si cambian las tendencias del mercado; diversificar la promoción de categorías secundarias."
+                    )
+                if exceptions:
+                    risk_alerts.append(
+                        f"Riesgo de Estandarización Forzada: Imponer una oferta global sin considerar divergencias culturales locales (ej. {exceptions[0][0]} prefiriendo '{exceptions[0][1]}') debilitará la cuota de mercado en esas regiones."
+                    )
+                else:
+                    risk_alerts.append("Falta de Diferenciación Regional: La uniformidad de demanda sugiere poca exploración de catálogos alternativos en mercados periféricos.")
+
+                recommendations = [
+                    f"Focalizar campañas de escala global en '{dom_cat}' para los mercados hegemónicos ({', '.join([str(r.get(geo_col)) for r in top_3])}).",
+                ]
+                if exceptions:
+                    recommendations.append(
+                        f"Desplegar estrategias de hiper-localización y catálogos dedicados en los territorios divergentes ({', '.join([e[0] for e in exceptions[:3]])}) para maximizar la conversión local."
+                    )
+                recommendations.append(
+                    f"Implementar bundles cruzados combinando '{dom_cat}' con opciones emergentes para estimular el ticket promedio en mercados secundarios."
+                )
+
+                return ExecutiveStorytelling(
+                    key_takeaway=key_takeaway,
+                    diagnostic_metrics={
+                        "total_territories": total_territories,
+                        "dominant_category": dom_cat,
+                        "dominant_territories_count": dom_cnt,
+                        "global_penetration_pct": pct_countries,
+                        "total_volume": round(total_vol, 2),
+                        "unit": primary_unit,
+                        "exceptions_count": len(exceptions),
+                    },
                     quantitative_findings=findings,
                     risk_alerts=risk_alerts,
                     strategic_recommendations=recommendations,

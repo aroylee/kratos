@@ -1599,6 +1599,22 @@ ${doc.mermaid_erd}
                     const mapBtn = document.getElementById('btn-chart-map');
                     if (isGeo) {
                         mapBtn.classList.remove('hidden');
+                        const catCol = data.visualization._meta && data.visualization._meta.category_col;
+                        if (catCol) {
+                            data.visualization.tooltip = {
+                                trigger: 'item',
+                                backgroundColor: '#0F172A',
+                                borderColor: '#334155',
+                                textStyle: { color: '#E2E8F0' },
+                                formatter: function(params) {
+                                    if (!params.data) return params.name;
+                                    const cat = params.data.category ? `<br/><span class="text-indigo-400 font-semibold">${catCol}:</span> <strong>${params.data.category}</strong>` : '';
+                                    const unit = (data.visualization._meta && data.visualization._meta.unit) || '';
+                                    const valStr = (params.value !== undefined && params.value !== null) ? `${params.value} ${unit}`.trim() : '0';
+                                    return `<div class="p-1"><span class="text-slate-200 font-bold">${params.name}</span>${cat}<br/><span class="text-slate-400">${params.seriesName || 'Volumen'}:</span> <span class="text-emerald-400 font-mono font-semibold">${valStr}</span></div>`;
+                                }
+                            };
+                        }
                         originalGeoOption = JSON.parse(JSON.stringify(data.visualization));
                         currentChartMode = 'map';
                     } else {
@@ -1775,7 +1791,12 @@ ${doc.mermaid_erd}
                 const unit = meta.unit || '';
                 const metricCol = meta.metric_col || 'Valor';
 
-                const pairs = cats.map((c, i) => ({ name: c, val: vals[i] || 0 }));
+                const pairs = cats.map((c, i) => {
+                    const label = (meta.category_col && meta.categories_secondary && meta.categories_secondary[i])
+                        ? `${c} • ${meta.categories_secondary[i]}`
+                        : c;
+                    return { name: label, val: vals[i] || 0 };
+                });
                 pairs.sort((a, b) => b.val - a.val);
                 const topPairs = pairs.slice(0, 15);
                 const chartCats = topPairs.map(p => p.name);
