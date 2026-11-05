@@ -188,3 +188,4 @@ class FinalAnswer(BaseModel):
     suggested_questions: list[str] = Field(default_factory=list)
     has_archify: bool = False
     archify_url: str | None = None
+    archify_entities: list[dict[str, Any]] = Field(default_factory=list)

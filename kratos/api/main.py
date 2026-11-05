@@ -9,7 +9,7 @@ from kratos.engines.registry import EngineRegistry
 from kratos.agents.orchestrator import InterpreterAgent, InvestigatorAgent
 from kratos.contracts.schemas import DataTask, FinalAnswer
 from kratos.semantics.bi_engine import compile_echarts
-from kratos.semantics.archify_generator import generate_archify_erd_spec, compile_archify_diagram
+from kratos.semantics.archify_generator import generate_archify_erd_spec, compile_archify_diagram, enrich_entities_for_ui
 from kratos.web.docs_page import get_documentation_html
 
 app = FastAPI(title="Kratos Intelligence", version="0.1.0")
@@ -113,6 +113,7 @@ def run_query(req: QueryRequest):
     # Step 5: Archify Relational Lineage & ERD Compilation
     has_archify = False
     archify_url = None
+    archify_entities = []
     if evidence.queries:
         try:
             primary_sql = evidence.queries[0].sql
@@ -122,6 +123,7 @@ def run_query(req: QueryRequest):
             latest_archify_diagram["html"] = compiled_html
             has_archify = True
             archify_url = "/api/archify/latest.html"
+            archify_entities = enrich_entities_for_ui(spec.get("entities", []), task.engine_id)
         except Exception as exc:
             print(f"[WARN] Archify diagram generation skipped: {exc}")
 
@@ -137,6 +139,7 @@ def run_query(req: QueryRequest):
         ],
         has_archify=has_archify,
         archify_url=archify_url,
+        archify_entities=archify_entities,
     )
 
 
@@ -394,11 +397,20 @@ def index_page():
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-slate-900 border-b border-slate-800/80 gap-2">
                     <div class="flex items-center gap-2 cursor-pointer select-none" onclick="toggleCardCollapse('archify-card')">
                         <span class="text-sky-400 text-sm">🕸️</span>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Relaciones de la Consulta (Archify ERD)</h3>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Relaciones & Esquema ERD (Archify)</h3>
                         <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-950/80 text-sky-400 border border-sky-800">Archify 3.2</span>
+                        <span id="archify-entity-count-badge" class="hidden text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-sky-300 border border-slate-800"></span>
                         <button id="toggle-archify-card" title="Colapsar / Expandir" class="text-slate-400 hover:text-white text-xs font-mono px-1 py-0.5 rounded hover:bg-slate-800 ml-1">▼</button>
                     </div>
                     <div class="flex items-center gap-1.5 flex-wrap">
+                        <div class="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800 text-xs">
+                            <button id="btn-archify-tab-visual" onclick="switchArchifyCardTab('visual')" class="px-2.5 py-1 rounded text-sky-400 font-medium bg-slate-900 border border-sky-900/50 transition flex items-center gap-1">
+                                <span>🗺️</span> <span class="hidden sm:inline">Diagrama ERD</span>
+                            </button>
+                            <button id="btn-archify-tab-inspector" onclick="switchArchifyCardTab('inspector')" class="px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition flex items-center gap-1">
+                                <span>📋</span> <span class="hidden sm:inline">Inspector de Atributos</span>
+                            </button>
+                        </div>
                         <a id="btn-archify-external" href="/api/archify/latest.html" target="_blank" title="Abrir en Nueva Pestaña" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
                             <span>↗</span> <span class="hidden sm:inline">Pestaña</span>
                         </a>
@@ -408,8 +420,32 @@ def index_page():
                     </div>
                 </div>
                 <div id="body-archify-card" class="p-2 transition-all">
-                    <div id="archify-container" class="w-full h-[360px] bg-slate-950 rounded-lg overflow-hidden border border-slate-800/80 flex items-center justify-center">
-                        <p class="text-slate-600 text-xs italic">Ejecuta una consulta para visualizar sus relaciones relacionales e integridad con Archify.</p>
+                    <!-- Vista 1: Diagrama Visual Archify -->
+                    <div id="archify-visual-view">
+                        <div id="archify-container" class="w-full h-[460px] bg-slate-950 rounded-lg overflow-hidden border border-slate-800/80 flex items-center justify-center">
+                            <p class="text-slate-600 text-xs italic">Ejecuta una consulta para visualizar sus relaciones relacionales e integridad con Archify.</p>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 px-2 pt-2">
+                            <span>💡 Tip: Usa rueda/scroll para zoom, arrastra para mover el lienzo, o haz clic en cualquier entidad para enfocarla.</span>
+                            <span class="text-slate-400 font-mono text-[10px]">100% atributos renderizados</span>
+                        </div>
+                    </div>
+
+                    <!-- Vista 2: Inspector de Atributos con Scroll y Filtro -->
+                    <div id="archify-inspector-view" class="hidden flex flex-col gap-2 p-1">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+                            <div class="relative w-full sm:w-72">
+                                <input type="text" id="archify-attr-filter" oninput="filterArchifyAttributes()" placeholder="🔍 Filtrar columnas o tablas..." class="w-full bg-slate-900 border border-slate-800 text-slate-300 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-sky-500">
+                            </div>
+                            <div class="flex items-center gap-2 text-xs">
+                                <span id="archify-filter-stats" class="text-slate-400 font-mono text-[11px]"></span>
+                                <button onclick="expandAllArchifyEntities(true, 'archify-inspector-cards')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition">↕ Expandir Todo</button>
+                                <button onclick="expandAllArchifyEntities(false, 'archify-inspector-cards')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition">⇥ Colapsar Todo</button>
+                            </div>
+                        </div>
+                        <div id="archify-inspector-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[460px] overflow-y-auto p-1 custom-scrollbar">
+                            <p class="text-slate-600 text-xs italic p-3">Ejecuta una consulta para inspeccionar los atributos y claves de las entidades.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -492,6 +528,10 @@ def index_page():
         let currentStoryData = null;
         let currentTaskData = null;
         let currentSuggestedQuestions = [];
+        let currentArchifyEntities = [];
+        let currentArchifyMode = 'visual'; // 'visual' | 'inspector'
+        let modalArchifyMode = 'split'; // 'split' | 'diagram' | 'inspector'
+        let archifyEntitiesExpanded = {};
 
         function highlightSQL(sql) {
             if (!sql) return '';
@@ -818,21 +858,28 @@ def index_page():
 
             } else if (type === 'archify') {
                 modalIcon.innerText = '🕸️';
-                modalTitle.innerText = 'Relaciones de la Consulta & Linaje Relacional (Archify ERD)';
-                modalSubtitle.innerText = `Motor: ${currentEngine.toUpperCase()} • Diagrama Interactivo de Tablas, Claves y Cardinalidad`;
+                modalTitle.innerText = 'Relaciones de la Consulta & Esquema ERD Completo';
+                modalSubtitle.innerText = `Motor: ${currentEngine.toUpperCase()} • Diagrama Interactivo & Diccionario de Atributos`;
                 genericView.classList.remove('hidden');
 
                 modalActions.innerHTML = `
+                    <div class="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800 text-xs">
+                        <button id="modal-archify-btn-split" onclick="switchModalArchifyMode('split')" class="px-2.5 py-1 rounded text-sky-400 font-medium bg-slate-900 border border-sky-900/50 transition flex items-center gap-1">
+                            <span>🔀</span> <span class="hidden sm:inline">Vista Dividida</span>
+                        </button>
+                        <button id="modal-archify-btn-diagram" onclick="switchModalArchifyMode('diagram')" class="px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition flex items-center gap-1">
+                            <span>🗺️</span> <span class="hidden sm:inline">Solo Diagrama</span>
+                        </button>
+                        <button id="modal-archify-btn-inspector" onclick="switchModalArchifyMode('inspector')" class="px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition flex items-center gap-1">
+                            <span>📋</span> <span class="hidden sm:inline">Solo Atributos</span>
+                        </button>
+                    </div>
                     <a href="/api/archify/latest.html" target="_blank" class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-sky-500 transition flex items-center gap-1 shadow-sm">
-                        <span>↗</span> Abrir en Nueva Pestaña
+                        <span>↗</span> Pestaña
                     </a>
                 `;
 
-                genericView.innerHTML = `
-                    <div class="w-full h-full min-h-[580px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col flex-1">
-                        <iframe src="/api/archify/latest.html?theme=dark&t=${Date.now()}" class="w-full h-full flex-1 border-0" style="min-height: 580px;"></iframe>
-                    </div>
-                `;
+                renderModalArchifyContent();
 
             } else if (type === 'suggested') {
                 modalIcon.innerText = '💡';
@@ -1289,10 +1336,20 @@ def index_page():
                     chartInstance.clear();
                 }
 
-                // Render Archify Relational Diagram
+                // Render Archify Relational Diagram & Attribute Inspector
                 if (data.has_archify) {
+                    currentArchifyEntities = data.archify_entities || [];
                     const iframe = `<iframe src="/api/archify/latest.html?theme=dark&embed=1&t=${Date.now()}" class="w-full h-full border-0 rounded-lg" loading="lazy"></iframe>`;
                     document.getElementById('archify-container').innerHTML = iframe;
+
+                    const countBadge = document.getElementById('archify-entity-count-badge');
+                    if (countBadge) {
+                        const totalCols = currentArchifyEntities.reduce((acc, e) => acc + (e.attributes ? e.attributes.length : 0), 0);
+                        countBadge.innerText = `${currentArchifyEntities.length} tablas • ${totalCols} atributos`;
+                        countBadge.classList.remove('hidden');
+                    }
+
+                    renderArchifyInspectorCards('archify-inspector-cards', false);
                 }
 
                 // Refresh modal view if currently open
@@ -1532,6 +1589,251 @@ def index_page():
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        function switchArchifyCardTab(tab) {
+            currentArchifyMode = tab;
+            const visualView = document.getElementById('archify-visual-view');
+            const inspectorView = document.getElementById('archify-inspector-view');
+            const btnVisual = document.getElementById('btn-archify-tab-visual');
+            const btnInspector = document.getElementById('btn-archify-tab-inspector');
+
+            if (tab === 'visual') {
+                visualView?.classList.remove('hidden');
+                inspectorView?.classList.add('hidden');
+                if (btnVisual) btnVisual.className = 'px-2.5 py-1 rounded text-sky-400 font-medium bg-slate-900 border border-sky-900/50 transition flex items-center gap-1';
+                if (btnInspector) btnInspector.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition flex items-center gap-1';
+            } else {
+                visualView?.classList.add('hidden');
+                inspectorView?.classList.remove('hidden');
+                if (btnVisual) btnVisual.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition flex items-center gap-1';
+                if (btnInspector) btnInspector.className = 'px-2.5 py-1 rounded text-sky-400 font-medium bg-slate-900 border border-sky-900/50 transition flex items-center gap-1';
+                renderArchifyInspectorCards('archify-inspector-cards', false);
+            }
+        }
+
+        function switchModalArchifyMode(mode) {
+            modalArchifyMode = mode;
+            renderModalArchifyContent();
+        }
+
+        function renderModalArchifyContent() {
+            const genericView = document.getElementById('modal-generic-view');
+            if (!genericView) return;
+
+            ['split', 'diagram', 'inspector'].forEach(m => {
+                const btn = document.getElementById(`modal-archify-btn-${m}`);
+                if (btn) {
+                    if (m === modalArchifyMode) {
+                        btn.className = 'px-2.5 py-1 rounded text-sky-400 font-medium bg-slate-900 border border-sky-900/50 transition flex items-center gap-1';
+                    } else {
+                        btn.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition flex items-center gap-1';
+                    }
+                }
+            });
+
+            if (modalArchifyMode === 'diagram') {
+                genericView.innerHTML = `
+                    <div class="w-full h-full min-h-[620px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col flex-1">
+                        <iframe src="/api/archify/latest.html?theme=dark&t=${Date.now()}" class="w-full h-full flex-1 border-0" style="min-height: 620px;"></iframe>
+                    </div>
+                `;
+            } else if (modalArchifyMode === 'inspector') {
+                genericView.innerHTML = `
+                    <div class="w-full min-h-[620px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-4 shadow-2xl flex flex-col gap-3">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+                            <div class="relative w-full sm:w-96">
+                                <input type="text" id="modal-archify-filter" oninput="filterModalArchifyAttributes()" placeholder="🔍 Filtrar columnas o tablas por nombre o tipo..." class="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-sky-500">
+                            </div>
+                            <div class="flex items-center gap-3 text-xs">
+                                <span id="modal-archify-filter-stats" class="text-slate-400 font-mono text-[11px]"></span>
+                                <button onclick="expandAllArchifyEntities(true, 'modal-archify-cards')" class="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition">↕ Expandir Todo</button>
+                                <button onclick="expandAllArchifyEntities(false, 'modal-archify-cards')" class="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition">⇥ Colapsar Todo</button>
+                            </div>
+                        </div>
+                        <div id="modal-archify-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[68vh] overflow-y-auto p-1 custom-scrollbar"></div>
+                    </div>
+                `;
+                renderArchifyInspectorCards('modal-archify-cards', true);
+            } else {
+                // Split View
+                genericView.innerHTML = `
+                    <div class="w-full min-h-[620px] flex flex-col lg:flex-row gap-3">
+                        <div class="lg:w-7/12 min-h-[500px] lg:min-h-[620px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col">
+                            <iframe src="/api/archify/latest.html?theme=dark&t=${Date.now()}" class="w-full h-full flex-1 border-0" style="min-height: 580px;"></iframe>
+                        </div>
+                        <div class="lg:w-5/12 min-h-[400px] lg:min-h-[620px] bg-slate-950 rounded-xl border border-slate-800 p-3 shadow-2xl flex flex-col gap-2">
+                            <div class="flex flex-col gap-2 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                                        <span>📋</span> Atributos & Claves
+                                    </span>
+                                    <div class="flex items-center gap-1 text-[11px]">
+                                        <button onclick="expandAllArchifyEntities(true, 'modal-split-archify-cards')" class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">↕ Expandir</button>
+                                        <button onclick="expandAllArchifyEntities(false, 'modal-split-archify-cards')" class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">⇥ Colapsar</button>
+                                    </div>
+                                </div>
+                                <input type="text" id="modal-split-filter" oninput="filterModalSplitArchifyAttributes()" placeholder="🔍 Filtrar columnas (ej. price, date, id)..." class="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-sky-500">
+                                <span id="modal-split-filter-stats" class="text-slate-400 font-mono text-[10px]"></span>
+                            </div>
+                            <div id="modal-split-archify-cards" class="flex flex-col gap-2.5 max-h-[520px] overflow-y-auto p-1 custom-scrollbar"></div>
+                        </div>
+                    </div>
+                `;
+                renderArchifyInspectorCards('modal-split-archify-cards', true);
+            }
+        }
+
+        function renderArchifyInspectorCards(containerId, isModal = false, filterQuery = '') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (!currentArchifyEntities || currentArchifyEntities.length === 0) {
+                container.innerHTML = '<p class="text-slate-600 text-xs italic p-4">Ejecuta una consulta para inspeccionar los atributos y claves de las entidades.</p>';
+                return;
+            }
+
+            const q = (filterQuery || '').toLowerCase().trim();
+            let totalAttrs = 0;
+            let visibleAttrs = 0;
+
+            const cardsHtml = currentArchifyEntities.map(ent => {
+                totalAttrs += ent.attributes.length;
+                const matchingAttrs = ent.attributes.filter(attr => {
+                    if (!q) return true;
+                    return ent.id.toLowerCase().includes(q) ||
+                           attr.name.toLowerCase().includes(q) ||
+                           (attr.type && attr.type.toLowerCase().includes(q)) ||
+                           (attr.references && attr.references.toLowerCase().includes(q)) ||
+                           (attr.external_fk && attr.external_fk.toLowerCase().includes(q));
+                });
+
+                visibleAttrs += matchingAttrs.length;
+                if (q && matchingAttrs.length === 0 && !ent.id.toLowerCase().includes(q)) {
+                    return '';
+                }
+
+                const tagColors = {
+                    'métricas': 'bg-rose-950/80 text-rose-300 border-rose-800',
+                    'hechos': 'bg-amber-950/80 text-amber-300 border-amber-800',
+                    'dimensión': 'bg-emerald-950/80 text-emerald-300 border-emerald-800',
+                    'transacción': 'bg-sky-950/80 text-sky-300 border-sky-800'
+                };
+                const tagClass = tagColors[ent.tag] || 'bg-slate-800 text-slate-300 border-slate-700';
+
+                const attrRows = matchingAttrs.map(attr => {
+                    const isPk = attr.key === 'pk';
+                    const isFk = attr.key === 'fk';
+                    const isExtFk = !!attr.external_fk;
+
+                    let keyBadge = '';
+                    if (isPk) {
+                        keyBadge = `<span class="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded bg-amber-950 text-amber-300 border border-amber-700 flex items-center gap-0.5">🔑 PK</span>`;
+                    } else if (isFk) {
+                        keyBadge = `<span class="px-1.5 py-0.5 text-[10px] font-mono font-medium rounded bg-sky-950 text-sky-300 border border-sky-700 flex items-center gap-0.5" title="Enlaza a ${attr.references}">🔗 FK</span>`;
+                    } else if (isExtFk) {
+                        keyBadge = `<span class="px-1.5 py-0.5 text-[10px] font-mono font-normal rounded bg-indigo-950 text-indigo-300 border border-indigo-800 flex items-center gap-0.5" title="FK Externa: ${attr.external_fk}">↗ FK</span>`;
+                    }
+
+                    let refInfo = '';
+                    if (isFk && attr.references) {
+                        refInfo = `<span class="text-[10px] font-mono text-sky-400 truncate max-w-[130px]" title="${attr.references}">→ ${attr.references}</span>`;
+                    } else if (isExtFk && attr.external_fk) {
+                        refInfo = `<span class="text-[10px] font-mono text-indigo-400 truncate max-w-[130px]" title="${attr.external_fk}">→ ${attr.external_fk}</span>`;
+                    }
+
+                    return `
+                        <div class="flex items-center justify-between py-1 px-2 border-b border-slate-800/60 hover:bg-slate-900/60 transition text-xs font-mono">
+                            <div class="flex items-center gap-1.5 overflow-hidden">
+                                ${keyBadge}
+                                <span class="${isPk ? 'text-amber-200 font-bold' : (isFk ? 'text-sky-200' : 'text-slate-300')} truncate">${attr.name}</span>
+                                ${refInfo}
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">${attr.type}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                const cardKey = `ent-card-${containerId}-${ent.id}`;
+                const bodyKey = `ent-body-${containerId}-${ent.id}`;
+                const isExpanded = archifyEntitiesExpanded[ent.id] !== false; // default expanded
+
+                return `
+                    <div id="${cardKey}" class="bg-slate-950 border border-slate-800/90 rounded-xl overflow-hidden shadow flex flex-col transition-all">
+                        <div class="flex items-center justify-between p-2.5 bg-slate-900/90 border-b border-slate-800 cursor-pointer select-none" onclick="toggleArchifyEntityCard('${ent.id}', '${containerId}')">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sky-400 text-xs">🗄️</span>
+                                <span class="font-mono font-semibold text-slate-200 text-xs">${ent.id}</span>
+                                <span class="text-[10px] px-1.5 py-0.2 rounded border ${tagClass}">${ent.tag}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
+                                    ${matchingAttrs.length}${matchingAttrs.length !== ent.attributes.length ? '/' + ent.attributes.length : ''} cols
+                                </span>
+                                <button id="btn-toggle-${cardKey}" title="Colapsar / Maximizar Entidad" class="text-slate-400 hover:text-white text-xs font-mono px-1">
+                                    ${isExpanded ? '▲' : '▼'}
+                                </button>
+                            </div>
+                        </div>
+                        <div id="${bodyKey}" class="${isExpanded ? '' : 'hidden'} overflow-y-auto ${isModal ? 'max-h-[380px]' : 'max-h-56'} divide-y divide-slate-800/40 custom-scrollbar">
+                            ${attrRows || '<p class="text-slate-600 text-xs italic p-2">Sin columnas coincidentes</p>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = cardsHtml || '<p class="text-slate-500 text-xs italic p-4">No se encontraron atributos con el filtro aplicado.</p>';
+
+            const statsBadge = document.getElementById(isModal ? (containerId.includes('split') ? 'modal-split-filter-stats' : 'modal-archify-filter-stats') : 'archify-filter-stats');
+            if (statsBadge) {
+                statsBadge.innerText = `${visibleAttrs} de ${totalAttrs} atributos en ${currentArchifyEntities.length} entidades`;
+            }
+        }
+
+        function toggleArchifyEntityCard(entityId, containerId) {
+            const body = document.getElementById(`ent-body-${containerId}-${entityId}`);
+            const btn = document.getElementById(`btn-toggle-ent-card-${containerId}-${entityId}`);
+            if (!body) return;
+            const isNowHidden = !body.classList.contains('hidden');
+            if (isNowHidden) {
+                body.classList.add('hidden');
+                if (btn) btn.innerText = '▼';
+                archifyEntitiesExpanded[entityId] = false;
+            } else {
+                body.classList.remove('hidden');
+                if (btn) btn.innerText = '▲';
+                archifyEntitiesExpanded[entityId] = true;
+            }
+        }
+
+        function expandAllArchifyEntities(expand, containerId) {
+            if (!currentArchifyEntities) return;
+            currentArchifyEntities.forEach(ent => {
+                archifyEntitiesExpanded[ent.id] = expand;
+                const body = document.getElementById(`ent-body-${containerId}-${ent.id}`);
+                const btn = document.getElementById(`btn-toggle-ent-card-${containerId}-${ent.id}`);
+                if (body) {
+                    if (expand) body.classList.remove('hidden');
+                    else body.classList.add('hidden');
+                }
+                if (btn) {
+                    btn.innerText = expand ? '▲' : '▼';
+                }
+            });
+        }
+
+        function filterArchifyAttributes() {
+            const q = document.getElementById('archify-attr-filter')?.value || '';
+            renderArchifyInspectorCards('archify-inspector-cards', false, q);
+        }
+
+        function filterModalArchifyAttributes() {
+            const q = document.getElementById('modal-archify-filter')?.value || '';
+            renderArchifyInspectorCards('modal-archify-cards', true, q);
+        }
+
+        function filterModalSplitArchifyAttributes() {
+            const q = document.getElementById('modal-split-filter')?.value || '';
+            renderArchifyInspectorCards('modal-split-archify-cards', true, q);
         }
 
         // Enter key to submit

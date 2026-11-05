@@ -358,9 +358,24 @@ def test_archify_erd_generation(registry):
     assert any(e["id"] == "order_details" for e in spec["entities"])
     assert len(spec["relationships"]) >= 2
 
+    # Assert 100% of entity columns are preserved (no truncation)
+    orders_ent = next(e for e in spec["entities"] if e["id"] == "orders")
+    cust_ent = next(e for e in spec["entities"] if e["id"] == "customers")
+    assert len(orders_ent["attributes"]) == 14
+    assert len(cust_ent["attributes"]) == 11
+    assert any(a["name"] == "shipPostalCode" for a in orders_ent["attributes"])
+    assert any(a["name"] == "fax" for a in cust_ent["attributes"])
+
+    from kratos.semantics.archify_generator import enrich_entities_for_ui
+    enriched = enrich_entities_for_ui(spec["entities"], "northwind")
+    assert len(enriched) == 3
+    orders_enr = next(e for e in enriched if e["id"] == "orders")
+    assert orders_enr["total_columns"] == 14
+
     html = compile_archify_diagram(spec)
     assert "data-theme=\"dark\"" in html or "archify" in html
     assert len(html) > 10000
+    assert "14 atributos" in html
 
 
 

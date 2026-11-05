@@ -97,9 +97,10 @@ def generate_archify_erd_spec(
         elif "detail" in t_lower or "line" in t_lower or "item" in t_lower:
             tag = "hechos"
 
-        # Grid positioning: 3 tables per row
-        row = idx // 3
-        col = idx % 3
+        # Grid positioning: 2 per row if 4 tables, otherwise 3 per row
+        cols_per_row = 2 if len(tables_in_query) == 4 else 3
+        row = idx // cols_per_row
+        col = idx % cols_per_row
 
         # Collect columns from engine_schema or MDL entity
         attributes: list[dict[str, Any]] = []
@@ -117,15 +118,24 @@ def generate_archify_erd_spec(
                 pk_cols = [p.lower() for p in ent.primary_key]
 
         if raw_cols:
-            for c in raw_cols[:8]:  # Limit attributes for visual clarity
+            for c in raw_cols:  # Include ALL attributes for complete schema transparency
                 if isinstance(c, dict):
                     c_name = c.get("name", "")
                     c_type = str(c.get("type", "TEXT")).upper()
                     is_pk = c.get("primary_key", False) or c_name.lower() in pk_cols
                 else:
                     c_name = str(c)
-                    c_type = "INTEGER" if c_name.lower().endswith("id") or "count" in c_name.lower() or "quantity" in c_name.lower() else ("REAL" if "price" in c_name.lower() or "amount" in c_name.lower() or "discount" in c_name.lower() or "total" in c_name.lower() else "TEXT")
-                    is_pk = c_name.lower() in pk_cols or c_name.lower() == f"{t_lower}id" or c_name.lower() == "id"
+                    c_lower = c_name.lower()
+                    if c_lower.endswith("id") or "count" in c_lower or "quantity" in c_lower or c_lower == "id":
+                        c_type = "INTEGER"
+                    elif any(k in c_lower for k in ["price", "amount", "discount", "total", "freight", "rate", "cost", "salary", "balance"]):
+                        c_type = "REAL"
+                    elif any(k in c_lower for k in ["date", "time", "year"]):
+                        c_type = "DATETIME"
+                    else:
+                        c_type = "TEXT"
+                    t_stem = t_lower[:-1] if t_lower.endswith('s') else t_lower
+                    is_pk = c_lower in pk_cols or c_lower == f"{t_lower}id" or c_lower == f"{t_stem}id" or c_lower == "id"
 
                 attr_item: dict[str, Any] = {
                     "name": c_name,
@@ -169,6 +179,7 @@ def generate_archify_erd_spec(
         entities.append({
             "id": table_name,
             "label": table_name,
+            "sublabel": f"{len(attributes)} atributos",
             "tag": tag,
             "row": row,
             "col": col,
@@ -273,3 +284,43 @@ def compile_archify_diagram(erd_spec: dict[str, Any]) -> str:
             os.remove(in_path)
         if os.path.exists(out_path):
             os.remove(out_path)
+
+
+def enrich_entities_for_ui(entities: list[dict[str, Any]], engine_id: str) -> list[dict[str, Any]]:
+    """Enriches entities for the UI attribute inspector, adding external FK detection and column counts."""
+    mdl = CATALOG.get_model(engine_id)
+    enriched: list[dict[str, Any]] = []
+
+    for ent in entities:
+        t_lower = ent["id"].lower()
+        ent_data = {
+            "id": ent["id"],
+            "label": ent.get("label", ent["id"]),
+            "tag": ent.get("tag", "entidad"),
+            "sublabel": ent.get("sublabel", f"{len(ent.get('attributes', []))} atributos"),
+            "total_columns": len(ent.get("attributes", [])),
+            "attributes": []
+        }
+
+        for attr in ent.get("attributes", []):
+            attr_item = {
+                "name": attr["name"],
+                "type": attr.get("type", "TEXT"),
+                "key": attr.get("key"),
+                "references": attr.get("references")
+            }
+
+            # Check if this attribute is an external foreign key not linked in the diagram
+            if not attr_item.get("key") and mdl:
+                for rel in mdl.relationships:
+                    if rel.from_table.lower() == t_lower and attr["name"].lower() in rel.on_clause.lower():
+                        target_ent = mdl.get_entity(rel.to_table)
+                        target_pk = target_ent.primary_key[0] if (target_ent and target_ent.primary_key) else "id"
+                        attr_item["external_fk"] = f"{rel.to_table}.{target_pk}"
+                        break
+
+            ent_data["attributes"].append(attr_item)
+
+        enriched.append(ent_data)
+
+    return enriched
