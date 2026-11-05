@@ -43,49 +43,63 @@ class InterpreterAgent:
         elif any(w in lowered for w in ["tendencia", "tiempo", "evolucion", "evolución", "comparar", "analiza", "analizar"]):
             intent = Intent.ANALYZE_DATA
 
-        # 2. Time-series & Temporal Grain Detection
-        is_time_series = any(w in lowered for w in [
-            "tendencia", "tiempo", "semanal", "semana", "mensual", "mes",
-            "trimestral", "trimestre", "quarter", "quarterly",
-            "anual", "año", "ano", "diario", "dia", "día", "diaria", "evolucion", "evolución",
-            "historico", "histórico", "a través del tiempo", "traves del tiempo"
-        ])
+        # 2. Time-series & Temporal Grain Detection (word-boundary safe)
+        is_time_series = bool(re.search(
+            r"\b(tendencia|tiempo|semanal|semana|semanas|mensual|mes|meses|trimestral|trimestre|trimestres|quarter|quarterly|anual|año|ano|años|anos|year|yearly|diario|dia|día|dias|días|diaria|evolucion|evolución|historico|histórico|a través del tiempo|traves del tiempo)\b",
+            lowered
+        ))
 
         time_granularity = TimeGranularity.NONE
         time_dimension = None
 
         if is_time_series:
-            if any(w in lowered for w in ["diario", "diaria", "dia", "día", "dias", "días", "daily"]):
+            if re.search(r"\b(diario|diaria|dia|día|dias|días|daily)\b", lowered):
                 time_granularity = TimeGranularity.DAILY
                 time_dimension = "Fecha"
-            elif any(w in lowered for w in ["semanal", "semana", "semanas", "week", "weekly"]):
+            elif re.search(r"\b(semanal|semana|semanas|week|weekly)\b", lowered):
                 time_granularity = TimeGranularity.WEEKLY
                 time_dimension = "Semana"
-            elif any(w in lowered for w in ["trimestral", "trimestre", "trimestres", "quarter", "quarterly", "q1", "q2", "q3", "q4"]):
+            elif re.search(r"\b(trimestral|trimestre|trimestres|quarter|quarterly|q1|q2|q3|q4)\b", lowered):
                 time_granularity = TimeGranularity.QUARTERLY
                 time_dimension = "Trimestre"
-            elif any(w in lowered for w in ["mensual", "mes", "meses", "month", "monthly"]):
-                time_granularity = TimeGranularity.MONTHLY
-                time_dimension = "Mes"
-            elif any(w in lowered for w in ["anual", "año", "ano", "años", "anos", "year", "yearly"]):
+            elif re.search(r"\b(anual|año|ano|años|anos|year|yearly|anualmente)\b", lowered):
                 time_granularity = TimeGranularity.YEARLY
                 time_dimension = "Ano"
+            elif re.search(r"\b(mensual|mes|meses|month|monthly|mensualmente)\b", lowered):
+                time_granularity = TimeGranularity.MONTHLY
+                time_dimension = "Mes"
             else:
                 time_granularity = TimeGranularity.DAILY if "diar" in lowered else TimeGranularity.MONTHLY
                 time_dimension = "Fecha" if time_granularity == TimeGranularity.DAILY else "Mes"
 
-        # 3. Multi-Series Breakdown Detection
-        has_category = any(w in lowered for w in ["categoria", "categoría", "categorias", "categorías", "lineas", "líneas"])
-        has_product = any(w in lowered for w in ["producto", "productos", "articulo", "artículos", "articulos", "item", "items", "mercancía"])
-        has_employee = any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"])
-        has_customer = any(w in lowered for w in ["cliente", "clientes", "comprador", "compradores"])
-        has_country = any(w in lowered for w in ["pais", "país", "paises", "países"])
-        has_genre = any(w in lowered for w in ["genero", "género", "generos", "géneros"])
-        has_artist = any(w in lowered for w in ["artista", "artistas", "banda", "bandas"])
+        # 3. Model-Driven Semantic Dimension Detection
+        model = self.semantic_catalog.get_model(active_engine_id)
+        matched_non_temporal = model.find_non_temporal_dimension(query) if model else None
 
-        series_dimension = None
+        # Fallback keyword matching across standard entities if not found in model
+        if not matched_non_temporal:
+            if any(w in lowered for w in ["categoria", "categoría", "categorias", "categorías", "lineas", "líneas"]):
+                matched_non_temporal = model.get_dimension("Categoria") if model else None
+            elif any(w in lowered for w in ["producto", "productos", "articulo", "artículos", "articulos", "item", "items", "mercancía"]):
+                matched_non_temporal = model.get_dimension("Producto") if model else None
+            elif any(w in lowered for w in ["album", "álbum", "albumes", "álbumes", "disco", "discos"]):
+                matched_non_temporal = model.get_dimension("Album") if model else None
+            elif any(w in lowered for w in ["cancion", "canción", "canciones", "track", "tracks"]):
+                matched_non_temporal = model.get_dimension("Cancion") if model else None
+            elif any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"]):
+                matched_non_temporal = model.get_dimension("Empleado") if model else None
+            elif any(w in lowered for w in ["cliente", "clientes", "comprador", "compradores"]):
+                matched_non_temporal = model.get_dimension("Cliente") if model else None
+            elif any(w in lowered for w in ["pais", "país", "paises", "países"]):
+                matched_non_temporal = model.get_dimension("Pais") if model else None
+            elif any(w in lowered for w in ["genero", "género", "generos", "géneros"]):
+                matched_non_temporal = model.get_dimension("Genero") if model else None
+            elif any(w in lowered for w in ["artista", "artistas", "banda", "bandas"]):
+                matched_non_temporal = model.get_dimension("Artista") if model else None
 
-        # 4. Top-N and Ranking Extraction (Extract before Pattern to ground correctly)
+        series_dimension = matched_non_temporal.id if matched_non_temporal else None
+
+        # 4. Top-N and Ranking Extraction
         top_n = None
         ranking_criterion = None
 
@@ -99,28 +113,14 @@ class InterpreterAgent:
                     top_n = n
                     break
 
-        if any(w in lowered for w in ["mejor desempeño", "mejores desempeños", "mejor rendimiento", "más ventas", "mas ventas", "mayores ventas", "mejores", "mejor"]):
+        if any(w in lowered for w in ["mejor desempeño", "mejores desempeños", "mejor rendimiento", "más ventas", "mas ventas", "mayores ventas", "mas vendidos", "más vendidos", "mejores", "mejor"]):
             ranking_criterion = "mejor desempeño"
-        elif any(w in lowered for w in ["peor desempeño", "menos ventas", "menores ventas", "peores", "peor"]):
+        elif any(w in lowered for w in ["peor desempeño", "menos ventas", "menores ventas", "menos vendidos", "peores", "peor"]):
             ranking_criterion = "menor desempeño"
 
         # 5. Analytical Pattern Detection
-        if is_time_series and (has_category or has_product or has_employee or has_customer or has_country or has_genre or has_artist):
+        if is_time_series and series_dimension:
             analytical_pattern = AnalyticalPattern.MULTI_SERIES_TIME_SERIES
-            if has_category:
-                series_dimension = "Categoria"
-            elif has_product:
-                series_dimension = "Producto"
-            elif has_employee:
-                series_dimension = "Empleado"
-            elif has_customer:
-                series_dimension = "Cliente"
-            elif has_genre:
-                series_dimension = "Genero"
-            elif has_artist:
-                series_dimension = "Artista"
-            elif has_country:
-                series_dimension = "Pais"
         elif is_time_series:
             analytical_pattern = AnalyticalPattern.TIME_SERIES
         elif top_n is not None or any(w in lowered for w in ["top", "mejores", "mejor", "primeros", "primeras", "ranking", "lideres", "líderes", "lider", "líder", "mas", "más", "peor", "peores"]):
@@ -145,8 +145,6 @@ class InterpreterAgent:
         dimensions: list[str] = []
         metrics: list[str] = []
 
-        model = self.semantic_catalog.get_model(active_engine_id)
-
         if analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES:
             if time_dimension:
                 dimensions.append(time_dimension)
@@ -156,27 +154,19 @@ class InterpreterAgent:
             if time_dimension:
                 dimensions.append(time_dimension)
         else:
-            matched_dim = model.find_dimension_by_synonym(query) if model else None
-            if matched_dim:
-                dimensions.append(matched_dim.id)
-            elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION or any(w in lowered for w in ["pais", "país", "paises", "países"]):
-                dimensions.append("Pais")
-            elif any(w in lowered for w in ["producto", "productos", "articulo", "artículo", "articulos", "artículos", "item", "items"]):
-                dimensions.append("Producto")
-            elif any(w in lowered for w in ["empleado", "empleados", "vendedor", "vendedores"]):
-                dimensions.append("Empleado")
-            elif any(w in lowered for w in ["cliente", "clientes", "comprador", "compradores"]):
-                dimensions.append("Cliente")
-            elif any(w in lowered for w in ["proveedor", "proveedores", "supplier", "suppliers"]):
-                dimensions.append("Proveedor")
-            elif any(w in lowered for w in ["artista", "artistas"]):
-                dimensions.append("Artista")
-            elif any(w in lowered for w in ["actor", "actores", "actriz", "actrices"]):
-                dimensions.append("Actor")
-            elif any(w in lowered for w in ["genero", "género", "generos", "géneros"]):
-                dimensions.append("Genero")
+            if series_dimension:
+                dimensions.append(series_dimension)
             else:
-                dimensions.append("Categoria")
+                matched_dim = model.find_dimension_by_synonym(query) if model else None
+                if matched_dim:
+                    dimensions.append(matched_dim.id)
+                elif analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION or any(w in lowered for w in ["pais", "país", "paises", "países"]):
+                    dimensions.append("Pais")
+                elif model and model.dimensions:
+                    first_dim = next((d.id for d in model.dimensions if d.type != "temporal"), model.dimensions[0].id)
+                    dimensions.append(first_dim)
+                else:
+                    dimensions.append("Categoria")
 
         matched_met = model.find_metric_by_synonym(query) if model else None
         if matched_met:

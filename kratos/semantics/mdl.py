@@ -113,24 +113,40 @@ class SemanticModelMDL(BaseModel):
         return None
 
     def find_dimension_by_synonym(self, text: str) -> DimensionMDL | None:
-        """Finds a dimension whose ID or synonyms appear in text."""
+        """Finds a dimension whose ID or synonyms appear in text using word boundary matching."""
+        import re
         lowered = text.lower()
         for d in self.dimensions:
-            if d.id.lower() in lowered:
+            if re.search(rf"\b{re.escape(d.id.lower())}\b", lowered):
                 return d
             for syn in d.synonyms:
-                if syn.lower() in lowered:
+                if re.search(rf"\b{re.escape(syn.lower())}\b", lowered):
+                    return d
+        return None
+
+    def find_non_temporal_dimension(self, text: str) -> DimensionMDL | None:
+        """Finds a non-temporal dimension (categorical, geo, entity) whose ID or synonyms appear in text."""
+        import re
+        lowered = text.lower()
+        for d in self.dimensions:
+            if d.type == "temporal":
+                continue
+            if re.search(rf"\b{re.escape(d.id.lower())}\b", lowered):
+                return d
+            for syn in d.synonyms:
+                if re.search(rf"\b{re.escape(syn.lower())}\b", lowered):
                     return d
         return None
 
     def find_metric_by_synonym(self, text: str) -> MetricMDL | None:
-        """Finds a metric whose ID or synonyms appear in text."""
+        """Finds a metric whose ID or synonyms appear in text using word boundary matching."""
+        import re
         lowered = text.lower()
         for m in self.metrics:
-            if m.id.lower() in lowered:
+            if re.search(rf"\b{re.escape(m.id.lower())}\b", lowered):
                 return m
             for syn in m.synonyms:
-                if syn.lower() in lowered:
+                if re.search(rf"\b{re.escape(syn.lower())}\b", lowered):
                     return m
         return None
 

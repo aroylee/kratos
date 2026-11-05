@@ -24,7 +24,7 @@ def _compile_multi_series_echarts(
             val = 0.0
         cat_totals[cat] = cat_totals.get(cat, 0.0) + val
 
-    top_cats = sorted(cat_totals.keys(), key=lambda k: cat_totals[k], reverse=True)[:8]
+    top_cats = sorted(cat_totals.keys(), key=lambda k: cat_totals[k], reverse=True)[:10]
 
     # Map fast lookup
     lookup: Dict[tuple, float] = {}
@@ -39,7 +39,8 @@ def _compile_multi_series_echarts(
 
     palette = [
         "#6366F1", "#10B981", "#F59E0B", "#EC4899",
-        "#3B82F6", "#8B5CF6", "#14B8A6", "#F97316"
+        "#3B82F6", "#8B5CF6", "#14B8A6", "#F97316",
+        "#06B6D4", "#E11D48"
     ]
 
     series = []
