@@ -186,3 +186,5 @@ class FinalAnswer(BaseModel):
     visualization: dict[str, Any] | None = None
     task: DataTask | None = None
     suggested_questions: list[str] = Field(default_factory=list)
+    has_archify: bool = False
+    archify_url: str | None = None

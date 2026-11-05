@@ -9,6 +9,7 @@ from kratos.engines.registry import EngineRegistry
 from kratos.agents.orchestrator import InterpreterAgent, InvestigatorAgent
 from kratos.contracts.schemas import DataTask, FinalAnswer
 from kratos.semantics.bi_engine import compile_echarts
+from kratos.semantics.archify_generator import generate_archify_erd_spec, compile_archify_diagram
 from kratos.web.docs_page import get_documentation_html
 
 app = FastAPI(title="Kratos Intelligence", version="0.1.0")
@@ -19,6 +20,8 @@ DATA_DIR = BASE_DIR / "data"
 registry = EngineRegistry(DATA_DIR)
 interpreter = InterpreterAgent()
 investigator = InvestigatorAgent(registry)
+
+latest_archify_diagram: dict[str, str] = {"html": ""}
 
 
 class QueryRequest(BaseModel):
@@ -107,6 +110,21 @@ def run_query(req: QueryRequest):
     rows = evidence.queries[0].rows if evidence.queries else []
     echarts = compile_echarts(rows, title=task.goal)
 
+    # Step 5: Archify Relational Lineage & ERD Compilation
+    has_archify = False
+    archify_url = None
+    if evidence.queries:
+        try:
+            primary_sql = evidence.queries[0].sql
+            engine_schema = registry.engines[task.engine_id].introspect()
+            spec = generate_archify_erd_spec(primary_sql, task.engine_id, task.goal, engine_schema)
+            compiled_html = compile_archify_diagram(spec)
+            latest_archify_diagram["html"] = compiled_html
+            has_archify = True
+            archify_url = "/api/archify/latest.html"
+        except Exception as exc:
+            print(f"[WARN] Archify diagram generation skipped: {exc}")
+
     return FinalAnswer(
         storytelling=storytelling,
         evidence=evidence,
@@ -116,7 +134,24 @@ def run_query(req: QueryRequest):
             "Ver distribución por país",
             "Consultar top 5 entidades líderes",
             "Explorar resumen del esquema",
-        ]
+        ],
+        has_archify=has_archify,
+        archify_url=archify_url,
+    )
+
+
+@app.get("/api/archify/latest.html", response_class=HTMLResponse)
+def get_latest_archify_html():
+    content = latest_archify_diagram.get("html", "")
+    if not content:
+        content = "<html><body style='background:#0b0f19;color:#94a3b8;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;'><p>Sin relaciones generadas para la consulta actual.</p></body></html>"
+    return HTMLResponse(
+        content=content,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
     )
 
 
@@ -354,7 +389,32 @@ def index_page():
                 </div>
             </div>
 
-            <!-- Tarjeta 6: Tabla de Evidencias con Búsqueda y Exportación -->
+            <!-- Tarjeta 6: Relaciones y Linaje de la Consulta (Archify ERD) -->
+            <div id="archify-card" class="bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-slate-900 border-b border-slate-800/80 gap-2">
+                    <div class="flex items-center gap-2 cursor-pointer select-none" onclick="toggleCardCollapse('archify-card')">
+                        <span class="text-sky-400 text-sm">🕸️</span>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Relaciones de la Consulta (Archify ERD)</h3>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-950/80 text-sky-400 border border-sky-800">Archify 3.2</span>
+                        <button id="toggle-archify-card" title="Colapsar / Expandir" class="text-slate-400 hover:text-white text-xs font-mono px-1 py-0.5 rounded hover:bg-slate-800 ml-1">▼</button>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <a id="btn-archify-external" href="/api/archify/latest.html" target="_blank" title="Abrir en Nueva Pestaña" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
+                            <span>↗</span> <span class="hidden sm:inline">Pestaña</span>
+                        </a>
+                        <button onclick="openFullscreen('archify')" title="Maximizar Ventana (⛶)" class="px-2 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-sky-300 hover:text-white hover:border-sky-600 transition flex items-center gap-1">
+                            <span>⛶</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="body-archify-card" class="p-2 transition-all">
+                    <div id="archify-container" class="w-full h-[360px] bg-slate-950 rounded-lg overflow-hidden border border-slate-800/80 flex items-center justify-center">
+                        <p class="text-slate-600 text-xs italic">Ejecuta una consulta para visualizar sus relaciones relacionales e integridad con Archify.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarjeta 7: Tabla de Evidencias con Búsqueda y Exportación -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-slate-900 border-b border-slate-800/80 gap-2">
                     <div class="flex items-center gap-2 cursor-pointer select-none" onclick="toggleCardCollapse('table-card')">
@@ -755,6 +815,24 @@ def index_page():
                         executeModalQuery();
                     }
                 });
+
+            } else if (type === 'archify') {
+                modalIcon.innerText = '🕸️';
+                modalTitle.innerText = 'Relaciones de la Consulta & Linaje Relacional (Archify ERD)';
+                modalSubtitle.innerText = `Motor: ${currentEngine.toUpperCase()} • Diagrama Interactivo de Tablas, Claves y Cardinalidad`;
+                genericView.classList.remove('hidden');
+
+                modalActions.innerHTML = `
+                    <a href="/api/archify/latest.html" target="_blank" class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-sky-500 transition flex items-center gap-1 shadow-sm">
+                        <span>↗</span> Abrir en Nueva Pestaña
+                    </a>
+                `;
+
+                genericView.innerHTML = `
+                    <div class="w-full h-full min-h-[580px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col flex-1">
+                        <iframe src="/api/archify/latest.html?theme=dark&t=${Date.now()}" class="w-full h-full flex-1 border-0" style="min-height: 580px;"></iframe>
+                    </div>
+                `;
 
             } else if (type === 'suggested') {
                 modalIcon.innerText = '💡';
@@ -1209,6 +1287,12 @@ def index_page():
                     originalGeoOption = null;
                     document.getElementById('btn-chart-map').classList.add('hidden');
                     chartInstance.clear();
+                }
+
+                // Render Archify Relational Diagram
+                if (data.has_archify) {
+                    const iframe = `<iframe src="/api/archify/latest.html?theme=dark&embed=1&t=${Date.now()}" class="w-full h-full border-0 rounded-lg" loading="lazy"></iframe>`;
+                    document.getElementById('archify-container').innerHTML = iframe;
                 }
 
                 // Refresh modal view if currently open

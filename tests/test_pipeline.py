@@ -332,6 +332,38 @@ def test_geo_map_echarts_compilation():
     assert "United Kingdom" in names
 
 
+def test_archify_erd_generation(registry):
+    from kratos.semantics.archify_generator import generate_archify_erd_spec, compile_archify_diagram
+
+    eng = registry.engines["northwind"]
+    schema = eng.introspect()
+    sql = """
+    SELECT
+      customers.country AS Pais,
+      ROUND(SUM(order_details.unitPrice * order_details.quantity * (1 - order_details.discount)), 2) AS Ventas_USD
+    FROM customers
+    JOIN orders
+      ON orders.customerID = customers.customerID
+    JOIN order_details
+      ON orders.orderID = order_details.orderID
+    GROUP BY Pais
+    ORDER BY Ventas_USD DESC
+    LIMIT 10
+    """
+    spec = generate_archify_erd_spec(sql, "northwind", "ventas por país", schema)
+    assert spec["diagram_type"] == "erd"
+    assert len(spec["entities"]) == 3
+    assert any(e["id"] == "customers" for e in spec["entities"])
+    assert any(e["id"] == "orders" for e in spec["entities"])
+    assert any(e["id"] == "order_details" for e in spec["entities"])
+    assert len(spec["relationships"]) >= 2
+
+    html = compile_archify_diagram(spec)
+    assert "data-theme=\"dark\"" in html or "archify" in html
+    assert len(html) > 10000
+
+
+
 
 
 
