@@ -144,8 +144,44 @@ def index_page():
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
+    <!-- Prism.js for SQL Syntax Color Coding -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
     <style>
         body { background: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        /* SQL Syntax Color Tokens */
+        .token.comment, .token.prolog, .token.doctype, .token.cdata {
+            color: #64748b !important;
+            font-style: italic !important;
+        }
+        .token.punctuation {
+            color: #94a3b8 !important;
+        }
+        .token.keyword {
+            color: #818cf8 !important;
+            font-weight: 700 !important;
+        }
+        .token.function {
+            color: #38bdf8 !important;
+            font-weight: 600 !important;
+        }
+        .token.string {
+            color: #34d399 !important;
+        }
+        .token.number {
+            color: #fbbf24 !important;
+        }
+        .token.operator {
+            color: #f472b6 !important;
+        }
+        .token.property, .token.class-name, .token.constant {
+            color: #e2e8f0 !important;
+        }
+        /* Scrollbar styles */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
 <body class="min-h-screen p-6 max-w-7xl mx-auto">
@@ -205,9 +241,10 @@ def index_page():
                         <span class="text-indigo-400 text-sm">💬</span>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 pointer-events-none">Consulta en Lenguaje Natural</label>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] text-slate-500 font-mono hidden sm:inline">Enter ↵</span>
-                        <button id="toggle-query-card" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800">▼</button>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-slate-500 font-mono hidden sm:inline mr-1">Enter ↵</span>
+                        <button onclick="event.stopPropagation(); openFullscreen('query')" title="Maximizar Ventana (⛶)" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800 transition">⛶</button>
+                        <button id="toggle-query-card" title="Colapsar / Expandir" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800 transition">▼</button>
                     </div>
                 </div>
                 <div id="body-query-card" class="p-4 transition-all">
@@ -236,7 +273,10 @@ def index_page():
                         <span class="text-amber-400 text-sm">📑</span>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Resumen Ejecutivo (Storytelling)</h3>
                     </div>
-                    <button id="toggle-storytelling-card" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800">▼</button>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="event.stopPropagation(); openFullscreen('storytelling')" title="Maximizar Ventana (⛶)" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800 transition">⛶</button>
+                        <button id="toggle-storytelling-card" title="Colapsar / Expandir" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800 transition">▼</button>
+                    </div>
                 </div>
                 <div id="body-storytelling-card" class="p-4 transition-all">
                     <div id="storytelling-container" class="text-sm space-y-2 text-slate-300">
@@ -252,7 +292,10 @@ def index_page():
                         <span class="text-indigo-400 text-sm">💡</span>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-indigo-300">Preguntas Analíticas Sugeridas</h3>
                     </div>
-                    <button id="toggle-suggested-card" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800">▼</button>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="event.stopPropagation(); openFullscreen('suggested')" title="Maximizar Ventana (⛶)" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800 transition">⛶</button>
+                        <button id="toggle-suggested-card" title="Colapsar / Expandir" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800 transition">▼</button>
+                    </div>
                 </div>
                 <div id="body-suggested-card" class="p-4 transition-all">
                     <div id="suggested-chips" class="flex flex-wrap gap-1.5 text-xs"></div>
@@ -266,7 +309,13 @@ def index_page():
                         <span class="text-emerald-400 text-sm">🛡️</span>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Auditoría DataTask & 4-Layer AST</h3>
                     </div>
-                    <button id="toggle-audit-card" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800">▼</button>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="event.stopPropagation(); copyCurrentSql()" title="Copiar SQL" class="copy-sql-btn text-slate-400 hover:text-indigo-300 text-xs px-2 py-0.5 rounded bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex items-center gap-1">
+                            <span>📋</span> Copiar
+                        </button>
+                        <button onclick="event.stopPropagation(); openFullscreen('audit')" title="Maximizar Ventana (⛶)" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800 transition">⛶</button>
+                        <button id="toggle-audit-card" title="Colapsar / Expandir" class="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800 transition">▼</button>
+                    </div>
                 </div>
                 <div id="body-audit-card" class="p-4 transition-all">
                     <div id="audit-container" class="text-xs font-mono space-y-1 text-slate-400 overflow-x-auto">
@@ -295,7 +344,7 @@ def index_page():
                         <button onclick="downloadChartImage()" title="Descargar Imagen PNG" class="px-2 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
                             <span>📸</span> PNG
                         </button>
-                        <button onclick="openFullscreen('chart')" title="Expandir a Pantalla Completa" class="px-2 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-indigo-300 hover:text-white hover:border-indigo-600 transition flex items-center gap-1">
+                        <button onclick="openFullscreen('chart')" title="Maximizar Ventana (⛶)" class="px-2 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-indigo-300 hover:text-white hover:border-indigo-600 transition flex items-center gap-1">
                             <span>⛶</span>
                         </button>
                     </div>
@@ -321,7 +370,7 @@ def index_page():
                         <button onclick="exportTableToCSV()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-600 transition flex items-center gap-1">
                             <span>📥</span> CSV
                         </button>
-                        <button onclick="openFullscreen('table')" title="Expandir a Pantalla Completa" class="px-2 py-1 text-xs rounded-lg bg-slate-950 border border-slate-800 text-indigo-300 hover:text-white hover:border-indigo-600 transition flex items-center gap-1">
+                        <button onclick="openFullscreen('table')" title="Maximizar Ventana (⛶)" class="px-2 py-1 text-xs rounded-lg bg-slate-950 border border-slate-800 text-indigo-300 hover:text-white hover:border-indigo-600 transition flex items-center gap-1">
                             <span>⛶</span>
                         </button>
                     </div>
@@ -335,24 +384,35 @@ def index_page():
         </section>
     </main>
 
-    <!-- Modal de Pantalla Completa Expandida (⛶) -->
-    <div id="fullscreen-modal" class="hidden fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md p-6 flex flex-col justify-between">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-            <div class="flex items-center gap-2">
+    <!-- Modal de Pantalla Completa / Ventana Maximizada (⛶) -->
+    <div id="fullscreen-modal" class="hidden fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md p-4 sm:p-6 flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-3.5 border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
                 <span id="modal-icon" class="text-xl">📈</span>
-                <h2 id="modal-title" class="text-lg font-bold text-white tracking-wide">Vista Expandida</h2>
+                <div>
+                    <h2 id="modal-title" class="text-sm sm:text-base font-bold text-white tracking-wide">Ventana Maximizada</h2>
+                    <p id="modal-subtitle" class="text-[11px] text-slate-400 font-mono">KRATOS SOVEREIGN WORKSPACE</p>
+                </div>
             </div>
-            <button onclick="closeFullscreen()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-rose-500 hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-1 transition">
-                <span>✕</span> Cerrar (ESC)
-            </button>
+            <div class="flex items-center gap-2">
+                <div id="modal-actions" class="flex items-center gap-1.5 flex-wrap"></div>
+                <button onclick="closeFullscreen()" title="Restaurar / Cerrar (ESC)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-rose-500 hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-1 transition">
+                    <span>✕</span> <span class="hidden sm:inline">Cerrar</span> <kbd class="text-[10px] bg-slate-950 px-1 py-0.5 rounded border border-slate-800 ml-1">ESC</kbd>
+                </button>
+            </div>
         </div>
-        <div id="modal-content" class="flex-1 my-4 overflow-auto flex flex-col justify-center">
-            <div id="modal-chart-container" class="w-full h-full min-h-[550px]"></div>
-            <div id="modal-table-container" class="w-full hidden overflow-auto"></div>
+
+        <!-- Modal Body Container -->
+        <div id="modal-content" class="flex-1 my-3 overflow-auto flex flex-col">
+            <div id="modal-chart-view" class="w-full h-full min-h-[500px] hidden flex-1">
+                <div id="modal-chart-container" class="w-full h-full min-h-[500px]"></div>
+            </div>
+            <div id="modal-generic-view" class="w-full h-full overflow-auto hidden"></div>
         </div>
-        <div class="text-xs text-slate-500 flex justify-between items-center pt-2 border-t border-slate-800/80">
-            <span>KRATOS Sovereign Data Intelligence &bull; Modo Inmersivo Expandido</span>
-            <span>Presiona ESC o clic en Cerrar para salir</span>
+
+        <div class="text-[11px] text-slate-500 flex justify-between items-center pt-2.5 border-t border-slate-800/80 font-mono">
+            <span id="modal-footer-info">KRATOS Sovereign Data Intelligence &bull; Modo Ventana Maximizada</span>
+            <span>Usa <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded text-slate-300">ESC</kbd> para volver al dashboard</span>
         </div>
     </div>
 
@@ -368,6 +428,103 @@ def index_page():
         let currentColMeta = [];
         let fullscreenChartInstance = null;
         let currentFullscreenType = null;
+        let currentAuditData = null;
+        let currentStoryData = null;
+        let currentTaskData = null;
+        let currentSuggestedQuestions = [];
+
+        function highlightSQL(sql) {
+            if (!sql) return '';
+            let formatted = '';
+            if (window.Prism && window.Prism.languages && window.Prism.languages.sql) {
+                try {
+                    formatted = Prism.highlight(sql, Prism.languages.sql, 'sql');
+                } catch (e) {
+                    console.warn("Prism highlight error, using fallback:", e);
+                }
+            }
+            if (!formatted) {
+                const tokenRegex = /(\/\*[\s\S]*?\*\/|--[^\n]*)|('(?:''|[^'\\]|\\.)*')|(\b(?:SELECT|FROM|WHERE|JOIN|INNER|LEFT|RIGHT|FULL|OUTER|CROSS|ON|GROUP\s+BY|ORDER\s+BY|LIMIT|OFFSET|WITH|AS|UNION|ALL|AND|OR|NOT|IN|IS|NULL|BETWEEN|EXISTS|LIKE|ILIKE|CASE|WHEN|THEN|ELSE|END|ASC|DESC|DISTINCT|HAVING|INSERT|UPDATE|DELETE)\b)|(\b(?:ROUND|SUM|AVG|COUNT|MIN|MAX|DATE|DATETIME|STRFTIME|COALESCE|CAST|SUBSTR|TRIM|UPPER|LOWER|LENGTH|TOTAL|IFNULL)\b)|(\b\d+(?:\.\d+)?\b)/gi;
+
+                formatted = sql.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(tokenRegex, (match, comment, str, kw, fn, num) => {
+                    if (comment) return `<span class="token comment text-slate-500 italic">${comment}</span>`;
+                    if (str) return `<span class="token string text-emerald-400">${str}</span>`;
+                    if (kw) return `<span class="token keyword text-indigo-400 font-bold">${kw}</span>`;
+                    if (fn) return `<span class="token function text-sky-400 font-semibold">${fn}</span>`;
+                    if (num) return `<span class="token number text-amber-400 font-mono">${num}</span>`;
+                    return match;
+                });
+            }
+            return formatted;
+        }
+
+        function formatCodeWithLineNumbers(rawSql) {
+            const highlighted = highlightSQL(rawSql);
+            const lines = highlighted.split('\n');
+            const gutter = lines.map((_, i) => `<div>${String(i + 1).padStart(2, '0')}</div>`).join('');
+            return `
+                <div class="flex text-[11px] leading-relaxed font-mono border border-slate-800 rounded-lg overflow-hidden bg-slate-950">
+                    <div class="py-2.5 px-2 bg-slate-900/90 border-r border-slate-800 text-slate-600 text-right select-none font-mono text-[10px] space-y-0">
+                        ${gutter}
+                    </div>
+                    <div class="py-2.5 px-3 overflow-x-auto text-slate-300 font-mono whitespace-pre flex-1 select-text">
+                        ${lines.join('\n')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function copyCurrentSql() {
+            if (!currentAuditData || !currentAuditData.sql) {
+                alert("No hay consulta SQL para copiar.");
+                return;
+            }
+            navigator.clipboard.writeText(currentAuditData.sql).then(() => {
+                const btns = document.querySelectorAll('.copy-sql-btn');
+                btns.forEach(b => {
+                    const original = b.innerHTML;
+                    b.innerHTML = '<span>✓</span> Copiado';
+                    b.classList.add('text-emerald-400');
+                    setTimeout(() => {
+                        b.innerHTML = original;
+                        b.classList.remove('text-emerald-400');
+                    }, 2000);
+                });
+            }).catch(e => console.error("Error al copiar SQL:", e));
+        }
+
+        function copyStorytellingText() {
+            if (!currentStoryData) return;
+            const text = [
+                "CONCLUSIÓN EJECUTIVA:",
+                currentStoryData.key_takeaway,
+                "\nDIAGNÓSTICO CUANTITATIVO:",
+                ...(currentStoryData.quantitative_findings || []).map(f => `- ${f}`),
+                "\nALERTAS DE RIESGO:",
+                ...(currentStoryData.risk_alerts || []).map(r => `- ${r}`),
+                "\nRECOMENDACIONES:",
+                ...(currentStoryData.strategic_recommendations || []).map(rec => `- ${rec}`)
+            ].join('\n');
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Resumen ejecutivo copiado al portapapeles.");
+            });
+        }
+
+        function executeModalQuery() {
+            const modalInput = document.getElementById('modal-query-input');
+            if (modalInput) {
+                document.getElementById('query-input').value = modalInput.value;
+            }
+            closeFullscreen();
+            executeQuery();
+        }
+
+        function setQueryFromModal(text) {
+            document.getElementById('query-input').value = text;
+            closeFullscreen();
+            executeQuery();
+        }
 
         function toggleCardCollapse(cardId) {
             const body = document.getElementById(`body-${cardId}`);
@@ -390,17 +547,34 @@ def index_page():
             currentFullscreenType = type;
             const modal = document.getElementById('fullscreen-modal');
             const modalTitle = document.getElementById('modal-title');
+            const modalSubtitle = document.getElementById('modal-subtitle');
             const modalIcon = document.getElementById('modal-icon');
+            const modalActions = document.getElementById('modal-actions');
+            const chartView = document.getElementById('modal-chart-view');
+            const genericView = document.getElementById('modal-generic-view');
             const chartBox = document.getElementById('modal-chart-container');
-            const tableBox = document.getElementById('modal-table-container');
 
             modal.classList.remove('hidden');
+            chartView.classList.add('hidden');
+            genericView.classList.add('hidden');
+            modalActions.innerHTML = '';
 
             if (type === 'chart') {
                 modalIcon.innerText = '📈';
-                modalTitle.innerText = `Visualización Analítica Expandida (${currentEngine.toUpperCase()})`;
-                chartBox.classList.remove('hidden');
-                tableBox.classList.add('hidden');
+                modalTitle.innerText = 'Visualización Analítica Interactiva';
+                modalSubtitle.innerText = `Motor: ${currentEngine.toUpperCase()} • ECharts 5`;
+                chartView.classList.remove('hidden');
+
+                const isGeo = !!(currentChartOption && currentChartOption._meta && currentChartOption._meta.is_geo);
+                modalActions.innerHTML = `
+                    ${isGeo ? `<button onclick="changeChartType('map')" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1">🗺️ Mapa</button>` : ''}
+                    <button onclick="changeChartType('line')" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">📈 Línea</button>
+                    <button onclick="changeChartType('bar')" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">📊 Barra</button>
+                    <button onclick="changeChartType('area')" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition">🏔️ Área</button>
+                    <button onclick="downloadChartImage()" class="px-2.5 py-1 text-xs rounded bg-slate-950 border border-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1">
+                        <span>📸</span> PNG
+                    </button>
+                `;
 
                 if (!fullscreenChartInstance) {
                     fullscreenChartInstance = echarts.init(chartBox, 'dark');
@@ -411,13 +585,268 @@ def index_page():
                 setTimeout(() => {
                     if (fullscreenChartInstance) fullscreenChartInstance.resize();
                 }, 60);
+
+            } else if (type === 'audit') {
+                modalIcon.innerText = '🛡️';
+                modalTitle.innerText = 'Auditoría DataTask, 4-Layer AST & SQL Formateado';
+                modalSubtitle.innerText = `Motor: ${currentEngine.toUpperCase()} • Gobernanza AST con sqlglot (100% Read-Only)`;
+                genericView.classList.remove('hidden');
+
+                modalActions.innerHTML = `
+                    <button onclick="copyCurrentSql()" class="copy-sql-btn px-2.5 py-1 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition flex items-center gap-1 shadow-sm">
+                        <span>📋</span> Copiar SQL
+                    </button>
+                `;
+
+                if (currentAuditData && currentAuditData.sql) {
+                    genericView.innerHTML = `
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                            <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                                <div class="text-[10px] uppercase font-mono text-slate-400 font-semibold">Latencia Ejecución</div>
+                                <div class="text-base sm:text-lg font-mono text-emerald-400 font-bold mt-0.5">${currentAuditData.execution_ms} ms</div>
+                            </div>
+                            <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                                <div class="text-[10px] uppercase font-mono text-slate-400 font-semibold">Filas Extraídas</div>
+                                <div class="text-base sm:text-lg font-mono text-blue-400 font-bold mt-0.5">${currentAuditData.row_count} <span class="text-xs text-slate-500 font-normal">(Límite 500)</span></div>
+                            </div>
+                            <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                                <div class="text-[10px] uppercase font-mono text-slate-400 font-semibold">Gobernanza AST</div>
+                                <div class="text-base sm:text-lg font-mono text-indigo-400 font-bold mt-0.5">SAFE (Read-Only)</div>
+                            </div>
+                            <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                                <div class="text-[10px] uppercase font-mono text-slate-400 font-semibold">Motor Base de Datos</div>
+                                <div class="text-base sm:text-lg font-mono text-purple-400 font-bold mt-0.5">${(currentAuditData.engine_id || currentEngine).toUpperCase()}</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex-1 flex flex-col">
+                            <div class="p-2.5 bg-slate-950 border-b border-slate-800 flex justify-between items-center text-xs text-slate-400 font-mono">
+                                <span class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                                    <span>SQL Formateado &amp; Coloreado &middot; Wren AI MDL + sqlglot AST</span>
+                                </span>
+                                <span class="text-slate-500 text-[11px]">${currentAuditData.sql.split('\n').length} líneas</span>
+                            </div>
+                            ${formatCodeWithLineNumbers(currentAuditData.sql)}
+                        </div>
+                    `;
+                } else {
+                    genericView.innerHTML = `<div class="p-8 text-center text-slate-500 italic">No hay consultas ejecutadas en esta sesión.</div>`;
+                }
+
+            } else if (type === 'storytelling') {
+                modalIcon.innerText = '📑';
+                modalTitle.innerText = 'Resumen Ejecutivo & Storytelling Analítico';
+                modalSubtitle.innerText = `Diagnóstico Cuantitativo, Alertas de Vulnerabilidad y Decisiones`;
+                genericView.classList.remove('hidden');
+
+                modalActions.innerHTML = `
+                    <button onclick="copyStorytellingText()" class="px-2.5 py-1 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition flex items-center gap-1 shadow-sm">
+                        <span>📋</span> Copiar Informe
+                    </button>
+                `;
+
+                if (currentStoryData) {
+                    genericView.innerHTML = `
+                        <div class="p-4 bg-indigo-950/40 border border-indigo-800/80 rounded-xl mb-4 shadow-lg">
+                            <div class="text-xs font-mono uppercase tracking-wider text-indigo-400 font-bold mb-1.5 flex items-center gap-1.5">
+                                <span class="text-base">📌</span> Conclusión Ejecutiva Principal
+                            </div>
+                            <p class="font-medium text-slate-100 text-base sm:text-lg leading-relaxed">${currentStoryData.key_takeaway}</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl space-y-2">
+                                <div class="text-xs font-mono uppercase tracking-wider text-slate-400 font-semibold mb-2 flex items-center gap-1.5">
+                                    <span>📊</span> Diagnóstico Cuantitativo
+                                </div>
+                                ${(currentStoryData.quantitative_findings || []).map(f => `
+                                    <div class="flex items-start gap-2 text-xs text-slate-300 bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/80">
+                                        <span class="text-indigo-400 mt-0.5">•</span>
+                                        <span class="leading-relaxed">${f}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl space-y-2">
+                                <div class="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold mb-2 flex items-center gap-1.5">
+                                    <span>⚠️</span> Alertas de Riesgo &amp; Vulnerabilidad
+                                </div>
+                                ${(currentStoryData.risk_alerts && currentStoryData.risk_alerts.length > 0) ? currentStoryData.risk_alerts.map(r => `
+                                    <div class="flex items-start gap-2 text-xs text-amber-200 bg-amber-950/30 p-2.5 rounded-lg border border-amber-800/60">
+                                        <span class="text-amber-400 mt-0.5">⚠️</span>
+                                        <span class="leading-relaxed">${r}</span>
+                                    </div>
+                                `).join('') : '<div class="text-xs text-slate-500 italic p-3">No se detectaron riesgos críticos.</div>'}
+                            </div>
+
+                            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl space-y-2">
+                                <div class="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold mb-2 flex items-center gap-1.5">
+                                    <span>🎯</span> Recomendaciones Accionables
+                                </div>
+                                ${(currentStoryData.strategic_recommendations && currentStoryData.strategic_recommendations.length > 0) ? currentStoryData.strategic_recommendations.map(rec => `
+                                    <div class="flex items-start gap-2 text-xs text-emerald-200 bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-800/50">
+                                        <span class="text-emerald-400 mt-0.5">🎯</span>
+                                        <span class="leading-relaxed">${rec}</span>
+                                    </div>
+                                `).join('') : '<div class="text-xs text-slate-500 italic p-3">Sin recomendaciones adicionales.</div>'}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    genericView.innerHTML = `<div class="p-8 text-center text-slate-500 italic">No hay resumen ejecutivo disponible aún.</div>`;
+                }
+
             } else if (type === 'table') {
                 modalIcon.innerText = '📋';
-                modalTitle.innerText = `Registros de Evidencia Auditada (${currentEngine.toUpperCase()})`;
-                chartBox.classList.add('hidden');
-                tableBox.classList.remove('hidden');
-                tableBox.innerHTML = document.getElementById('table-container').innerHTML;
+                modalTitle.innerText = 'Registros de Evidencia Auditada (Vista Completa)';
+                modalSubtitle.innerText = `Motor: ${currentEngine.toUpperCase()} • ${currentRawRows.length} registros cargados`;
+                genericView.classList.remove('hidden');
+
+                modalActions.innerHTML = `
+                    <div class="relative">
+                        <input type="text" id="modal-table-search-input" oninput="filterModalTableRows()" placeholder="🔍 Filtrar registros..." class="w-48 sm:w-64 bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <button onclick="exportTableToCSV()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 transition flex items-center gap-1">
+                        <span>📥</span> CSV
+                    </button>
+                `;
+
+                renderModalTableRows(currentRawRows);
+
+            } else if (type === 'query') {
+                modalIcon.innerText = '💬';
+                modalTitle.innerText = 'Consola de Consulta en Lenguaje Natural & Grounding';
+                modalSubtitle.innerText = `Motor Activo: ${currentEngine.toUpperCase()} • Capa Semántica Wren AI MDL`;
+                genericView.classList.remove('hidden');
+
+                modalActions.innerHTML = `
+                    <button onclick="executeModalQuery()" class="px-3 py-1 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition flex items-center gap-1 shadow-lg shadow-indigo-600/30">
+                        <span>⚡</span> Ejecutar Análisis
+                    </button>
+                `;
+
+                const currentQ = document.getElementById('query-input').value;
+                genericView.innerHTML = `
+                    <div class="max-w-4xl mx-auto space-y-4 w-full">
+                        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-xl">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Editor de Consulta en Lenguaje Natural</label>
+                            <textarea id="modal-query-input" rows="4" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Escribe tu consulta analítica en lenguaje natural...">${currentQ}</textarea>
+                            <div class="mt-2 flex justify-between items-center text-xs text-slate-400">
+                                <span>Presiona <kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded font-mono text-slate-300">Enter</kbd> para ejecutar directamente.</span>
+                                <button onclick="executeModalQuery()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition">Ejecutar</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Esquema y Tablas Disponibles (${currentEngine.toUpperCase()})</div>
+                            <div id="modal-tables-container" class="flex flex-wrap gap-1.5 text-xs"></div>
+                        </div>
+                    </div>
+                `;
+                const activeEng = enginesData.find(e => e.id === currentEngine);
+                const modalTablesContainer = document.getElementById('modal-tables-container');
+                if (activeEng && activeEng.tables && modalTablesContainer) {
+                    modalTablesContainer.innerHTML = activeEng.tables.map(t => `<span class="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded text-slate-300 font-mono">${t}</span>`).join('');
+                }
+                document.getElementById('modal-query-input')?.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        executeModalQuery();
+                    }
+                });
+
+            } else if (type === 'suggested') {
+                modalIcon.innerText = '💡';
+                modalTitle.innerText = 'Banco de Preguntas Analíticas Sugeridas';
+                modalSubtitle.innerText = `Exploración Guiada por Contexto Semántico e Introspección`;
+                genericView.classList.remove('hidden');
+
+                const questions = (currentSuggestedQuestions && currentSuggestedQuestions.length > 0) ? currentSuggestedQuestions : [
+                    "ventas por país",
+                    "ventas por categoría",
+                    "ventas por empleado",
+                    "tendencia de ventas diaria por categoría de las 3 categorías con mejor desempeño",
+                    "facturación por país",
+                    "canciones por artista",
+                    "top actores con más películas"
+                ];
+
+                genericView.innerHTML = `
+                    <div class="max-w-4xl mx-auto space-y-3 w-full">
+                        <p class="text-xs text-slate-400">Selecciona cualquier pregunta analítica sugerida para ejecutarla instantáneamente en el motor activo:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            ${questions.map(q => `
+                                <div onclick="setQueryFromModal('${q.replace(/'/g, "\\'")}')" class="p-3.5 bg-slate-900/90 hover:bg-indigo-950/60 border border-slate-800 hover:border-indigo-500 rounded-xl cursor-pointer transition flex items-center justify-between group shadow-sm">
+                                    <span class="text-xs text-slate-200 group-hover:text-indigo-200 font-medium">${q}</span>
+                                    <span class="text-indigo-400 text-sm group-hover:translate-x-1 transition-transform">⚡</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
             }
+        }
+
+        function renderModalTableRows(rows) {
+            const genericView = document.getElementById('modal-generic-view');
+            if (!genericView) return;
+            if (!rows || rows.length === 0) {
+                genericView.innerHTML = '<div class="p-8 text-center text-slate-500 italic">No hay registros que coincidan con la búsqueda.</div>';
+                return;
+            }
+            const displayedRows = rows.slice(0, 100);
+            genericView.innerHTML = `
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex-1 flex flex-col">
+                    <div class="overflow-x-auto flex-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 z-10 bg-slate-950 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+                                <tr>
+                                    <th class="p-3 text-center w-14 font-semibold text-slate-500">#</th>
+                                    ${currentColMeta.map(m => `
+                                        <th class="p-3 ${m.align} font-semibold">
+                                            <span class="inline-flex items-center">${m.label} ${m.badge}</span>
+                                        </th>
+                                    `).join('')}
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/40 text-xs">
+                                ${displayedRows.map((r, i) => {
+                                    let rankBadge = `<span class="text-slate-500 font-mono text-[11px]">${i + 1}</span>`;
+                                    if (i === 0) rankBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥇 1</span>`;
+                                    else if (i === 1) rankBadge = `<span class="bg-slate-300/20 text-slate-200 border border-slate-400/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥈 2</span>`;
+                                    else if (i === 2) rankBadge = `<span class="bg-amber-700/20 text-amber-500 border border-amber-600/40 px-1.5 py-0.5 rounded text-[10px] font-bold">🥉 3</span>`;
+
+                                    return `
+                                        <tr class="transition hover:bg-indigo-950/20 ${i % 2 === 0 ? 'bg-slate-950/30' : 'bg-transparent'}">
+                                            <td class="p-3 text-center font-mono">${rankBadge}</td>
+                                            ${currentColMeta.map(m => `
+                                                <td class="p-3 ${m.align}">
+                                                    ${formatTableCell(r[m.col], m.unitType)}
+                                                </td>
+                                            `).join('')}
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    ${rows.length > 100 ? `<div class="p-2.5 text-right text-xs text-slate-500 bg-slate-950 border-t border-slate-800 italic">Mostrando primeros 100 de ${rows.length} registros auditados. Descarga CSV para ver todos.</div>` : ''}
+                </div>
+            `;
+        }
+
+        function filterModalTableRows() {
+            const input = document.getElementById('modal-table-search-input');
+            const query = (input?.value || '').toLowerCase().trim();
+            if (!query) {
+                renderModalTableRows(currentRawRows);
+                return;
+            }
+            const filtered = currentRawRows.filter(row => {
+                return Object.values(row).some(val => String(val).toLowerCase().includes(query));
+            });
+            renderModalTableRows(filtered);
         }
 
         function closeFullscreen() {
@@ -654,10 +1083,12 @@ def index_page():
                 const data = await res.json();
 
                 // Render Grounding Contract Chips
+                currentTaskData = data.task;
                 renderContractChips(data.task);
 
                 // Render Advanced Executive Storytelling
                 const story = data.storytelling;
+                currentStoryData = story;
                 document.getElementById('storytelling-container').innerHTML = `
                     <div class="p-3 bg-indigo-950/40 border border-indigo-800/60 rounded-xl mb-3">
                         <div class="text-[10px] font-mono uppercase tracking-wider text-indigo-400 font-bold mb-1 flex items-center gap-1">
@@ -708,19 +1139,29 @@ def index_page():
                 `;
 
                 // Render Suggested Questions
+                currentSuggestedQuestions = data.suggested_questions || [];
                 renderSuggestedQuestions(data.suggested_questions);
 
                 // Render Audit
                 const q = (data.evidence && data.evidence.queries && data.evidence.queries.length > 0) ? data.evidence.queries[0] : null;
                 if (q) {
-                    // Escape HTML for pre block
-                    const escapedSql = q.sql.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    currentAuditData = {
+                        sql: q.sql,
+                        execution_ms: q.execution_ms,
+                        row_count: q.row_count,
+                        engine_id: data.evidence.engine_id,
+                        warnings: data.evidence.warnings
+                    };
+                    const codeBlock = formatCodeWithLineNumbers(q.sql);
                     document.getElementById('audit-container').innerHTML = `
                         <div class="mb-2">
-                            <span class="text-indigo-400 font-semibold block mb-1">SQL Formateado & Comentado:</span>
-                            <pre class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 overflow-x-auto text-[11px] leading-relaxed font-mono whitespace-pre">${escapedSql}</pre>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-indigo-400 font-semibold block text-xs">SQL Formateado &amp; Comentado:</span>
+                                <span class="text-[10px] text-slate-500 font-mono">AST Verificado (sqlglot)</span>
+                            </div>
+                            ${codeBlock}
                         </div>
-                        <p class="mt-2 text-slate-400"><span class="text-emerald-400 font-semibold">Latencia:</span> ${q.execution_ms} ms &bull; <span class="text-blue-400 font-semibold">Filas:</span> ${q.row_count} &bull; <span class="text-purple-400 font-semibold">Motor:</span> ${data.evidence.engine_id.toUpperCase()}</p>
+                        <p class="mt-2 text-slate-400 text-xs"><span class="text-emerald-400 font-semibold">Latencia:</span> ${q.execution_ms} ms &bull; <span class="text-blue-400 font-semibold">Filas:</span> ${q.row_count} &bull; <span class="text-purple-400 font-semibold">Motor:</span> ${data.evidence.engine_id.toUpperCase()}</p>
                     `;
 
                     // Store rows for interactive filtering & CSV export
@@ -735,6 +1176,7 @@ def index_page():
                         document.getElementById('table-container').innerHTML = '<p class="text-slate-500 italic p-3">Sin registros devueltos.</p>';
                     }
                 } else {
+                    currentAuditData = null;
                     document.getElementById('audit-container').innerHTML = `
                         <p class="text-amber-400">${data.evidence.warnings.join(' | ') || 'Consulta procesada sin queries SQL directas.'}</p>
                     `;
@@ -767,6 +1209,11 @@ def index_page():
                     originalGeoOption = null;
                     document.getElementById('btn-chart-map').classList.add('hidden');
                     chartInstance.clear();
+                }
+
+                // Refresh modal view if currently open
+                if (currentFullscreenType && !document.getElementById('fullscreen-modal').classList.contains('hidden')) {
+                    openFullscreen(currentFullscreenType);
                 }
             } catch (err) {
                 showAlert("Error de conexión: " + err.message);
