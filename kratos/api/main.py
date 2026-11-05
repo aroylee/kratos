@@ -140,7 +140,7 @@ def run_query(req: QueryRequest):
     )
 
 
-@app.get("/api/archify/latest.html", response_class=HTMLResponse)
+@app.api_route("/api/archify/latest.html", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def get_latest_archify_html():
     content = latest_archify_diagram.get("html", "")
     if not content:
