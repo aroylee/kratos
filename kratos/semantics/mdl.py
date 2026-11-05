@@ -235,8 +235,25 @@ class SemanticCatalog:
             except Exception as exc:
                 print(f"[WARN] Error loading semantic model from {yml_path.name}: {exc}")
 
-    def get_model(self, engine_id: str) -> SemanticModelMDL | None:
-        return self._models.get(engine_id)
+    def get_model(self, engine_id: str, data_dir: Path | None = None) -> SemanticModelMDL | None:
+        if engine_id in self._models:
+            return self._models[engine_id]
+
+        # Dynamic Auto-Ontology Generation Fallback
+        try:
+            from kratos.ontology.auto_ontology import AutoOntologyService
+            from kratos.engines.registry import DatabaseEngine
+            target_data_dir = data_dir or (Path(__file__).resolve().parent.parent.parent / "data")
+            db_file = target_data_dir / f"{engine_id}.db"
+            if db_file.exists():
+                engine = DatabaseEngine(engine_id, db_file)
+                auto_model = AutoOntologyService.generate_for_engine(engine)
+                self._models[engine_id] = auto_model
+                return auto_model
+        except Exception as exc:
+            print(f"[WARN] Auto-Ontology generation failed for {engine_id}: {exc}")
+
+        return None
 
     @property
     def available_engines(self) -> list[str]:

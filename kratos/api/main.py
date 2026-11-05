@@ -31,6 +31,54 @@ class QueryRequest(BaseModel):
     engine_id: str | None = None
 
 
+class AnswerabilityRequest(BaseModel):
+    query: str
+    engine_id: str
+
+
+@app.get("/api/ontology/{engine_id}")
+def get_engine_ontology(engine_id: str):
+    """Returns the full semantic ontology graph for the specified engine."""
+    model = interpreter.semantic_catalog.get_model(engine_id)
+    if not model:
+        eng = registry.engines.get(engine_id)
+        if eng:
+            from kratos.ontology.auto_ontology import AutoOntologyService
+            model = AutoOntologyService.generate_for_engine(eng)
+    if not model:
+        raise HTTPException(status_code=404, detail=f"Ontología no disponible para '{engine_id}'")
+    return {
+        "engine_id": model.engine_id,
+        "name": model.name,
+        "description": model.description,
+        "entities_count": len(model.entities),
+        "relationships_count": len(model.relationships),
+        "dimensions_count": len(model.dimensions),
+        "metrics_count": len(model.metrics),
+        "entities": [e.model_dump() for e in model.entities],
+        "relationships": [r.model_dump() for r in model.relationships],
+        "dimensions": [d.model_dump() for d in model.dimensions],
+        "metrics": [m.model_dump() for m in model.metrics],
+    }
+
+
+@app.post("/api/ontology/check-answerable")
+def check_query_answerability(req: AnswerabilityRequest):
+    """Evaluates whether a natural language question can be answered by the certified ontology."""
+    model = interpreter.semantic_catalog.get_model(req.engine_id)
+    if not model:
+        eng = registry.engines.get(req.engine_id)
+        if eng:
+            from kratos.ontology.auto_ontology import AutoOntologyService
+            model = AutoOntologyService.generate_for_engine(eng)
+    if not model:
+        raise HTTPException(status_code=404, detail=f"Motor '{req.engine_id}' no encontrado.")
+
+    from kratos.ontology.grounder import AutoOntologyGrounder
+    result = AutoOntologyGrounder.check_answerable(req.query, model)
+    return result.model_dump()
+
+
 @app.get("/api/health")
 @app.get("/health")
 def health():

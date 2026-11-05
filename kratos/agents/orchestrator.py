@@ -75,6 +75,13 @@ class InterpreterAgent:
 
         # 3. Model-Driven Semantic Dimension Detection (Multi-dimensional aware)
         model = self.semantic_catalog.get_model(active_engine_id)
+        ontology_constraints: list[str] = []
+        if model:
+            from kratos.ontology.grounder import AutoOntologyGrounder
+            ans_check = AutoOntologyGrounder.check_answerable(query, model)
+            if not ans_check.is_answerable:
+                ontology_constraints.append(f"OUT_OF_SCOPE: {ans_check.reason}")
+
         matched_dims = model.find_all_non_temporal_dimensions(query) if model else []
 
         geo_dim = next((d for d in matched_dims if d.type == "geo" or d.id in ["Pais", "Region"]), None)
@@ -229,12 +236,25 @@ class InterpreterAgent:
             ranking_criterion=ranking_criterion,
             dimensions=dimensions,
             metrics=metrics,
-            needs_investigation=True,
-            constraints=[],
+            needs_investigation=len(ontology_constraints) == 0,
+            constraints=ontology_constraints,
             required_evidence=["Datos numéricos agregados", "Dimensiones analíticas"],
         )
 
     def formulate_storytelling(self, task: DataTask, evidence: DataEvidence) -> ExecutiveStorytelling:
+        if task.constraints and any(c.startswith("OUT_OF_SCOPE:") for c in task.constraints):
+            detail = next(c.replace("OUT_OF_SCOPE: ", "") for c in task.constraints if c.startswith("OUT_OF_SCOPE:"))
+            return ExecutiveStorytelling(
+                key_takeaway=f"Consulta fuera del alcance ontológico del motor '{task.engine_id}'.",
+                diagnostic_metrics={"status": "unanswerable", "engine": task.engine_id},
+                quantitative_findings=[detail],
+                risk_alerts=["Intento de consulta sobre conceptos no definidos ni soportados en el catálogo ontológico."],
+                strategic_recommendations=[
+                    "Reformular la consulta utilizando las dimensiones y métricas certificadas disponibles en el catálogo ontológico.",
+                    f"Explorar las entidades y métricas del motor '{task.engine_id}' mediante el endpoint /api/ontology/{task.engine_id}."
+                ],
+            )
+
         if not evidence.observations:
             return ExecutiveStorytelling(
                 key_takeaway=f"No se registraron datos en el motor '{task.engine_id}' para la consulta solicitada.",
@@ -545,6 +565,17 @@ class InvestigatorAgent:
         self.max_reflections = 3
 
     def execute_task(self, task: DataTask) -> DataEvidence:
+        # Step 0: Epistemological check via Auto-Ontology (prevent hallucinating on out-of-scope concepts)
+        out_of_scope = next((c for c in (task.constraints or []) if c.startswith("OUT_OF_SCOPE:")), None)
+        if out_of_scope:
+            reason_text = out_of_scope.replace("OUT_OF_SCOPE: ", "")
+            return DataEvidence(
+                engine_id=task.engine_id,
+                observations=[reason_text],
+                confidence=0.2,
+                warnings=[reason_text],
+            )
+
         engine = self.registry.engines.get(task.engine_id)
         if not engine:
             return DataEvidence(
