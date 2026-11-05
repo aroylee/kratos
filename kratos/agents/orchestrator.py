@@ -53,6 +53,10 @@ class InterpreterAgent:
         time_granularity = TimeGranularity.NONE
         time_dimension = None
 
+        # Temporal Year Filter Detection (e.g. "en 1997", "del 1998", "año 2012")
+        year_match = re.search(r"\b(?:en\s+(?:el\s+)?(?:año\s+)?|del\s+(?:año\s+)?|año\s+)?(19\d\d|20\d\d)\b", lowered)
+        filter_year = int(year_match.group(1)) if year_match else None
+
         if is_time_series:
             if re.search(r"\b(diario|diaria|dia|día|dias|días|daily)\b", lowered):
                 time_granularity = TimeGranularity.DAILY
@@ -234,6 +238,7 @@ class InterpreterAgent:
             metric_target=metric_target,
             top_n=top_n,
             ranking_criterion=ranking_criterion,
+            filter_year=filter_year,
             dimensions=dimensions,
             metrics=metrics,
             needs_investigation=len(ontology_constraints) == 0,

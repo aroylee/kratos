@@ -50,6 +50,12 @@ class SemanticCompiler:
                     time_dim = d
                     break
 
+        # 4. Resolve Temporal Year Filter Clause (e.g. "en 1997")
+        year_filter_clause = None
+        if time_dim and task.filter_year:
+            time_col_ref = f"{time_dim.table}.{time_dim.column or 'orderDate'}"
+            year_filter_clause = f"strftime('%Y', {time_col_ref}) = '{task.filter_year}'"
+
         # =========================================================================
         # PATTERN A: MULTI-SERIES TIME SERIES (with or without Top-N CTE)
         # =========================================================================
@@ -63,9 +69,12 @@ class SemanticCompiler:
                 cohort_tables = {primary_dim.table, metric.table}
                 if metric.required_tables:
                     cohort_tables.update(metric.required_tables)
+                if year_filter_clause:
+                    cohort_tables.add(time_dim.table)
                 cohort_joins = cls._build_joins(cohort_tables, model, base_table=primary_dim.table)
                 cohort_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in cohort_joins])
                 from_cohort = f"FROM {primary_dim.table} {cohort_join_sql}".strip()
+                where_cohort = f"WHERE {year_filter_clause}" if year_filter_clause else ""
 
                 # Must include primary_dim.table so fact table traversal path (e.g. orders -> order_details -> products -> categories) is complete
                 fact_tables = {time_dim.table, metric.table, primary_dim.table}
@@ -74,6 +83,7 @@ class SemanticCompiler:
                 fact_joins = cls._build_joins(fact_tables, model, base_table=time_dim.table)
                 fact_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in fact_joins])
                 from_fact = f"FROM {time_dim.table} {fact_join_sql}".strip()
+                where_fact = f"WHERE {year_filter_clause}" if year_filter_clause else ""
 
                 is_lowest = order_dir == "ASC"
                 cohort_label = f"Bottom {top_n} (menor desempeño)" if is_lowest else f"Top {top_n} (mejor desempeño)"
@@ -90,6 +100,7 @@ class SemanticCompiler:
                     f"WITH {cte_table_name} AS (\n"
                     f"    SELECT {s_expr} AS {s_alias} -- Entidad líder/segmento\n"
                     f"    {from_cohort}\n"
+                    f"    {where_cohort}\n"
                     f"    GROUP BY {s_alias}\n"
                     f"    ORDER BY {metric.expression} {order_dir}\n"
                     f"    LIMIT {top_n}\n"
@@ -100,6 +111,7 @@ class SemanticCompiler:
                     f"       {metric.expression} AS {metric.id} -- Métrica analítica calculada ({metric.unit})\n"
                     f"{from_fact}\n"
                     f"JOIN {cte_table_name} tc ON {s_expr} = tc.{s_alias}\n"
+                    f"{where_fact}\n"
                     f"GROUP BY {time_alias}, {s_alias}\n"
                     f"ORDER BY {time_alias} ASC, {metric.id} DESC\n"
                     f"LIMIT 500;"
@@ -111,6 +123,7 @@ class SemanticCompiler:
                 req_tables.update(metric.required_tables)
             joins = cls._build_joins(req_tables, model, base_table=time_dim.table)
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
+            where_fact = f"WHERE {year_filter_clause}" if year_filter_clause else ""
             return (
                 f"/* =========================================================================\n"
                 f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
@@ -122,6 +135,7 @@ class SemanticCompiler:
                 f"       {s_expr} AS {s_alias}, -- Segmento analítico\n"
                 f"       {metric.expression} AS {metric.id} -- Métrica calculada ({metric.unit})\n"
                 f"FROM {time_dim.table} {join_sql}\n"
+                f"{where_fact}\n"
                 f"GROUP BY {time_alias}, {s_alias}\n"
                 f"ORDER BY {time_alias} ASC, {metric.id} DESC\n"
                 f"LIMIT 500;"
@@ -142,6 +156,7 @@ class SemanticCompiler:
             fact_joins = cls._build_joins(fact_tables, model, base_table=time_dim.table)
             fact_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in fact_joins])
             from_fact = f"FROM {time_dim.table} {fact_join_sql}".strip()
+            where_fact = f"WHERE {year_filter_clause}" if year_filter_clause else ""
 
             is_lowest = order_dir == "ASC"
             rank_label = f"Bottom {limit_n} por período ({time_alias})" if is_lowest else f"Top {limit_n} por período ({time_alias})"
@@ -163,6 +178,7 @@ class SemanticCompiler:
                 f"               ORDER BY {metric.expression} {order_dir}\n"
                 f"           ) AS rnk\n"
                 f"    {from_fact}\n"
+                f"    {where_fact}\n"
                 f"    GROUP BY {time_alias}, {s_alias}\n"
                 f")\n"
                 f"-- Paso 2: Filtrar la élite de cada partición ({rank_label})\n"
@@ -213,9 +229,12 @@ class SemanticCompiler:
                 fact_tables = {geo_dim.table, cat_dim.table, metric.table}
                 if metric.required_tables:
                     fact_tables.update(metric.required_tables)
+                if year_filter_clause and time_dim:
+                    fact_tables.add(time_dim.table)
                 fact_joins = cls._build_joins(fact_tables, model, base_table=geo_dim.table)
                 fact_join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in fact_joins])
                 from_fact = f"FROM {geo_dim.table} {fact_join_sql}".strip()
+                where_fact = f"WHERE {year_filter_clause}" if year_filter_clause else ""
 
                 is_lowest = order_dir == "ASC"
                 rank_label = f"Bottom {limit_n} {cat_alias} por {geo_alias}" if is_lowest else f"Top {limit_n} {cat_alias} por {geo_alias}"
@@ -237,6 +256,7 @@ class SemanticCompiler:
                     f"               ORDER BY {metric.expression} {order_dir}\n"
                     f"           ) AS rnk\n"
                     f"    {from_fact}\n"
+                    f"    {where_fact}\n"
                     f"    GROUP BY {geo_alias}, {cat_alias}\n"
                     f")\n"
                     f"-- Paso 2: Filtrar la categoría líder de cada territorio ({rank_label})\n"
@@ -260,6 +280,7 @@ class SemanticCompiler:
             joins = cls._build_joins(req_tables, model, base_table=time_dim.table)
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
             from_clause = f"FROM {time_dim.table} {join_sql}".strip()
+            where_clause = f"WHERE {year_filter_clause}" if year_filter_clause else ""
 
             return (
                 f"/* =========================================================================\n"
@@ -271,6 +292,7 @@ class SemanticCompiler:
                 f"SELECT {time_expr} AS {time_alias}, -- Eje cronológico\n"
                 f"       {metric.expression} AS {metric.id} -- Métrica acumulada ({metric.unit})\n"
                 f"{from_clause}\n"
+                f"{where_clause}\n"
                 f"GROUP BY {time_alias}\n"
                 f"ORDER BY {time_alias} ASC\n"
                 f"LIMIT 30;"
@@ -283,9 +305,12 @@ class SemanticCompiler:
             req_tables = {primary_dim.table, metric.table}
             if metric.required_tables:
                 req_tables.update(metric.required_tables)
+            if year_filter_clause and time_dim:
+                req_tables.add(time_dim.table)
             joins = cls._build_joins(req_tables, model, base_table=primary_dim.table)
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
             from_clause = f"FROM {primary_dim.table} {join_sql}".strip()
+            where_clause = f"WHERE {year_filter_clause}" if year_filter_clause else ""
 
             rank_title = f"Top {limit_val}" if top_n else "Distribución Categórica"
             return (
@@ -298,6 +323,7 @@ class SemanticCompiler:
                 f"SELECT {primary_dim.select_expression} AS {primary_dim.id}, -- Dimensión analítica canónica\n"
                 f"       {metric.expression} AS {metric.id} -- Métrica formal de negocio ({metric.unit})\n"
                 f"{from_clause}\n"
+                f"{where_clause}\n"
                 f"GROUP BY {primary_dim.id}\n"
                 f"ORDER BY {metric.id} {order_dir}\n"
                 f"LIMIT {limit_val};"

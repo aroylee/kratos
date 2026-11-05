@@ -89,6 +89,10 @@ class InterpretedRequest(BaseModel):
         default=None,
         description="Criterion for ranking (e.g. 'desempeño', 'ventas', 'pedidos')"
     )
+    filter_year: int | None = Field(
+        default=None,
+        description="Explicit calendar year filter extracted from query (e.g. 1997, 2012)"
+    )
     dimensions: list[str] = Field(
         default_factory=list,
         description="Extracted dimensions e.g. ['Fecha', 'Categoria']"
@@ -138,6 +142,10 @@ class DataTask(BaseModel):
     ranking_criterion: str | None = Field(
         default=None,
         description="Ranking metric criterion (e.g. 'desempeño', 'volumen')"
+    )
+    filter_year: int | None = Field(
+        default=None,
+        description="Explicit calendar year filter (e.g. 1997, 2012)"
     )
     dimensions: list[str] = Field(default_factory=list)
     metrics: list[str] = Field(default_factory=list)

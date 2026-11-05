@@ -611,6 +611,59 @@ def test_chinook_generos_mas_vendidos_por_pais_geo_partitioned(registry):
     assert any("Ireland" in f and "TV Shows" in f for f in storytelling.quantitative_findings)
 
 
+def test_northwind_multi_series_time_filtered_cohort(registry):
+    """Verifies temporal year filter (e.g. 1997) is strictly applied to both cohort CTE and fact time-series."""
+    interpreter = InterpreterAgent()
+    query = "tendencia de ventas diaria en 1997 por categoría de las 3 categorías con mejor desempeño"
+    interpreted = interpreter.interpret(query, "northwind")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.MULTI_SERIES_TIME_SERIES
+    assert interpreted.time_granularity == TimeGranularity.DAILY
+    assert interpreted.filter_year == 1997
+    assert interpreted.top_n == 3
+    assert interpreted.series_dimension == "Categoria"
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="northwind",
+        goal=interpreted.goal,
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        series_dimension=interpreted.series_dimension,
+        metric_target=interpreted.metric_target,
+        top_n=interpreted.top_n,
+        ranking_criterion=interpreted.ranking_criterion,
+        filter_year=interpreted.filter_year,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+        constraints=interpreted.constraints,
+        required_evidence=interpreted.required_evidence,
+    )
+
+    inv = InvestigatorAgent(registry)
+    evidence = inv.execute_task(task)
+
+    assert len(evidence.queries) == 1
+    sql = evidence.queries[0].sql
+    assert "top_categories" in sql
+    assert "1997" in sql
+
+    rows = evidence.queries[0].rows
+    assert len(rows) == 397
+    assert all(r["Fecha"].startswith("1997") for r in rows)
+
+    # Categories in 1997 top cohort
+    categories_found = set(r["Categoria"] for r in rows)
+    assert categories_found == {"Beverages", "Confections", "Dairy Products"}
+
+    # Compile ECharts & verify multi-series options
+    echarts = compile_echarts(rows, title=task.goal)
+    assert len(echarts["series"]) == 3
+    assert "dataZoom" in echarts
+
+
+
 
 
 

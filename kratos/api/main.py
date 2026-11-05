@@ -159,6 +159,7 @@ def run_query(req: QueryRequest):
         metric_target=interpreted.metric_target,
         top_n=interpreted.top_n,
         ranking_criterion=interpreted.ranking_criterion,
+        filter_year=interpreted.filter_year,
         dimensions=interpreted.dimensions,
         metrics=interpreted.metrics,
         constraints=interpreted.constraints,
