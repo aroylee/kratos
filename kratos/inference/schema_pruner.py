@@ -38,6 +38,13 @@ class SchemaPruner:
             'Relación Proveedores a Países: supplier.s_nationkey = nation.n_nationkey',
             'Tendencia Pedidos: strftime(\'%Y-%m\', orders.o_orderdate) AS Mes, GROUP BY Mes ORDER BY Mes ASC',
         ],
+        "el_salvador": [
+            "Regla de Integridad Censal Departamental: Para consultas por departamento, SIEMPRE filtrar censo_poblacion.nivel_geografico = 'departamento' AND departamentos.departamento_id != '00' para evitar cuadruplicar el total con sumas nacionales y distritales.",
+            "Regla de Integridad Censal Municipal: Para consultas por municipio, filtrar censo_poblacion.nivel_geografico = 'municipio'.",
+            "Regla de Integridad Censal Distrital: Para consultas por distrito, filtrar censo_poblacion.nivel_geografico = 'distrito'.",
+            "Remesas Familiares: SUM(remesas_mensuales.monto_millones_usd) en millones USD ordenado por periodo.",
+            "Inflación / IPC: AVG(ipc_mensual.indice) ordenado por periodo.",
+        ],
     }
 
     SYNONYMS: Dict[str, List[str]] = {

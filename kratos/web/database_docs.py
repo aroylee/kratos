@@ -777,6 +777,172 @@ DATABASE_CATALOG: dict[str, dict[str, Any]] = {
                 "insight": "Proyecta la demanda de abastecimiento y la necesidad de bodegaje para los próximos años fiscales."
             }
         ]
+    },
+    "el_salvador": {
+        "id": "el_salvador",
+        "title": "El Salvador Data & Intelligence Hub",
+        "subtitle": "Censo Nacional 2024 de Población, Reestructuración Territorial, Macroeconomía BCR & Clima MARN",
+        "emoji": "🇸🇻",
+        "kaggle_source": {
+            "name": "BCR El Salvador Geoportal & MARN Clima Open Datasets",
+            "url": "https://estadisticas.bcr.gob.sv",
+            "author": "Banco Central de Reserva (BCR) & Ministerio de Medio Ambiente (MARN)",
+            "license": "Datos Públicos Abiertos Oficiales",
+            "scope": "7 tablas relacionales: 14 departamentos, 44 municipios consolidados, 262 distritos, 12,880 registros censales, series mensuales de remesas e IPC, e indicadores climáticos"
+        },
+        "non_technical_summary": (
+            "Imagina que eres un ministro, consultor de políticas públicas o director de inversiones que necesita entender "
+            "con precisión quirúrgica la realidad territorial y económica de El Salvador.\n\n"
+            "Esta base de datos integra por primera vez tres pilares fundamentales del país:\n"
+            "1. El Censo Nacional de Población 2024 publicado por el Banco Central de Reserva (BCR), adaptado a la nueva ley "
+            "de reestructuración territorial de 14 departamentos, 44 municipios y 262 distritos históricos, con desglose exhaustivo "
+            "por género y rangos quinquenales de edad.\n"
+            "2. La macroeconomía nacional del BCR: la serie histórica mensual de remesas familiares (el motor financiero de cientos "
+            "de miles de hogares, cuantificado en millones de dólares) y el Índice de Precios al Consumidor (IPC) para medir inflación "
+            "y poder adquisitivo.\n"
+            "3. El clima del Ministerio de Medio Ambiente y Recursos Naturales (MARN): registro de eventos hidrometeorológicos, "
+            "temperaturas récord, sequías y olas de calor por departamento y estación.\n\n"
+            "Gracias a esta integración, puedes responder con datos exactos desde cuántas personas viven en Santa Ana Centro, "
+            "hasta cómo han evolucionado las remesas mes a mes o qué departamento sufrió la mayor anomalía de lluvia."
+        ),
+        "business_value": (
+            "Permite a organismos multilaterales, entidades financieras y planificadores gubernamentales modelar el impacto "
+            "demográfico de proyectos, focalizar programas sociales según grupos etarios, correlacionar la recepción de divisas con "
+            "la inflación y evaluar riesgos climáticos sobre la infraestructura y la agricultura nacional."
+        ),
+        "modules": [
+            {
+                "name": "División Política y Territorial 2024",
+                "tables": ["departamentos", "municipios", "distritos"],
+                "description": "Jerarquía geográfica completa: los 14 departamentos tradicionales, los 44 municipios reestructurados tras la ley 2024 y los 262 distritos municipales históricos."
+            },
+            {
+                "name": "Demografía Censal BCR 2024",
+                "tables": ["censo_poblacion"],
+                "description": "12,880 filas con recuentos poblacionales por departamento, municipio, distrito, género y rangos de edad."
+            },
+            {
+                "name": "Macroeconomía y Finanzas Familiares",
+                "tables": ["remesas_mensuales", "ipc_mensual"],
+                "description": "Series temporales mensuales del BCR: ingresos de divisas por remesas en millones de USD e índice de inflación nacional."
+            },
+            {
+                "name": "Medio Ambiente y Climatología",
+                "tables": ["clima_indicadores"],
+                "description": "Indicadores anuales y por evento del MARN: precipitaciones máximas, anomalías térmicas y días de olas de calor enlazados a departamentos."
+            }
+        ],
+        "tables_detail": [
+            {"table": "departamentos", "desc": "Los 14 departamentos de El Salvador clasificados por zona (Occidental, Central, Paracentral, Oriental)."},
+            {"table": "municipios", "desc": "Los 44 municipios de la reforma territorial de 2024 enlazados a sus departamentos."},
+            {"table": "distritos", "desc": "Los 262 distritos históricos vinculados a sus respectivos municipios y departamentos."},
+            {"table": "censo_poblacion", "desc": "Población censada en 2024 por nivel geográfico, rango quinquenal de edad y género."},
+            {"table": "remesas_mensuales", "desc": "Ingresos mensuales por remesas familiares en millones de USD del BCR."},
+            {"table": "ipc_mensual", "desc": "Índice de Precios al Consumidor mensual base 2009=100 publicado por el BCR."},
+            {"table": "clima_indicadores", "desc": "Indicadores climáticos del MARN (lluvias, temperaturas, sequías) vinculados a departamentos."}
+        ],
+        "mermaid_erd": """erDiagram
+    DEPARTAMENTOS ||--|{ MUNICIPIOS : "agrupa"
+    MUNICIPIOS ||--|{ DISTRITOS : "contiene"
+    DEPARTAMENTOS ||--|{ DISTRITOS : "ubica"
+    DEPARTAMENTOS ||--|{ CENSO_POBLACION : "censado_en"
+    MUNICIPIOS ||--|{ CENSO_POBLACION : "censado_en"
+    DISTRITOS ||--|{ CENSO_POBLACION : "censado_en"
+    DEPARTAMENTOS ||--o{ CLIMA_INDICADORES : "registrado_en"
+
+    DEPARTAMENTOS {
+        string departamento_id PK
+        string departamento_nombre
+        string zona_geografica
+    }
+    MUNICIPIOS {
+        string municipio_id PK
+        string departamento_id FK
+        string municipio_nombre
+    }
+    DISTRITOS {
+        string distrito_id PK
+        string municipio_id FK
+        string departamento_id FK
+        string distrito_nombre
+    }
+    CENSO_POBLACION {
+        int id PK
+        int censo_anio
+        string departamento_id FK
+        string municipio_id FK
+        string distrito_id FK
+        string nivel_geografico
+        string rango_edad
+        string genero
+        int poblacion
+    }
+    REMESAS_MENSUALES {
+        int id PK
+        string periodo
+        float monto_millones_usd
+        string fuente
+        string frecuencia
+        int es_preliminar
+    }
+    IPC_MENSUAL {
+        int id PK
+        string periodo
+        float indice
+        string serie
+        string base_indice
+        string fuente
+    }
+    CLIMA_INDICADORES {
+        int id PK
+        int anio
+        string indicador
+        float valor
+        string unidad
+        string estacion
+        string departamento_id FK
+        string periodo_inicio
+        string periodo_fin
+        string anotacion
+    }""",
+        "erd_explanation": (
+            "1. La jerarquía territorial enlaza Departamentos (DEPARTAMENTOS) -> Municipios (MUNICIPIOS) -> Distritos (DISTRITOS).\n"
+            "2. El Censo de Población (CENSO_POBLACION) contiene llaves foráneas a los 3 niveles geográficos para permitir análisis a escala nacional, departamental, municipal o distrital.\n"
+            "3. Los Indicadores Climatológicos (CLIMA_INDICADORES) se enlazan con Departamentos para evaluar eventos climáticos por territorio.\n"
+            "4. Las Remesas Mensuales (REMESAS_MENSUALES) y el IPC (IPC_MENSUAL) proporcionan las series históricas macroeconómicas nacionales."
+        ),
+        "example_queries": [
+            {
+                "query": "cuál es la población por departamento",
+                "pattern": "Distribución Demográfica Departamental",
+                "insight": "Compara el peso poblacional de los 14 departamentos según el Censo Nacional 2024."
+            },
+            {
+                "query": "remesas mensuales",
+                "pattern": "Serie Temporal de Remesas Familiares",
+                "insight": "Evalúa el flujo mensual de divisas hacia El Salvador y detecta estacionalidades."
+            },
+            {
+                "query": "evolución mensual del índice de precios al consumidor ipc",
+                "pattern": "Monitoreo de Inflación Nacional",
+                "insight": "Mide el comportamiento del costo de vida y estabilidad de precios para las familias salvadoreñas."
+            },
+            {
+                "query": "top 10 distritos más poblados",
+                "pattern": "Ranking de Densidad Urbana Local",
+                "insight": "Identifica los núcleos distritales con mayor demanda de servicios públicos y transporte."
+            },
+            {
+                "query": "indicadores de lluvia y clima por departamento",
+                "pattern": "Diagnóstico de Vulnerabilidad Climática",
+                "insight": "Detecta qué departamentos registraron los mayores volúmenes de precipitación y anomalías térmicas."
+            },
+            {
+                "query": "distribución de población por género",
+                "pattern": "Composición Demográfica por Género",
+                "insight": "Analiza la proporción de hombres y mujeres en la pirámide poblacional del censo 2024."
+            }
+        ]
     }
 }
 
@@ -896,22 +1062,57 @@ def render_database_docs_section_html() -> str:
                 </div>
             </div>
 
-            <!-- Diagrama ER General (Mermaid) -->
+            <!-- Diagrama ER Interactivo con Archify & Modelo General -->
             <div>
-                <div class="flex justify-between items-center mb-2">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                        <span>🗺️</span> Modelo de Entidad-Relación General (ERD)
-                    </h4>
-                    <span class="text-[10px] font-mono text-slate-500">Mermaid Live Spec</span>
-                </div>
-                <div class="mermaid">
-{doc['mermaid_erd']}
-                </div>
-                <div class="mt-3 bg-slate-950 border border-slate-800/80 p-3.5 rounded-xl text-xs text-slate-300">
-                    <strong class="text-indigo-300">¿Cómo se relacionan las tablas en cristiano?</strong>
-                    <div class="mt-1.5 space-y-1 text-slate-400 whitespace-pre-line leading-relaxed">
-{doc['erd_explanation']}
+                <div class="flex flex-wrap items-center justify-between mb-2.5 gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm">🗺️</span>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+                            Modelo Entidad-Relación (Archify ERD 100% Atributos & Relaciones)
+                        </h4>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <a href="/api/archify/engine/{doc['id']}.html" target="_blank" class="px-2.5 py-1 text-xs rounded bg-slate-900 border border-slate-800 text-sky-400 hover:text-white hover:border-sky-500 transition flex items-center gap-1 font-mono">
+                            <span>⇱ Pantalla Completa</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Archify Interactive Visual Card -->
+                <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl mb-4">
+                    <div class="flex items-center justify-between px-3.5 py-2 bg-slate-900/90 border-b border-slate-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="font-mono text-slate-300 text-[11px] font-semibold">Archify Canvas &bull; {doc['id'].upper()}</span>
+                            <span class="text-[10px] font-mono bg-sky-950/80 text-sky-300 border border-sky-800/60 px-1.5 py-0.5 rounded">Interactivo (Zoom / Drag)</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-400">Todos los atributos y tipos físicos</span>
+                    </div>
+                    <div class="w-full h-[520px] bg-[#0b0f19]">
+                        <iframe src="/api/archify/engine/{doc['id']}.html?theme=dark&embed=1" class="w-full h-full border-0 rounded-b-xl" loading="lazy"></iframe>
+                    </div>
+                </div>
+
+                <!-- Relaciones en Cristiano & Mermaid Spec -->
+                <div class="grid grid-cols-1 gap-3">
+                    <div class="bg-slate-950 border border-slate-800/80 p-4 rounded-xl text-xs text-slate-300">
+                        <strong class="text-indigo-300 flex items-center gap-1.5 mb-1">
+                            <span>💡</span> ¿Cómo se relacionan las tablas en cristiano?
+                        </strong>
+                        <div class="space-y-1 text-slate-400 whitespace-pre-line leading-relaxed text-xs">
+{doc['erd_explanation']}
+                        </div>
+                    </div>
+
+                    <details class="group bg-slate-950/60 border border-slate-800/60 rounded-xl p-3 text-xs">
+                        <summary class="cursor-pointer text-slate-400 hover:text-slate-200 font-mono text-[11px] flex items-center justify-between select-none">
+                            <span>📜 Ver especificación formal Mermaid ERD</span>
+                            <span class="group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <div class="mermaid mt-3">
+{doc['mermaid_erd']}
+                        </div>
+                    </details>
                 </div>
             </div>
 
@@ -934,12 +1135,13 @@ def render_database_docs_section_html() -> str:
         <div class="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-950 border border-indigo-900/30 p-6 md:p-8 rounded-2xl">
             <div class="flex items-center gap-3 mb-2">
                 <span class="text-3xl">🗄️</span>
-                <h2 class="text-2xl font-bold text-white tracking-wide">Catálogo de Bases de Datos & Modelos ER Generales</h2>
+                <h2 class="text-2xl font-bold text-white tracking-wide">Catálogo de Bases de Datos & Modelos ER Generales (Archify)</h2>
             </div>
             <p class="text-slate-300 text-sm md:text-base leading-relaxed max-w-4xl">
-                Kratos integra 5 bases de datos reales del estándar mundial (disponibles en <strong>Kaggle</strong>) que representan
-                diversos modelos de negocio: comercio B2B, tiendas de música digital, videoclubes de retail físico,
-                manufactura industrial y logística de cadena de suministro internacional.
+                Kratos integra 6 bases de datos reales del estándar mundial (disponibles en <strong>Kaggle</strong> y fuentes oficiales de <strong>El Salvador</strong>) que representan
+                diversos modelos de negocio y analítica: comercio B2B, tiendas de música digital, videoclubes de retail físico,
+                manufactura industrial, logística internacional y demografía/macroeconomía territorial de El Salvador.
+                Todos los modelos de entidad-relación se visualizan interactivamente mediante <strong>Archify</strong> con 100% de atributos y claves.
             </p>
             <div class="flex flex-wrap gap-2 mt-4 text-xs font-mono">
                 <a href="#database-northwind" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-indigo-900/60 border border-slate-800 text-slate-300 hover:text-white transition">🚢 NORTHWIND</a>
@@ -947,6 +1149,7 @@ def render_database_docs_section_html() -> str:
                 <a href="#database-sakila" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-indigo-900/60 border border-slate-800 text-slate-300 hover:text-white transition">🎬 SAKILA</a>
                 <a href="#database-adventureworks_dw" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-indigo-900/60 border border-slate-800 text-slate-300 hover:text-white transition">🚲 ADVENTUREWORKS_DW</a>
                 <a href="#database-tpch" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-indigo-900/60 border border-slate-800 text-slate-300 hover:text-white transition">🌐 TPCH</a>
+                <a href="#database-el_salvador" class="px-3 py-1.5 rounded-lg bg-indigo-900/50 hover:bg-indigo-800/60 border border-indigo-700/80 text-indigo-200 hover:text-white transition font-semibold">🇸🇻 EL_SALVADOR</a>
             </div>
         </div>
 

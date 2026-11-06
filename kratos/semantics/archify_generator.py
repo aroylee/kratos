@@ -257,6 +257,100 @@ def generate_archify_erd_spec(
     return erd_spec
 
 
+def generate_full_database_archify_erd_spec(
+    engine_id: str,
+    db_path: Path
+) -> dict[str, Any]:
+    """Generates an exhaustive, 100% grounded Archify ERD specification for the entire database."""
+    import sqlite3
+    db_path = Path(db_path).resolve()
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+        tables = [r[0] for r in cursor.fetchall()]
+
+        entities: list[dict[str, Any]] = []
+        relationships: list[dict[str, Any]] = []
+        seen_rels = set()
+        diag_tables = {t.lower(): t for t in tables}
+
+        cols_per_row = 3
+        for idx, t in enumerate(tables):
+            cursor.execute(f"PRAGMA table_info('{t}');")
+            cols = cursor.fetchall()
+            cursor.execute(f"PRAGMA foreign_key_list('{t}');")
+            fks = cursor.fetchall()
+            fk_map = {fk[3]: (fk[2], fk[4]) for fk in fks if fk[2].lower() in diag_tables}
+
+            attrs = []
+            max_len = max(len(c[1]) for c in cols) if cols else 10
+            for c in cols:
+                cname = c[1]
+                ctype = (c[2] or "TEXT").upper()
+                is_pk = c[5] > 0
+                is_fk = cname in fk_map
+                item = {"name": cname, "type": ctype}
+                if is_pk and is_fk:
+                    item["key"] = ["pk", "fk"]
+                    target_t, target_c = fk_map[cname]
+                    item["references"] = f"{diag_tables[target_t.lower()]}.{target_c}"
+                elif is_pk:
+                    item["key"] = "pk"
+                elif is_fk:
+                    item["key"] = "fk"
+                    target_t, target_c = fk_map[cname]
+                    item["references"] = f"{diag_tables[target_t.lower()]}.{target_c}"
+                attrs.append(item)
+
+            calculated_width = max(360, max_len * 15 + 100)
+            entities.append({
+                "id": t,
+                "label": t,
+                "sublabel": f"{len(attrs)} atributos",
+                "width": calculated_width,
+                "row": idx // cols_per_row,
+                "col": idx % cols_per_row,
+                "attributes": attrs
+            })
+
+            for fk in fks:
+                target_t = fk[2]
+                if target_t.lower() in diag_tables:
+                    actual_target = diag_tables[target_t.lower()]
+                    if t.lower() == actual_target.lower():
+                        continue
+                    rel_key = (t, actual_target, fk[3], fk[4])
+                    if rel_key not in seen_rels:
+                        seen_rels.add(rel_key)
+                        relationships.append({
+                            "id": f"rel_{t}_{actual_target}_{fk[3]}".replace(" ", "_"),
+                            "from": t,
+                            "to": actual_target,
+                            "fromCardinality": "many",
+                            "toCardinality": "one"
+                        })
+
+        return {
+            "schema_version": 1,
+            "diagram_type": "erd",
+            "meta": {
+                "title": f"Modelo Entidad-Relación Completo: {engine_id.upper()}",
+                "subtitle": f"{len(entities)} tablas físicas • {sum(len(e['attributes']) for e in entities)} atributos totales • {len(relationships)} relaciones",
+                "quality_profile": "standard"
+            },
+            "layout": {
+                "mode": "grid",
+                "gapY": 50,
+                "gapX": 80
+            },
+            "entities": entities,
+            "relationships": relationships
+        }
+    finally:
+        conn.close()
+
+
 def compile_archify_diagram(erd_spec: dict[str, Any]) -> str:
     """Invokes Archify Node.js compiler to generate standalone HTML."""
     if not ARCHIFY_CLI.exists():

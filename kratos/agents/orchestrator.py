@@ -46,7 +46,7 @@ class InterpreterAgent:
 
         # 2. Time-series & Temporal Grain Detection (word-boundary safe)
         is_time_series = bool(re.search(
-            r"\b(tendencia|tiempo|semanal|semana|semanas|mensual|mes|meses|trimestral|trimestre|trimestres|quarter|quarterly|anual|año|ano|años|anos|year|yearly|diario|dia|día|dias|días|diaria|evolucion|evolución|historico|histórico|a través del tiempo|traves del tiempo)\b",
+            r"\b(tendencia|tiempo|semanal|semanales|semana|semanas|mensual|mensuales|mes|meses|trimestral|trimestrales|trimestre|trimestres|quarter|quarterly|anual|anuales|año|ano|años|anos|year|yearly|diario|diarios|dia|día|dias|días|diaria|diarias|evolucion|evolución|historico|histórico|a través del tiempo|traves del tiempo)\b",
             lowered
         ))
 
@@ -58,19 +58,19 @@ class InterpreterAgent:
         filter_year = int(year_match.group(1)) if year_match else None
 
         if is_time_series:
-            if re.search(r"\b(diario|diaria|dia|día|dias|días|daily)\b", lowered):
+            if re.search(r"\b(diario|diarios|diaria|diarias|dia|día|dias|días|daily)\b", lowered):
                 time_granularity = TimeGranularity.DAILY
                 time_dimension = "Fecha"
-            elif re.search(r"\b(semanal|semana|semanas|week|weekly)\b", lowered):
+            elif re.search(r"\b(semanal|semanales|semana|semanas|week|weekly)\b", lowered):
                 time_granularity = TimeGranularity.WEEKLY
                 time_dimension = "Semana"
-            elif re.search(r"\b(trimestral|trimestre|trimestres|quarter|quarterly|q1|q2|q3|q4)\b", lowered):
+            elif re.search(r"\b(trimestral|trimestrales|trimestre|trimestres|quarter|quarterly|q1|q2|q3|q4)\b", lowered):
                 time_granularity = TimeGranularity.QUARTERLY
                 time_dimension = "Trimestre"
-            elif re.search(r"\b(anual|año|ano|años|anos|year|yearly|anualmente)\b", lowered):
+            elif re.search(r"\b(anual|anuales|año|ano|años|anos|year|yearly|anualmente)\b", lowered):
                 time_granularity = TimeGranularity.YEARLY
                 time_dimension = "Ano"
-            elif re.search(r"\b(mensual|mes|meses|month|monthly|mensualmente)\b", lowered):
+            elif re.search(r"\b(mensual|mensuales|mes|meses|month|monthly|mensualmente)\b", lowered):
                 time_granularity = TimeGranularity.MONTHLY
                 time_dimension = "Mes"
             else:

@@ -220,9 +220,9 @@ def test_database_documentation_catalog_and_details():
     assert cat_res.status_code == 200
     data = cat_res.json()
     assert "catalog" in data
-    assert len(data["catalog"]) == 5
+    assert len(data["catalog"]) == 6
     engine_ids = [d["id"] for d in data["catalog"]]
-    assert set(engine_ids) == {"northwind", "chinook", "sakila", "adventureworks_dw", "tpch"}
+    assert set(engine_ids) == {"northwind", "chinook", "sakila", "adventureworks_dw", "tpch", "el_salvador"}
 
     # 2. Test Specific Engine Docs (Northwind & Chinook)
     nw_res = client.get("/api/databases/northwind/docs")
@@ -693,6 +693,76 @@ def test_northwind_sales_by_region_dimension(registry):
     assert "SP" in regions
     assert "RJ" in regions
     assert None not in regions
+
+
+def test_el_salvador_population_by_department(registry):
+    """Verifies El Salvador Censo 2024 population breakdown with department filter rule."""
+    interpreter = InterpreterAgent()
+    interpreted = interpreter.interpret("cuál es la población por departamento", "el_salvador")
+
+    assert "Departamento" in interpreted.dimensions
+    assert "Poblacion" in interpreted.metrics
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="el_salvador",
+        goal="cuál es la población por departamento",
+        analytical_pattern=interpreted.analytical_pattern,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+
+    inv = InvestigatorAgent(registry)
+    evidence = inv.execute_task(task)
+
+    assert len(evidence.queries) == 1
+    sql = evidence.queries[0].sql
+    assert "censo_poblacion.nivel_geografico = 'departamento'" in sql.lower()
+
+    rows = evidence.queries[0].rows
+    assert len(rows) == 10
+    assert rows[0]["Departamento"] == "SAN SALVADOR"
+    assert rows[0]["Poblacion"] > 1_000_000
+    assert rows[1]["Departamento"] == "LA LIBERTAD"
+
+
+def test_el_salvador_monthly_remittances_time_series(registry):
+    """Verifies El Salvador BCR monthly remittances time series analysis."""
+    interpreter = InterpreterAgent()
+    interpreted = interpreter.interpret("remesas mensuales", "el_salvador")
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="el_salvador",
+        goal="remesas mensuales",
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+
+    inv = InvestigatorAgent(registry)
+    evidence = inv.execute_task(task)
+
+    assert len(evidence.queries) == 1
+    rows = evidence.queries[0].rows
+    assert len(rows) == 13
+    assert all("Mes" in r and "Remesas_USD" in r for r in rows)
+
+
+def test_archify_engine_erd_endpoint():
+    """Verifies that all 6 database engines expose compiled standalone Archify ERDs."""
+    from fastapi.testclient import TestClient
+    from kratos.api.main import app
+
+    client = TestClient(app)
+    engines = ["northwind", "chinook", "sakila", "adventureworks_dw", "tpch", "el_salvador"]
+    for eid in engines:
+        resp = client.get(f"/api/archify/engine/{eid}.html")
+        assert resp.status_code == 200
+        assert "html" in resp.text.lower()
+
 
 
 

@@ -1,0 +1,23 @@
+anio,indicador,valor,unidad,estacion,departamento,periodo_inicio,periodo_fin,anotacion
+2025,precipitacion_promedio_nacional,2110.2,mm,,,2025-01-01,2025-12-31,Acumulado promedio nacional
+2025,precipitacion_norma_anual,1898.1,mm,,,,,Norma anual de referencia
+2025,precipitacion_anomalia_nacional,212.0,mm,,,,,Anomalia respecto a la norma anual
+2025,precipitacion_anomalia_nacional,11,porcentaje,,,,,Porcentaje sobre la norma anual
+2025,precipitacion_mensual_maxima,335.7,mm,,,,,Mes no indicado en el valor resumen
+2025,precipitacion_anual_maxima,3184.5,mm,Perquin,Morazan,2025-01-01,2025-12-31,Estacion con mayor lluvia anual
+2025,precipitacion_anual_minima,1367.7,mm,Acajutla,Sonsonate,2025-01-01,2025-12-31,Estacion con menor lluvia anual
+2025,precipitacion_maxima_24h,171.0,mm,La Union/CPI,La Union,2025-01-01,2025-12-31,Maximo acumulado en 24 horas del ano
+2025,precipitacion_mensual_maxima_estacion,718.1,mm,Las Pilas,Chalatenango,2025-09-01,2025-09-30,Mayor acumulado mensual
+2025,precipitacion_evento,259.6,mm,Conchagua,La Union,2025-06-16,2025-06-19,Acumulado durante evento de lluvias
+2025,precipitacion_evento,209.4,mm,La Union/CPI,La Union,2025-06-16,2025-06-19,Acumulado durante evento de lluvias
+2025,precipitacion_evento,17.0,mm,La Carrera,Usulutan,2025-06-16,2025-06-19,Acumulado menor durante evento de lluvias
+2025,precipitacion_evento,15.3,mm,Aeropuerto El Salvador,La Paz,2025-06-16,2025-06-19,Acumulado menor durante evento de lluvias
+2025,precipitacion_evento,14.1,mm,Acajutla,Sonsonate,2025-06-16,2025-06-19,Acumulado menor durante evento de lluvias
+2025,temperatura_maxima_anomalia,3.7,C,Los Naranjos,Sonsonate,2025-01-01,2025-12-31,Anomalia maxima de temperatura maxima
+2025,temperatura_minima_anomalia,-1.6,C,Puente Cuscatlan,San Vicente,2025-01-01,2025-12-31,Anomalia minima de temperatura minima
+2025,temperatura_maxima_absoluta,43.3,C,San Miguel/UES,San Miguel,2025-01-01,2025-12-31,Maxima absoluta anual
+2025,temperatura_maxima_promedio_diaria_nacional,35.3,C,,,2025-04-17,2025-04-17,Dia mas calido del ano
+2025,temperatura_minima_absoluta,6.0,C,Los Naranjos,Sonsonate,2025-01-01,2025-12-31,Minima absoluta anual
+2025,temperatura_minima_promedio_diaria_nacional,16.0,C,,,2025-01-18,2025-01-18,Noche mas fresca del ano
+2025,dias_ola_de_calor,19,dias,Guija,Santa Ana,2025-03-01,2025-03-31,Mayor cantidad reportada en una estacion
+2025,dias_secos_consecutivos,11,dias,,,2025-07-15,2025-07-25,Maximo durante periodo de sequia moderada

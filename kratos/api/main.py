@@ -222,6 +222,27 @@ def get_latest_archify_html():
     )
 
 
+@app.api_route("/api/archify/engine/{engine_id}.html", methods=["GET", "HEAD"], response_class=HTMLResponse)
+def get_engine_archify_html(engine_id: str):
+    eid = engine_id.lower().strip()
+    static_file = Path(__file__).resolve().parent.parent / "web" / "static" / "archify" / f"{eid}.html"
+    if static_file.exists():
+        content = static_file.read_text(encoding="utf-8")
+        return HTMLResponse(content=content)
+
+    # Dynamic generation fallback
+    db_file = Path(__file__).resolve().parent.parent.parent / "data" / f"{eid}.db"
+    if not db_file.exists():
+        raise HTTPException(status_code=404, detail=f"Motor de base de datos '{engine_id}' no encontrado.")
+
+    from kratos.semantics.archify_generator import generate_full_database_archify_erd_spec, compile_archify_diagram
+    spec = generate_full_database_archify_erd_spec(eid, db_file)
+    content = compile_archify_diagram(spec)
+    static_file.parent.mkdir(parents=True, exist_ok=True)
+    static_file.write_text(content, encoding="utf-8")
+    return HTMLResponse(content=content)
+
+
 @app.get("/documentation", response_class=HTMLResponse)
 def documentation_page():
     content = get_documentation_html()

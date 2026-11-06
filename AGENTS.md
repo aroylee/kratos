@@ -61,6 +61,7 @@ Kratos is a sovereign, contract-driven, AST-governed multi-engine conversational
 * **`sakila`**: Movie rental store, actors, films, categories, rental transactions.
 * **`adventureworks_dw`**: Manufacturing & sales data warehouse, finance, products.
 * **`tpch`**: Supply chain, part suppliers, orders, volume shipping benchmarks.
+* **`el_salvador`**: Censo Nacional 2024 de Población (departamentos, 44 municipios, 262 distritos, grupos de edad y género), macroeconomía BCR (remesas familiares en millones USD e inflación IPC) e indicadores climatológicos MARN.
 
 ---
 

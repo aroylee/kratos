@@ -316,6 +316,14 @@ class SemanticCompiler:
                 where_conditions.append(year_filter_clause)
             if primary_dim.column and primary_dim.column.lower() in ["region", "shipregion", "billingstate"]:
                 where_conditions.append(f"{primary_dim.table}.{primary_dim.column} IS NOT NULL")
+            if model.engine_id == "el_salvador" and metric.table == "censo_poblacion":
+                if primary_dim.table == "departamentos":
+                    where_conditions.append("censo_poblacion.nivel_geografico = 'departamento'")
+                    where_conditions.append("departamentos.departamento_id != '00'")
+                elif primary_dim.table == "municipios":
+                    where_conditions.append("censo_poblacion.nivel_geografico = 'municipio'")
+                elif primary_dim.table == "distritos":
+                    where_conditions.append("censo_poblacion.nivel_geografico = 'distrito'")
 
             where_clause = f"WHERE {' AND '.join(where_conditions)}" if where_conditions else ""
 
@@ -348,11 +356,11 @@ class SemanticCompiler:
         elif grain == TimeGranularity.WEEKLY:
             return f"strftime('%Y-W%W', {col_ref})", alias_override or "Semana"
         elif grain == TimeGranularity.QUARTERLY:
-            return f"(strftime('%Y', {col_ref}) || '-Q' || ((CAST(strftime('%m', {col_ref}) AS INTEGER) + 2) / 3))", alias_override or "Trimestre"
+            return f"(substr({col_ref}, 1, 4) || '-Q' || ((CAST(substr({col_ref}, 6, 2) AS INTEGER) + 2) / 3))", alias_override or "Trimestre"
         elif grain == TimeGranularity.YEARLY:
-            return f"strftime('%Y', {col_ref})", alias_override or "Ano"
+            return f"substr({col_ref}, 1, 4)", alias_override or "Ano"
         else:
-            return f"strftime('%Y-%m', {col_ref})", alias_override or "Mes"
+            return f"CASE WHEN length({col_ref}) = 7 THEN {col_ref} ELSE strftime('%Y-%m', {col_ref}) END", alias_override or "Mes"
 
     @classmethod
     def _build_joins(cls, req_tables: set[str], model: SemanticModelMDL, base_table: str) -> list[Any]:

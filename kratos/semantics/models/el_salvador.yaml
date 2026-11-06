@@ -1,0 +1,220 @@
+engine_id: el_salvador
+name: "El Salvador Data & Intelligence Hub"
+description: "Modelado semántico Wren MDL para El Salvador: Censo Nacional 2024 de Población, Reestructuración Territorial (Departamentos, Municipios y Distritos), Macroeconomía BCR (Remesas Familiares e IPC) e Indicadores Climatológicos MARN."
+
+entities:
+  - name: departamentos
+    primary_key: [departamento_id]
+    grain: "Una fila por departamento o entidad nacional de El Salvador"
+    description: "División territorial de primer nivel (14 departamentos más agregado nacional)"
+
+  - name: municipios
+    primary_key: [municipio_id]
+    grain: "Una fila por municipio reestructurado (reforma territorial 2024)"
+    description: "Los 44 municipios consolidados de El Salvador"
+
+  - name: distritos
+    primary_key: [distrito_id]
+    grain: "Una fila por distrito municipal histórico"
+    description: "Los 262 distritos municipales de El Salvador"
+
+  - name: censo_poblacion
+    primary_key: [id]
+    grain: "Una fila por cohorte censal (rango de edad y género en un nivel geográfico)"
+    description: "Censo de Población 2024 del BCR (12,880 registros por edad y género)"
+
+  - name: remesas_mensuales
+    primary_key: [id]
+    grain: "Una fila por mes de ingresos de remesas familiares"
+    description: "Serie histórica mensual de remesas en millones de dólares (BCR)"
+
+  - name: ipc_mensual
+    primary_key: [id]
+    grain: "Una fila por mes del Índice de Precios al Consumidor"
+    description: "Índice de inflación mensual base 2009=100 (BCR)"
+
+  - name: clima_indicadores
+    primary_key: [id]
+    grain: "Una fila por medición climática anual/evento del MARN"
+    description: "Indicadores de lluvia, temperatura, sequías y olas de calor (MARN/SNET)"
+
+dimensions:
+  - id: Departamento
+    table: departamentos
+    column: departamento_nombre
+    synonyms: ["departamento", "departamentos", "depto", "deptos", "región", "region", "regiones", "zona departamental", "provincia", "provincias", "estado", "estados"]
+    type: categorical
+    description: "Nombre del departamento de El Salvador (ej. San Salvador, La Libertad, Santa Ana)"
+
+  - id: Zona
+    table: departamentos
+    column: zona_geografica
+    synonyms: ["zona", "zonas", "zona geográfica", "zona geografica", "occidental", "oriental", "central", "paracentral"]
+    type: categorical
+    description: "Zona geográfica oficial (Occidental, Central, Paracentral, Oriental)"
+
+  - id: Municipio
+    table: municipios
+    column: municipio_nombre
+    synonyms: ["municipio", "municipios", "alcaldía", "alcaldias", "alcaldia", "comuna", "comunas"]
+    type: categorical
+    description: "Nombre del municipio (44 municipios según la ley de reestructuración territorial 2024)"
+
+  - id: Distrito
+    table: distritos
+    column: distrito_nombre
+    synonyms: ["distrito", "distritos", "localidad", "localidades", "pueblo", "pueblos", "ciudad", "ciudades"]
+    type: categorical
+    description: "Nombre del distrito (262 distritos históricos)"
+
+  - id: Genero
+    table: censo_poblacion
+    column: genero
+    synonyms: ["género", "genero", "sexo", "hombres", "mujeres", "masculino", "femenino"]
+    type: categorical
+    description: "Género de la población censada (Hombre, Mujer)"
+
+  - id: RangoEdad
+    table: censo_poblacion
+    column: rango_edad
+    synonyms: ["edad", "edades", "rango de edad", "rango edad", "grupo etario", "cohorte"]
+    type: categorical
+    description: "Grupo de edad quinquenal (00-04, 05-09, ..., 85+)"
+
+  - id: NivelGeografico
+    table: censo_poblacion
+    column: nivel_geografico
+    synonyms: ["nivel geográfico", "nivel geografico", "escala", "granularidad"]
+    type: categorical
+    description: "Nivel de agregación censal (departamento, municipio, distrito, nacional)"
+
+  - id: Periodo
+    table: remesas_mensuales
+    column: periodo
+    synonyms: ["periodo", "fecha", "mes", "tiempo", "histórico", "historico", "año"]
+    type: temporal
+    allowed_grains: [month, quarter, year]
+    description: "Periodo mensual de registro económico (YYYY-MM)"
+
+  - id: IndicadorClima
+    table: clima_indicadores
+    column: indicador
+    synonyms: ["indicador", "indicador climático", "clima", "lluvia", "precipitación", "temperatura", "sequía", "ola de calor"]
+    type: categorical
+    description: "Tipo de indicador climatológico MARN"
+
+measures:
+  - id: total_poblacion
+    table: censo_poblacion
+    agg_type: sum
+    expression: "SUM(censo_poblacion.poblacion)"
+    unit: "habitantes"
+    is_currency: false
+    description: "Suma total de habitantes según el censo 2024"
+
+  - id: total_remesas
+    table: remesas_mensuales
+    agg_type: sum
+    expression: "ROUND(SUM(remesas_mensuales.monto_millones_usd), 2)"
+    unit: "$M USD"
+    is_currency: true
+    description: "Total acumulado de remesas familiares en millones de USD"
+
+  - id: promedio_ipc
+    table: ipc_mensual
+    agg_type: avg
+    expression: "ROUND(AVG(ipc_mensual.indice), 2)"
+    unit: "puntos"
+    is_currency: false
+    description: "Promedio del índice de precios al consumidor"
+
+  - id: valor_clima
+    table: clima_indicadores
+    agg_type: avg
+    expression: "ROUND(AVG(clima_indicadores.valor), 2)"
+    unit: "unidades"
+    is_currency: false
+    description: "Valor promedio del indicador climático"
+
+metrics:
+  - id: Poblacion
+    table: censo_poblacion
+    expression: "SUM(censo_poblacion.poblacion)"
+    metric_type: atomic
+    unit: "habitantes"
+    is_currency: false
+    synonyms: ["población", "poblacion", "habitantes", "personas", "ciudadanos", "conteo de poblacion"]
+    description: "Total de población censada en 2024"
+
+  - id: Remesas_USD
+    table: remesas_mensuales
+    expression: "ROUND(SUM(remesas_mensuales.monto_millones_usd), 2)"
+    metric_type: atomic
+    unit: "$M USD"
+    is_currency: true
+    synonyms: ["remesas", "remesa", "ingresos por remesas", "monto de remesas", "divisas"]
+    description: "Monto total de remesas familiares (millones de dólares)"
+
+  - id: IPC
+    table: ipc_mensual
+    expression: "ROUND(AVG(ipc_mensual.indice), 2)"
+    metric_type: atomic
+    unit: "puntos"
+    is_currency: false
+    synonyms: ["ipc", "inflación", "inflacion", "índice de precios", "indice de precios", "costo de vida"]
+    description: "Índice de Precios al Consumidor mensual"
+
+  - id: Clima
+    table: clima_indicadores
+    expression: "ROUND(AVG(clima_indicadores.valor), 2)"
+    metric_type: atomic
+    unit: "medida"
+    is_currency: false
+    synonyms: ["clima", "precipitación", "lluvia", "temperatura", "indicadores climaticos"]
+    description: "Medición climática del MARN"
+
+relationships:
+  - from_table: municipios
+    to_table: departamentos
+    on_clause: "municipios.departamento_id = departamentos.departamento_id"
+    cardinality: many_to_one
+
+  - from_table: departamentos
+    to_table: municipios
+    on_clause: "municipios.departamento_id = departamentos.departamento_id"
+    cardinality: one_to_many
+
+  - from_table: distritos
+    to_table: municipios
+    on_clause: "distritos.municipio_id = municipios.municipio_id"
+    cardinality: many_to_one
+
+  - from_table: municipios
+    to_table: distritos
+    on_clause: "distritos.municipio_id = municipios.municipio_id"
+    cardinality: one_to_many
+
+  - from_table: distritos
+    to_table: departamentos
+    on_clause: "distritos.departamento_id = departamentos.departamento_id"
+    cardinality: many_to_one
+
+  - from_table: censo_poblacion
+    to_table: departamentos
+    on_clause: "censo_poblacion.departamento_id = departamentos.departamento_id"
+    cardinality: many_to_one
+
+  - from_table: censo_poblacion
+    to_table: municipios
+    on_clause: "censo_poblacion.municipio_id = municipios.municipio_id"
+    cardinality: many_to_one
+
+  - from_table: censo_poblacion
+    to_table: distritos
+    on_clause: "censo_poblacion.distrito_id = distritos.distrito_id"
+    cardinality: many_to_one
+
+  - from_table: clima_indicadores
+    to_table: departamentos
+    on_clause: "clima_indicadores.departamento_id = departamentos.departamento_id"
+    cardinality: many_to_one
