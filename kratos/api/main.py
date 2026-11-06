@@ -3,7 +3,7 @@
 from pathlib import Path
 import json
 from fastapi import FastAPI, HTTPException, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
 from kratos.engines.registry import EngineRegistry
@@ -241,6 +241,20 @@ def get_engine_archify_html(engine_id: str):
     static_file.parent.mkdir(parents=True, exist_ok=True)
     static_file.write_text(content, encoding="utf-8")
     return HTMLResponse(content=content)
+
+
+@app.get("/api/geo/{map_name}.geojson")
+def get_geo_json(map_name: str):
+    m_name = map_name.lower().strip()
+    geo_file = Path(__file__).resolve().parent.parent / "web" / "static" / "geo" / f"{m_name}.geojson"
+    if not geo_file.exists():
+        raise HTTPException(status_code=404, detail=f"Mapa GeoJSON '{map_name}' no encontrado.")
+    return JSONResponse(
+        content=json.loads(geo_file.read_text(encoding="utf-8")),
+        headers={
+            "Cache-Control": "public, max-age=86400",
+        }
+    )
 
 
 @app.get("/documentation", response_class=HTMLResponse)
@@ -693,6 +707,28 @@ def index_page():
         let currentArchifyMode = 'visual'; // 'visual' | 'inspector'
         let modalArchifyMode = 'split'; // 'split' | 'diagram' | 'inspector'
         let archifyEntitiesExpanded = {};
+        const registeredCustomMaps = {};
+
+        async function ensureMapRegistered(mapName) {
+            if (!mapName || mapName === 'world') return;
+            if (registeredCustomMaps[mapName] || (echarts.getMap && echarts.getMap(mapName))) {
+                registeredCustomMaps[mapName] = true;
+                return;
+            }
+            try {
+                const res = await fetch(`/api/geo/${mapName}.geojson`);
+                if (res.ok) {
+                    const geoJson = await res.json();
+                    echarts.registerMap(mapName, geoJson);
+                    registeredCustomMaps[mapName] = true;
+                    console.log(`Registered custom map '${mapName}' in ECharts`);
+                }
+            } catch (e) {
+                console.warn(`Failed to register custom map '${mapName}':`, e);
+            }
+        }
+        // Preload El Salvador department boundary GeoJSON
+        ensureMapRegistered('el_salvador');
 
         function highlightSQL(sql) {
             if (!sql) return '';
@@ -1669,6 +1705,10 @@ ${doc.mermaid_erd}
                     const mapBtn = document.getElementById('btn-chart-map');
                     if (isGeo) {
                         mapBtn.classList.remove('hidden');
+                        const targetMap = (data.visualization.geo && data.visualization.geo.map) || (data.visualization._meta && data.visualization._meta.map_name) || 'world';
+                        if (targetMap !== 'world') {
+                            await ensureMapRegistered(targetMap);
+                        }
                         const catCol = data.visualization._meta && data.visualization._meta.category_col;
                         if (catCol) {
                             data.visualization.tooltip = {

@@ -179,7 +179,7 @@ class InterpreterAgent:
             analytical_pattern = AnalyticalPattern.TIME_SERIES
         elif top_n is not None or any(w in lowered for w in ["top", "mejores", "mejor", "primeros", "primeras", "ranking", "lideres", "líderes", "lider", "líder", "mas", "más", "peor", "peores"]):
             analytical_pattern = AnalyticalPattern.RANKING_TOP_N
-        elif geo_dim or any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región"]):
+        elif geo_dim or any(w in lowered for w in ["pais", "país", "paises", "países", "ciudad", "ciudades", "region", "región", "departamento", "departamentos", "depto", "deptos", "municipio", "municipios"]):
             analytical_pattern = AnalyticalPattern.GEO_DISTRIBUTION
         else:
             analytical_pattern = AnalyticalPattern.CATEGORICAL_BREAKDOWN

@@ -720,7 +720,7 @@ def test_el_salvador_population_by_department(registry):
     assert "censo_poblacion.nivel_geografico = 'departamento'" in sql.lower()
 
     rows = evidence.queries[0].rows
-    assert len(rows) == 10
+    assert len(rows) == 14
     assert rows[0]["Departamento"] == "SAN SALVADOR"
     assert rows[0]["Poblacion"] > 1_000_000
     assert rows[1]["Departamento"] == "LA LIBERTAD"
@@ -829,6 +829,65 @@ def test_distinct_values_pattern_chinook_genres(registry):
     sql_lower = query.sql.lower()
     assert "select distinct" in sql_lower
     assert len(query.rows) == 25
+
+
+def test_el_salvador_migrations_by_department_map(registry):
+    """Verifies El Salvador migration query compiles to an interactive departmental choropleth map."""
+    interpreter = InterpreterAgent()
+    interpreted = interpreter.interpret("dame las migraciones por departamento de El Salvador", "el_salvador")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.GEO_DISTRIBUTION
+    assert interpreted.dimensions == ["Departamento"]
+    assert interpreted.metrics == ["Emigrantes"]
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="el_salvador",
+        goal="dame las migraciones por departamento de El Salvador",
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+
+    inv = InvestigatorAgent(registry)
+    evidence = inv.execute_task(task)
+
+    assert len(evidence.queries) == 1
+    query = evidence.queries[0]
+    sql_lower = query.sql.lower()
+    assert "censo_emigracion" in sql_lower
+    assert "departamentos.departamento_nombre as departamento" in sql_lower
+    assert "count(*) as emigrantes" in sql_lower
+
+    rows = query.rows
+    assert len(rows) == 14
+    assert rows[0]["Departamento"] == "SAN SALVADOR"
+    assert rows[0]["Emigrantes"] == 46669
+    assert rows[1]["Departamento"] == "LA LIBERTAD"
+    assert rows[1]["Emigrantes"] == 24868
+
+    # Verify ECharts produces El Salvador Map
+    chart = compile_echarts(rows, title="Migraciones por Departamento")
+    assert chart is not None
+    assert chart["_meta"]["is_geo"] is True
+    assert chart["_meta"]["map_name"] == "el_salvador"
+    assert chart["geo"]["map"] == "el_salvador"
+    assert chart["geo"]["center"] == [-88.8965, 13.7942]
+    assert len(chart["series"][0]["data"]) == 14
+
+    # Verify GeoJSON API endpoint
+    from fastapi.testclient import TestClient
+    from kratos.api.main import app
+
+    client = TestClient(app)
+    resp = client.get("/api/geo/el_salvador.geojson")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["type"] == "FeatureCollection"
+    assert len(data["features"]) == 14
+
 
 
 

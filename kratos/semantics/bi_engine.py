@@ -1,5 +1,6 @@
 """Kratos Heuristic BI Engine & ECharts 5 Multi-Series Generator."""
 
+import unicodedata
 from typing import Any, List, Dict
 from kratos.semantics.unit_utils import infer_column_unit, format_metric_value
 
@@ -183,6 +184,20 @@ COUNTRY_NAME_MAPPINGS = {
 }
 
 
+SV_DEPARTMENTS = {
+    "AHUACHAPAN", "SANTA ANA", "SONSONATE", "CHALATENANGO", "LA LIBERTAD",
+    "SAN SALVADOR", "CUSCATLAN", "LA PAZ", "CABANAS", "SAN VICENTE",
+    "USULUTAN", "SAN MIGUEL", "MORAZAN", "LA UNION"
+}
+
+
+def normalize_sv_department_name(name: str) -> str:
+    cleaned = name.strip()
+    nfkd = unicodedata.normalize("NFKD", cleaned)
+    no_accent = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return no_accent.upper()
+
+
 def normalize_country_name(name: str) -> str:
     cleaned = name.strip()
     return COUNTRY_NAME_MAPPINGS.get(cleaned.lower(), cleaned)
@@ -195,7 +210,19 @@ def _compile_geo_map_echarts(
     title: str,
     category_col: str | None = None
 ) -> Dict[str, Any]:
-    """Compiles an interactive choropleth World Map with visualMap heat gradient and optional category attribution."""
+    """Compiles an interactive choropleth Map (World or El Salvador) with visualMap heat gradient and optional category attribution."""
+    # Determine map target: El Salvador departments vs World
+    is_el_salvador = any(w in dim_col.lower() for w in ["departamento", "depto"])
+    if not is_el_salvador:
+        sv_matches = sum(
+            1 for r in rows
+            if normalize_sv_department_name(str(r.get(dim_col, ""))) in SV_DEPARTMENTS
+        )
+        if sv_matches >= 2:
+            is_el_salvador = True
+
+    map_name = "el_salvador" if is_el_salvador else "world"
+
     geo_data = []
     numeric_vals = []
     categories = []
@@ -203,7 +230,7 @@ def _compile_geo_map_echarts(
 
     for r in rows:
         raw_name = str(r.get(dim_col, ""))
-        norm_name = normalize_country_name(raw_name)
+        norm_name = normalize_sv_department_name(raw_name) if is_el_salvador else normalize_country_name(raw_name)
         cat_val = str(r.get(category_col, "")) if category_col else None
         try:
             val = float(r.get(metric_col, 0) or 0)
@@ -230,6 +257,7 @@ def _compile_geo_map_echarts(
     meta = {
         "chart_type": "map",
         "is_geo": True,
+        "map_name": map_name,
         "dim_col": dim_col,
         "metric_col": metric_col,
         "categories": categories,
@@ -239,6 +267,24 @@ def _compile_geo_map_echarts(
     if category_col:
         meta["category_col"] = category_col
         meta["categories_secondary"] = categories_secondary
+
+    geo_config: Dict[str, Any] = {
+        "map": map_name,
+        "roam": True,
+        "zoom": 1.25 if is_el_salvador else 1.15,
+        "emphasis": {
+            "label": {"show": True, "color": "#FFFFFF"},
+            "itemStyle": {"areaColor": "#6366F1"}
+        },
+        "itemStyle": {
+            "areaColor": "#1E293B",
+            "borderColor": "#334155",
+            "borderWidth": 0.8
+        }
+    }
+    if is_el_salvador:
+        geo_config["center"] = [-88.8965, 13.7942]
+        geo_config["zoom"] = 1.3
 
     return {
         "title": {"text": title, "textStyle": {"color": "#E2E8F0"}},
@@ -262,20 +308,7 @@ def _compile_geo_map_echarts(
             "left": 10,
             "bottom": 10
         },
-        "geo": {
-            "map": "world",
-            "roam": True,
-            "zoom": 1.15,
-            "emphasis": {
-                "label": {"show": True, "color": "#FFFFFF"},
-                "itemStyle": {"areaColor": "#6366F1"}
-            },
-            "itemStyle": {
-                "areaColor": "#1E293B",
-                "borderColor": "#334155",
-                "borderWidth": 0.8
-            }
-        },
+        "geo": geo_config,
         "series": [
             {
                 "name": metric_col,
@@ -329,8 +362,8 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
             is_c2_numeric = False
 
         # 1. Geo-Partitioned Pattern: (geo_col, category_col, metric_col)
-        is_c0_geo = any(w in c0.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación", "region", "región"])
-        is_c1_geo = any(w in c1.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación", "region", "región"])
+        is_c0_geo = any(w in c0.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación", "region", "región", "departamento", "departamentos", "depto", "deptos"])
+        is_c1_geo = any(w in c1.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación", "region", "región", "departamento", "departamentos", "depto", "deptos"])
         if is_c0_geo and is_c2_numeric:
             return _compile_geo_map_echarts(rows, dim_col=c0, metric_col=c2, title=title, category_col=c1)
         elif is_c1_geo and is_c2_numeric:
@@ -347,8 +380,16 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
     dim_col = columns[0]
     metric_cols = columns[1:]
 
-    # Detect Geo Pattern: dim_col is Pais / Country / Nation / BillingCountry
-    is_geo = any(w in dim_col.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación"])
+    # Detect Geo Pattern: dim_col is Pais / Country / Nation / BillingCountry / Departamento
+    is_geo = any(w in dim_col.lower() for w in ["pais", "país", "country", "nation", "nacion", "nación", "departamento", "departamentos", "depto", "deptos"])
+    if not is_geo:
+        sv_matches = sum(
+            1 for r in rows
+            if normalize_sv_department_name(str(r.get(dim_col, ""))) in SV_DEPARTMENTS
+        )
+        if sv_matches >= 2:
+            is_geo = True
+
     if is_geo and len(metric_cols) >= 1:
         return _compile_geo_map_echarts(rows, dim_col, metric_cols[0], title)
 

@@ -367,10 +367,14 @@ class SemanticCompiler:
                     where_conditions.append("censo_poblacion.nivel_geografico = 'municipio'")
                 elif primary_dim.table == "distritos":
                     where_conditions.append("censo_poblacion.nivel_geografico = 'distrito'")
+            elif model.engine_id == "el_salvador" and primary_dim.table == "departamentos":
+                where_conditions.append("departamentos.departamento_id != '00'")
 
             where_clause = f"WHERE {' AND '.join(where_conditions)}" if where_conditions else ""
 
-            rank_title = f"Top {limit_val}" if top_n else "Distribución Categórica"
+            is_geo_query = pattern == AnalyticalPattern.GEO_DISTRIBUTION or (primary_dim and primary_dim.table in ["departamentos", "customers"])
+            limit_count = limit_val if top_n else (500 if is_geo_query else limit_val)
+            rank_title = f"Top {limit_val}" if top_n else ("Distribución Geográfica" if is_geo_query else "Distribución Categórica")
             return (
                 f"/* =========================================================================\n"
                 f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
@@ -384,7 +388,7 @@ class SemanticCompiler:
                 f"{where_clause}\n"
                 f"GROUP BY {primary_dim.id}\n"
                 f"ORDER BY {metric.id} {order_dir}\n"
-                f"LIMIT {limit_val};"
+                f"LIMIT {limit_count};"
             )
 
         # Fallback safe select

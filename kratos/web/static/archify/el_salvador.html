@@ -5196,7 +5196,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <div class="pulse-dot"></div>
         <h1>Modelo Entidad-Relación Completo: EL_SALVADOR</h1>
       </div>
-      <p class="subtitle">7 tablas físicas • 41 atributos totales • 7 relaciones</p>
+      <p class="subtitle">8 tablas físicas • 50 atributos totales • 8 relaciones</p>
     </div>
 
 
@@ -5206,7 +5206,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
          data-preset-badge-editorial-plate="ARCHIFY / PLATE 04">
       <svg viewBox="0 0 1331 766" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="standard" data-erd-ui="cards" data-reader-fit="intrinsic-height" data-reader-min-text="7.5">
         <title id="archify-diagram-title">Modelo Entidad-Relación Completo: EL_SALVADOR</title>
-        <desc id="archify-diagram-description">7 tablas físicas • 41 atributos totales • 7 relaciones</desc>
+        <desc id="archify-diagram-description">8 tablas físicas • 50 atributos totales • 8 relaciones</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5291,16 +5291,18 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
              to the shared side, so a cardinality glyph that reaches further out
              has to stay readable over it, and the ring's mask has to be able to
              punch through) -->
+        <path data-er-trunk="" data-composition-points="433,56;433,76" d="M 433 56 L 433 76" class="a-default" stroke-width="1.5"/>
         <path data-er-trunk="" data-composition-points="420.5,100;420.5,302" d="M 420.5 100 L 420.5 302" class="a-default" stroke-width="1.5"/>
 
         <!-- Relationship paths (before entities for correct z-order) -->
-        <path data-edge-from="municipios" data-edge-to="departamentos" data-edge-key="0" data-edge-id="rel_municipios_departamentos_departamento_id" data-er-ends="many one" data-composition-points="502,76;417,76" d="M 502 76 L 417 76" class="a-default" data-animate="edge" style="--step:0" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
-        <path data-edge-from="distritos" data-edge-to="departamentos" data-edge-key="1" data-edge-id="rel_distritos_departamentos_departamento_id" data-er-ends="many one" data-composition-points="1127,40;1127,16;441,16;441,88;417,88" d="M 1127 40 L 1127 24 Q 1127 16 1119 16 L 449 16 Q 441 16 441 24 L 441 80 Q 441 88 433 88 L 417 88" class="a-default" data-animate="edge" style="--step:1" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
-        <path data-edge-from="distritos" data-edge-to="municipios" data-edge-key="2" data-edge-id="rel_distritos_municipios_municipio_id" data-er-ends="many one" data-composition-points="947,98;862,98" d="M 947 98 L 862 98" class="a-default" data-animate="edge" style="--step:2" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
-        <path data-edge-from="censo_poblacion" data-edge-to="distritos" data-edge-key="3" data-edge-id="rel_censo_poblacion_distritos_distrito_id" data-er-ends="many one" data-composition-points="388.5,206;388.5,140;947,140" d="M 388.5 206 L 388.5 148 Q 388.5 140 396.5 140 L 947 140" class="a-default" data-animate="edge" style="--step:3" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
-        <path data-edge-from="censo_poblacion" data-edge-to="municipios" data-edge-key="4" data-edge-id="rel_censo_poblacion_municipios_municipio_id" data-er-ends="many one" data-composition-points="404.5,302;420.5,302;420.5,100;502,100" d="M 404.5 302 L 420.5 302 M 420.5 100 L 502 100" class="a-default" data-animate="edge" style="--step:4" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
-        <path data-edge-from="censo_poblacion" data-edge-to="departamentos" data-edge-key="5" data-edge-id="rel_censo_poblacion_departamentos_departamento_id" data-er-ends="many one" data-composition-points="212.5,206;212.5,136" d="M 212.5 206 L 212.5 136" class="a-default" data-animate="edge" style="--step:5" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
-        <path data-edge-from="clima_indicadores" data-edge-to="departamentos" data-edge-key="6" data-edge-id="rel_clima_indicadores_departamentos_departamento_id" data-er-ends="many one" data-composition-points="224.5,472;224.5,435;29,435;29,160;236.5,160;236.5,136" d="M 224.5 472 L 224.5 443 Q 224.5 435 216.5 435 L 37 435 Q 29 435 29 427 L 29 168 Q 29 160 37 160 L 228.5 160 Q 236.5 160 236.5 152 L 236.5 136" class="a-default" data-animate="edge" style="--step:6" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
+        <path data-edge-from="municipios" data-edge-to="departamentos" data-edge-key="0" data-edge-id="rel_municipios_departamentos_departamento_id" data-er-ends="many one" data-composition-points="497,76;433,76;433,56;417,56" d="M 497 76 L 433 76 M 433 56 L 417 56" class="a-default" data-animate="edge" style="--step:0" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
+        <path data-edge-from="distritos" data-edge-to="departamentos" data-edge-key="1" data-edge-id="rel_distritos_departamentos_departamento_id" data-er-ends="many one" data-composition-points="942,74;870,74;870,27;441,27;441,77.33333333333333;417,77.33333333333333" d="M 942 74 L 878 74 Q 870 74 870 66 L 870 35 Q 870 27 862 27 L 449 27 Q 441 27 441 35 L 441 69.33333333333333 Q 441 77.33333333333333 433 77.33333333333333 L 417 77.33333333333333" class="a-default" data-animate="edge" style="--step:1" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
+        <path data-edge-from="distritos" data-edge-to="municipios" data-edge-key="2" data-edge-id="rel_distritos_municipios_municipio_id" data-er-ends="many one" data-composition-points="942,98;857,98" d="M 942 98 L 857 98" class="a-default" data-animate="edge" style="--step:2" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
+        <path data-edge-from="censo_poblacion" data-edge-to="distritos" data-edge-key="3" data-edge-id="rel_censo_poblacion_distritos_distrito_id" data-er-ends="many one" data-composition-points="388.5,206;388.5,140;942,140" d="M 388.5 206 L 388.5 148 Q 388.5 140 396.5 140 L 942 140" class="a-default" data-animate="edge" style="--step:3" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
+        <path data-edge-from="censo_poblacion" data-edge-to="municipios" data-edge-key="4" data-edge-id="rel_censo_poblacion_municipios_municipio_id" data-er-ends="many one" data-composition-points="404.5,302;420.5,302;420.5,100;497,100" d="M 404.5 302 L 420.5 302 M 420.5 100 L 497 100" class="a-default" data-animate="edge" style="--step:4" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
+        <path data-edge-from="censo_poblacion" data-edge-to="departamentos" data-edge-key="5" data-edge-id="rel_censo_poblacion_departamentos_departamento_id" data-er-ends="many one" data-composition-points="224.5,206;224.5,136" d="M 224.5 206 L 224.5 136" class="a-default" data-animate="edge" style="--step:5" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
+        <path data-edge-from="censo_emigracion" data-edge-to="departamentos" data-edge-key="6" data-edge-id="rel_censo_emigracion_departamentos_departamento_id" data-er-ends="many one" data-composition-points="497,314;457,314;457,98.66666666666667;417,98.66666666666667" d="M 497 314 L 465 314 Q 457 314 457 306 L 457 106.66666666666667 Q 457 98.66666666666667 449 98.66666666666667 L 417 98.66666666666667" class="a-default" data-animate="edge" style="--step:6" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
+        <path data-edge-from="clima_indicadores" data-edge-to="departamentos" data-edge-key="7" data-edge-id="rel_clima_indicadores_departamentos_departamento_id" data-er-ends="many one" data-composition-points="497,590;441,590;441,120;417,120" d="M 497 590 L 449 590 Q 441 590 441 582 L 441 128 Q 441 120 433 120 L 417 120" class="a-default" data-animate="edge" style="--step:7" stroke-width="1.5" marker-start="url(#er-many-start)" marker-end="url(#er-one-end)"/>
 
         <!-- Entities -->
         <g id="node-departamentos" data-node-id="departamentos" data-node-label="departamentos" tabindex="0" role="button" aria-label="Focus departamentos, 3 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="3 atributos" data-node-context="Entity" class="er-hue-database">
@@ -5340,78 +5342,78 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
         <g id="node-municipios" data-node-id="municipios" data-node-label="municipios" tabindex="0" role="button" aria-label="Focus municipios, 3 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="3 atributos" data-node-context="Entity" class="er-hue-database">
           <title>municipios · 3 atributos · Entity</title>
-          <rect x="502" y="40" width="360" height="96" rx="8" class="c-mask"/>
-          <rect x="502" y="40" width="360" height="96" rx="8" class="c-database er-table" data-animate="node" style="--step:0" stroke-width="1.2"/>
-          <path class="er-table-header" d="M 510 40 H 854 A 8 8 0 0 1 862 48 V 70 H 502 V 48 A 8 8 0 0 1 510 40 Z"/>
-          <path class="er-table-cap" d="M 514 41.4 H 850" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(510 47) scale(0.875)">
+          <rect x="497" y="40" width="360" height="96" rx="8" class="c-mask"/>
+          <rect x="497" y="40" width="360" height="96" rx="8" class="c-database er-table" data-animate="node" style="--step:0" stroke-width="1.2"/>
+          <path class="er-table-header" d="M 505 40 H 849 A 8 8 0 0 1 857 48 V 70 H 497 V 48 A 8 8 0 0 1 505 40 Z"/>
+          <path class="er-table-cap" d="M 509 41.4 H 845" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(505 47) scale(0.875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" x="682" y="59" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">municipios</text>
-          <line x1="502" y1="70" x2="862" y2="70" class="c-grid er-header-rule" stroke-width="1"/>
+          <text data-node-label="" x="677" y="59" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">municipios</text>
+          <line x1="497" y1="70" x2="857" y2="70" class="c-grid er-header-rule" stroke-width="1"/>
           <g data-detail="context" data-er-row="0">
-            <line x1="502" y1="70" x2="862" y2="70" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <line x1="497" y1="70" x2="857" y2="70" class="c-grid er-row-rule" stroke-width="0.5"/>
 
-            <rect x="512" y="75" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="pk"/><text data-detail="context" x="523" y="85" class="t-database" font-size="9" font-weight="600">PK</text>
-            <text data-detail="context" x="544" y="85" class="t-primary er-name-pk" font-size="11">municipio_id</text>
-            <text data-detail="context" x="850" y="85" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <rect x="507" y="75" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="pk"/><text data-detail="context" x="518" y="85" class="t-database" font-size="9" font-weight="600">PK</text>
+            <text data-detail="context" x="539" y="85" class="t-primary er-name-pk" font-size="11">municipio_id</text>
+            <text data-detail="context" x="845" y="85" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="1">
-            <line x1="502" y1="90" x2="862" y2="90" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="506" y="91" width="352" height="18" rx="4" class="er-zebra"/>
-            <rect x="512" y="95" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="523" y="105" class="t-messagebus" font-size="9" font-weight="600">FK</text>
-            <text data-detail="context" x="544" y="105" class="t-primary" font-size="11">departamento_id</text>
-            <text data-detail="context" x="850" y="105" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <line x1="497" y1="90" x2="857" y2="90" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="91" width="352" height="18" rx="4" class="er-zebra"/>
+            <rect x="507" y="95" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="518" y="105" class="t-messagebus" font-size="9" font-weight="600">FK</text>
+            <text data-detail="context" x="539" y="105" class="t-primary" font-size="11">departamento_id</text>
+            <text data-detail="context" x="845" y="105" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="2">
-            <line x1="502" y1="110" x2="862" y2="110" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <line x1="497" y1="110" x2="857" y2="110" class="c-grid er-row-rule" stroke-width="0.5"/>
 
 
-            <text data-detail="context" x="544" y="125" class="t-primary" font-size="11">municipio_nombre</text>
-            <text data-detail="context" x="850" y="125" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <text data-detail="context" x="539" y="125" class="t-primary" font-size="11">municipio_nombre</text>
+            <text data-detail="context" x="845" y="125" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
         </g>
 
         <g id="node-distritos" data-node-id="distritos" data-node-label="distritos" tabindex="0" role="button" aria-label="Focus distritos, 4 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="4 atributos" data-node-context="Entity" class="er-hue-database">
           <title>distritos · 4 atributos · Entity</title>
-          <rect x="947" y="40" width="360" height="116" rx="8" class="c-mask"/>
-          <rect x="947" y="40" width="360" height="116" rx="8" class="c-database er-table" data-animate="node" style="--step:1" stroke-width="1.2"/>
-          <path class="er-table-header" d="M 955 40 H 1299 A 8 8 0 0 1 1307 48 V 70 H 947 V 48 A 8 8 0 0 1 955 40 Z"/>
-          <path class="er-table-cap" d="M 959 41.4 H 1295" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(955 47) scale(0.875)">
+          <rect x="942" y="40" width="360" height="116" rx="8" class="c-mask"/>
+          <rect x="942" y="40" width="360" height="116" rx="8" class="c-database er-table" data-animate="node" style="--step:1" stroke-width="1.2"/>
+          <path class="er-table-header" d="M 950 40 H 1294 A 8 8 0 0 1 1302 48 V 70 H 942 V 48 A 8 8 0 0 1 950 40 Z"/>
+          <path class="er-table-cap" d="M 954 41.4 H 1290" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(950 47) scale(0.875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" x="1127" y="59" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">distritos</text>
-          <line x1="947" y1="70" x2="1307" y2="70" class="c-grid er-header-rule" stroke-width="1"/>
+          <text data-node-label="" x="1122" y="59" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">distritos</text>
+          <line x1="942" y1="70" x2="1302" y2="70" class="c-grid er-header-rule" stroke-width="1"/>
           <g data-detail="context" data-er-row="0">
-            <line x1="947" y1="70" x2="1307" y2="70" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <line x1="942" y1="70" x2="1302" y2="70" class="c-grid er-row-rule" stroke-width="0.5"/>
 
-            <rect x="957" y="75" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="pk"/><text data-detail="context" x="968" y="85" class="t-database" font-size="9" font-weight="600">PK</text>
-            <text data-detail="context" x="989" y="85" class="t-primary er-name-pk" font-size="11">distrito_id</text>
-            <text data-detail="context" x="1295" y="85" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <rect x="952" y="75" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="pk"/><text data-detail="context" x="963" y="85" class="t-database" font-size="9" font-weight="600">PK</text>
+            <text data-detail="context" x="984" y="85" class="t-primary er-name-pk" font-size="11">distrito_id</text>
+            <text data-detail="context" x="1290" y="85" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="1">
-            <line x1="947" y1="90" x2="1307" y2="90" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="951" y="91" width="352" height="18" rx="4" class="er-zebra"/>
-            <rect x="957" y="95" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="968" y="105" class="t-messagebus" font-size="9" font-weight="600">FK</text>
-            <text data-detail="context" x="989" y="105" class="t-primary" font-size="11">municipio_id</text>
-            <text data-detail="context" x="1295" y="105" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <line x1="942" y1="90" x2="1302" y2="90" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="946" y="91" width="352" height="18" rx="4" class="er-zebra"/>
+            <rect x="952" y="95" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="963" y="105" class="t-messagebus" font-size="9" font-weight="600">FK</text>
+            <text data-detail="context" x="984" y="105" class="t-primary" font-size="11">municipio_id</text>
+            <text data-detail="context" x="1290" y="105" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="2">
-            <line x1="947" y1="110" x2="1307" y2="110" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <line x1="942" y1="110" x2="1302" y2="110" class="c-grid er-row-rule" stroke-width="0.5"/>
 
-            <rect x="957" y="115" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="968" y="125" class="t-messagebus" font-size="9" font-weight="600">FK</text>
-            <text data-detail="context" x="989" y="125" class="t-primary" font-size="11">departamento_id</text>
-            <text data-detail="context" x="1295" y="125" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <rect x="952" y="115" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="963" y="125" class="t-messagebus" font-size="9" font-weight="600">FK</text>
+            <text data-detail="context" x="984" y="125" class="t-primary" font-size="11">departamento_id</text>
+            <text data-detail="context" x="1290" y="125" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="3">
-            <line x1="947" y1="130" x2="1307" y2="130" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="951" y="131" width="352" height="18" rx="4" class="er-zebra"/>
+            <line x1="942" y1="130" x2="1302" y2="130" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="946" y="131" width="352" height="18" rx="4" class="er-zebra"/>
 
-            <text data-detail="context" x="989" y="145" class="t-primary" font-size="11">distrito_nombre</text>
-            <text data-detail="context" x="1295" y="145" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <text data-detail="context" x="984" y="145" class="t-primary" font-size="11">distrito_nombre</text>
+            <text data-detail="context" x="1290" y="145" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
         </g>
 
@@ -5492,129 +5494,150 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
         </g>
 
-        <g id="node-remesas_mensuales" data-node-id="remesas_mensuales" data-node-label="remesas_mensuales" tabindex="0" role="button" aria-label="Focus remesas_mensuales, 6 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="6 atributos" data-node-context="Entity" class="er-hue-database">
-          <title>remesas_mensuales · 6 atributos · Entity</title>
-          <rect x="497" y="206" width="370" height="156" rx="8" class="c-mask"/>
-          <rect x="497" y="206" width="370" height="156" rx="8" class="c-database er-table" data-animate="node" style="--step:4" stroke-width="1.2"/>
-          <path class="er-table-header" d="M 505 206 H 859 A 8 8 0 0 1 867 214 V 236 H 497 V 214 A 8 8 0 0 1 505 206 Z"/>
-          <path class="er-table-cap" d="M 509 207.4 H 855" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+        <g id="node-censo_emigracion" data-node-id="censo_emigracion" data-node-label="censo_emigracion" tabindex="0" role="button" aria-label="Focus censo_emigracion, 9 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="9 atributos" data-node-context="Entity" class="er-hue-database">
+          <title>censo_emigracion · 9 atributos · Entity</title>
+          <rect x="497" y="206" width="360" height="216" rx="8" class="c-mask"/>
+          <rect x="497" y="206" width="360" height="216" rx="8" class="c-database er-table" data-animate="node" style="--step:6" stroke-width="1.2"/>
+          <path class="er-table-header" d="M 505 206 H 849 A 8 8 0 0 1 857 214 V 236 H 497 V 214 A 8 8 0 0 1 505 206 Z"/>
+          <path class="er-table-cap" d="M 509 207.4 H 845" stroke-width="2.6" stroke-linecap="round" fill="none"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(505 213) scale(0.875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" x="682" y="225" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">remesas_mensuales</text>
-          <line x1="497" y1="236" x2="867" y2="236" class="c-grid er-header-rule" stroke-width="1"/>
+          <text data-node-label="" x="677" y="225" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">censo_emigracion</text>
+          <line x1="497" y1="236" x2="857" y2="236" class="c-grid er-header-rule" stroke-width="1"/>
           <g data-detail="context" data-er-row="0">
-            <line x1="497" y1="236" x2="867" y2="236" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <line x1="497" y1="236" x2="857" y2="236" class="c-grid er-row-rule" stroke-width="0.5"/>
 
             <rect x="507" y="241" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="pk"/><text data-detail="context" x="518" y="251" class="t-database" font-size="9" font-weight="600">PK</text>
             <text data-detail="context" x="539" y="251" class="t-primary er-name-pk" font-size="11">id</text>
-            <text data-detail="context" x="855" y="251" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+            <text data-detail="context" x="845" y="251" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
           </g>
           <g data-detail="context" data-er-row="1">
-            <line x1="497" y1="256" x2="867" y2="256" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="501" y="257" width="362" height="18" rx="4" class="er-zebra"/>
-
-            <text data-detail="context" x="539" y="271" class="t-primary" font-size="11">periodo</text>
-            <text data-detail="context" x="855" y="271" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <line x1="497" y1="256" x2="857" y2="256" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="257" width="352" height="18" rx="4" class="er-zebra"/>
+            <rect x="507" y="261" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="518" y="271" class="t-messagebus" font-size="9" font-weight="600">FK</text>
+            <text data-detail="context" x="539" y="271" class="t-primary" font-size="11">departamento_id</text>
+            <text data-detail="context" x="845" y="271" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="2">
-            <line x1="497" y1="276" x2="867" y2="276" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <line x1="497" y1="276" x2="857" y2="276" class="c-grid er-row-rule" stroke-width="0.5"/>
 
 
-            <text data-detail="context" x="539" y="291" class="t-primary" font-size="11">monto_millones_usd</text>
-            <text data-detail="context" x="855" y="291" class="er-type" font-size="10.5" text-anchor="end">REAL</text>
+            <text data-detail="context" x="539" y="291" class="t-primary" font-size="11">municipio_id</text>
+            <text data-detail="context" x="845" y="291" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="3">
-            <line x1="497" y1="296" x2="867" y2="296" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="501" y="297" width="362" height="18" rx="4" class="er-zebra"/>
+            <line x1="497" y1="296" x2="857" y2="296" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="297" width="352" height="18" rx="4" class="er-zebra"/>
 
-            <text data-detail="context" x="539" y="311" class="t-primary" font-size="11">fuente</text>
-            <text data-detail="context" x="855" y="311" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <text data-detail="context" x="539" y="311" class="t-primary" font-size="11">distrito_id</text>
+            <text data-detail="context" x="845" y="311" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="4">
-            <line x1="497" y1="316" x2="867" y2="316" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <line x1="497" y1="316" x2="857" y2="316" class="c-grid er-row-rule" stroke-width="0.5"/>
 
 
-            <text data-detail="context" x="539" y="331" class="t-primary" font-size="11">frecuencia</text>
-            <text data-detail="context" x="855" y="331" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <text data-detail="context" x="539" y="331" class="t-primary" font-size="11">sexo</text>
+            <text data-detail="context" x="845" y="331" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="5">
-            <line x1="497" y1="336" x2="867" y2="336" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="501" y="337" width="362" height="18" rx="4" class="er-zebra"/>
+            <line x1="497" y1="336" x2="857" y2="336" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="337" width="352" height="18" rx="4" class="er-zebra"/>
 
-            <text data-detail="context" x="539" y="351" class="t-primary" font-size="11">es_preliminar</text>
-            <text data-detail="context" x="855" y="351" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+            <text data-detail="context" x="539" y="351" class="t-primary" font-size="11">edad</text>
+            <text data-detail="context" x="845" y="351" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+          </g>
+          <g data-detail="context" data-er-row="6">
+            <line x1="497" y1="356" x2="857" y2="356" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+
+            <text data-detail="context" x="539" y="371" class="t-primary" font-size="11">anio_emigracion</text>
+            <text data-detail="context" x="845" y="371" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+          </g>
+          <g data-detail="context" data-er-row="7">
+            <line x1="497" y1="376" x2="857" y2="376" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="377" width="352" height="18" rx="4" class="er-zebra"/>
+
+            <text data-detail="context" x="539" y="391" class="t-primary" font-size="11">pais_destino_cod</text>
+            <text data-detail="context" x="845" y="391" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+          </g>
+          <g data-detail="context" data-er-row="8">
+            <line x1="497" y1="396" x2="857" y2="396" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+
+            <text data-detail="context" x="539" y="411" class="t-primary" font-size="11">causa_cod</text>
+            <text data-detail="context" x="845" y="411" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+          </g>
+        </g>
+
+        <g id="node-remesas_mensuales" data-node-id="remesas_mensuales" data-node-label="remesas_mensuales" tabindex="0" role="button" aria-label="Focus remesas_mensuales, 6 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="6 atributos" data-node-context="Entity" class="er-hue-database">
+          <title>remesas_mensuales · 6 atributos · Entity</title>
+          <rect x="937" y="206" width="370" height="156" rx="8" class="c-mask"/>
+          <rect x="937" y="206" width="370" height="156" rx="8" class="c-database er-table" data-animate="node" style="--step:5" stroke-width="1.2"/>
+          <path class="er-table-header" d="M 945 206 H 1299 A 8 8 0 0 1 1307 214 V 236 H 937 V 214 A 8 8 0 0 1 945 206 Z"/>
+          <path class="er-table-cap" d="M 949 207.4 H 1295" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(945 213) scale(0.875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" x="1122" y="225" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">remesas_mensuales</text>
+          <line x1="937" y1="236" x2="1307" y2="236" class="c-grid er-header-rule" stroke-width="1"/>
+          <g data-detail="context" data-er-row="0">
+            <line x1="937" y1="236" x2="1307" y2="236" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+            <rect x="947" y="241" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="pk"/><text data-detail="context" x="958" y="251" class="t-database" font-size="9" font-weight="600">PK</text>
+            <text data-detail="context" x="979" y="251" class="t-primary er-name-pk" font-size="11">id</text>
+            <text data-detail="context" x="1295" y="251" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+          </g>
+          <g data-detail="context" data-er-row="1">
+            <line x1="937" y1="256" x2="1307" y2="256" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="941" y="257" width="362" height="18" rx="4" class="er-zebra"/>
+
+            <text data-detail="context" x="979" y="271" class="t-primary" font-size="11">periodo</text>
+            <text data-detail="context" x="1295" y="271" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+          </g>
+          <g data-detail="context" data-er-row="2">
+            <line x1="937" y1="276" x2="1307" y2="276" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+
+            <text data-detail="context" x="979" y="291" class="t-primary" font-size="11">monto_millones_usd</text>
+            <text data-detail="context" x="1295" y="291" class="er-type" font-size="10.5" text-anchor="end">REAL</text>
+          </g>
+          <g data-detail="context" data-er-row="3">
+            <line x1="937" y1="296" x2="1307" y2="296" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="941" y="297" width="362" height="18" rx="4" class="er-zebra"/>
+
+            <text data-detail="context" x="979" y="311" class="t-primary" font-size="11">fuente</text>
+            <text data-detail="context" x="1295" y="311" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+          </g>
+          <g data-detail="context" data-er-row="4">
+            <line x1="937" y1="316" x2="1307" y2="316" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+
+            <text data-detail="context" x="979" y="331" class="t-primary" font-size="11">frecuencia</text>
+            <text data-detail="context" x="1295" y="331" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+          </g>
+          <g data-detail="context" data-er-row="5">
+            <line x1="937" y1="336" x2="1307" y2="336" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="941" y="337" width="362" height="18" rx="4" class="er-zebra"/>
+
+            <text data-detail="context" x="979" y="351" class="t-primary" font-size="11">es_preliminar</text>
+            <text data-detail="context" x="1295" y="351" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
           </g>
         </g>
 
         <g id="node-ipc_mensual" data-node-id="ipc_mensual" data-node-label="ipc_mensual" tabindex="0" role="button" aria-label="Focus ipc_mensual, 6 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="6 atributos" data-node-context="Entity" class="er-hue-database">
           <title>ipc_mensual · 6 atributos · Entity</title>
-          <rect x="947" y="206" width="360" height="156" rx="8" class="c-mask"/>
-          <rect x="947" y="206" width="360" height="156" rx="8" class="c-database er-table" data-animate="node" style="--step:5" stroke-width="1.2"/>
-          <path class="er-table-header" d="M 955 206 H 1299 A 8 8 0 0 1 1307 214 V 236 H 947 V 214 A 8 8 0 0 1 955 206 Z"/>
-          <path class="er-table-cap" d="M 959 207.4 H 1295" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(955 213) scale(0.875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
-          </g>
-          <text data-node-label="" x="1127" y="225" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">ipc_mensual</text>
-          <line x1="947" y1="236" x2="1307" y2="236" class="c-grid er-header-rule" stroke-width="1"/>
-          <g data-detail="context" data-er-row="0">
-            <line x1="947" y1="236" x2="1307" y2="236" class="c-grid er-row-rule" stroke-width="0.5"/>
-
-            <rect x="957" y="241" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="pk"/><text data-detail="context" x="968" y="251" class="t-database" font-size="9" font-weight="600">PK</text>
-            <text data-detail="context" x="989" y="251" class="t-primary er-name-pk" font-size="11">id</text>
-            <text data-detail="context" x="1295" y="251" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
-          </g>
-          <g data-detail="context" data-er-row="1">
-            <line x1="947" y1="256" x2="1307" y2="256" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="951" y="257" width="352" height="18" rx="4" class="er-zebra"/>
-
-            <text data-detail="context" x="989" y="271" class="t-primary" font-size="11">periodo</text>
-            <text data-detail="context" x="1295" y="271" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
-          </g>
-          <g data-detail="context" data-er-row="2">
-            <line x1="947" y1="276" x2="1307" y2="276" class="c-grid er-row-rule" stroke-width="0.5"/>
-
-
-            <text data-detail="context" x="989" y="291" class="t-primary" font-size="11">indice</text>
-            <text data-detail="context" x="1295" y="291" class="er-type" font-size="10.5" text-anchor="end">REAL</text>
-          </g>
-          <g data-detail="context" data-er-row="3">
-            <line x1="947" y1="296" x2="1307" y2="296" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="951" y="297" width="352" height="18" rx="4" class="er-zebra"/>
-
-            <text data-detail="context" x="989" y="311" class="t-primary" font-size="11">serie</text>
-            <text data-detail="context" x="1295" y="311" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
-          </g>
-          <g data-detail="context" data-er-row="4">
-            <line x1="947" y1="316" x2="1307" y2="316" class="c-grid er-row-rule" stroke-width="0.5"/>
-
-
-            <text data-detail="context" x="989" y="331" class="t-primary" font-size="11">base_indice</text>
-            <text data-detail="context" x="1295" y="331" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
-          </g>
-          <g data-detail="context" data-er-row="5">
-            <line x1="947" y1="336" x2="1307" y2="336" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="951" y="337" width="352" height="18" rx="4" class="er-zebra"/>
-
-            <text data-detail="context" x="989" y="351" class="t-primary" font-size="11">fuente</text>
-            <text data-detail="context" x="1295" y="351" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
-          </g>
-        </g>
-
-        <g id="node-clima_indicadores" data-node-id="clima_indicadores" data-node-label="clima_indicadores" tabindex="0" role="button" aria-label="Focus clima_indicadores, 10 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="10 atributos" data-node-context="Entity" class="er-hue-database">
-          <title>clima_indicadores · 10 atributos · Entity</title>
-          <rect x="44.5" y="472" width="360" height="236" rx="8" class="c-mask"/>
-          <rect x="44.5" y="472" width="360" height="236" rx="8" class="c-database er-table" data-animate="node" style="--step:6" stroke-width="1.2"/>
+          <rect x="44.5" y="472" width="360" height="156" rx="8" class="c-mask"/>
+          <rect x="44.5" y="472" width="360" height="156" rx="8" class="c-database er-table" data-animate="node" style="--step:6" stroke-width="1.2"/>
           <path class="er-table-header" d="M 52.5 472 H 396.5 A 8 8 0 0 1 404.5 480 V 502 H 44.5 V 480 A 8 8 0 0 1 52.5 472 Z"/>
           <path class="er-table-cap" d="M 56.5 473.4 H 392.5" stroke-width="2.6" stroke-linecap="round" fill="none"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(52.5 479) scale(0.875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" x="224.5" y="491" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">clima_indicadores</text>
+          <text data-node-label="" x="224.5" y="491" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">ipc_mensual</text>
           <line x1="44.5" y1="502" x2="404.5" y2="502" class="c-grid er-header-rule" stroke-width="1"/>
           <g data-detail="context" data-er-row="0">
             <line x1="44.5" y1="502" x2="404.5" y2="502" class="c-grid er-row-rule" stroke-width="0.5"/>
@@ -5627,64 +5650,120 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <line x1="44.5" y1="522" x2="404.5" y2="522" class="c-grid er-row-rule" stroke-width="0.5"/>
             <rect x="48.5" y="523" width="352" height="18" rx="4" class="er-zebra"/>
 
-            <text data-detail="context" x="86.5" y="537" class="t-primary" font-size="11">anio</text>
-            <text data-detail="context" x="392.5" y="537" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+            <text data-detail="context" x="86.5" y="537" class="t-primary" font-size="11">periodo</text>
+            <text data-detail="context" x="392.5" y="537" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="2">
             <line x1="44.5" y1="542" x2="404.5" y2="542" class="c-grid er-row-rule" stroke-width="0.5"/>
 
 
-            <text data-detail="context" x="86.5" y="557" class="t-primary" font-size="11">indicador</text>
-            <text data-detail="context" x="392.5" y="557" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <text data-detail="context" x="86.5" y="557" class="t-primary" font-size="11">indice</text>
+            <text data-detail="context" x="392.5" y="557" class="er-type" font-size="10.5" text-anchor="end">REAL</text>
           </g>
           <g data-detail="context" data-er-row="3">
             <line x1="44.5" y1="562" x2="404.5" y2="562" class="c-grid er-row-rule" stroke-width="0.5"/>
             <rect x="48.5" y="563" width="352" height="18" rx="4" class="er-zebra"/>
 
-            <text data-detail="context" x="86.5" y="577" class="t-primary" font-size="11">valor</text>
-            <text data-detail="context" x="392.5" y="577" class="er-type" font-size="10.5" text-anchor="end">REAL</text>
+            <text data-detail="context" x="86.5" y="577" class="t-primary" font-size="11">serie</text>
+            <text data-detail="context" x="392.5" y="577" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="4">
             <line x1="44.5" y1="582" x2="404.5" y2="582" class="c-grid er-row-rule" stroke-width="0.5"/>
 
 
-            <text data-detail="context" x="86.5" y="597" class="t-primary" font-size="11">unidad</text>
+            <text data-detail="context" x="86.5" y="597" class="t-primary" font-size="11">base_indice</text>
             <text data-detail="context" x="392.5" y="597" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="5">
             <line x1="44.5" y1="602" x2="404.5" y2="602" class="c-grid er-row-rule" stroke-width="0.5"/>
             <rect x="48.5" y="603" width="352" height="18" rx="4" class="er-zebra"/>
 
-            <text data-detail="context" x="86.5" y="617" class="t-primary" font-size="11">estacion</text>
+            <text data-detail="context" x="86.5" y="617" class="t-primary" font-size="11">fuente</text>
             <text data-detail="context" x="392.5" y="617" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
-          <g data-detail="context" data-er-row="6">
-            <line x1="44.5" y1="622" x2="404.5" y2="622" class="c-grid er-row-rule" stroke-width="0.5"/>
+        </g>
 
-            <rect x="54.5" y="627" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="65.5" y="637" class="t-messagebus" font-size="9" font-weight="600">FK</text>
-            <text data-detail="context" x="86.5" y="637" class="t-primary" font-size="11">departamento_id</text>
-            <text data-detail="context" x="392.5" y="637" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+        <g id="node-clima_indicadores" data-node-id="clima_indicadores" data-node-label="clima_indicadores" tabindex="0" role="button" aria-label="Focus clima_indicadores, 10 atributos, Entity" aria-pressed="false" data-node-kind="database" data-node-sublabel="10 atributos" data-node-context="Entity" class="er-hue-database">
+          <title>clima_indicadores · 10 atributos · Entity</title>
+          <rect x="497" y="472" width="360" height="236" rx="8" class="c-mask"/>
+          <rect x="497" y="472" width="360" height="236" rx="8" class="c-database er-table" data-animate="node" style="--step:7" stroke-width="1.2"/>
+          <path class="er-table-header" d="M 505 472 H 849 A 8 8 0 0 1 857 480 V 502 H 497 V 480 A 8 8 0 0 1 505 472 Z"/>
+          <path class="er-table-cap" d="M 509 473.4 H 845" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(505 479) scale(0.875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" x="677" y="491" class="t-primary er-title" font-size="13" font-weight="700" text-anchor="middle">clima_indicadores</text>
+          <line x1="497" y1="502" x2="857" y2="502" class="c-grid er-header-rule" stroke-width="1"/>
+          <g data-detail="context" data-er-row="0">
+            <line x1="497" y1="502" x2="857" y2="502" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+            <rect x="507" y="507" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="pk"/><text data-detail="context" x="518" y="517" class="t-database" font-size="9" font-weight="600">PK</text>
+            <text data-detail="context" x="539" y="517" class="t-primary er-name-pk" font-size="11">id</text>
+            <text data-detail="context" x="845" y="517" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+          </g>
+          <g data-detail="context" data-er-row="1">
+            <line x1="497" y1="522" x2="857" y2="522" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="523" width="352" height="18" rx="4" class="er-zebra"/>
+
+            <text data-detail="context" x="539" y="537" class="t-primary" font-size="11">anio</text>
+            <text data-detail="context" x="845" y="537" class="er-type" font-size="10.5" text-anchor="end">INTEGER</text>
+          </g>
+          <g data-detail="context" data-er-row="2">
+            <line x1="497" y1="542" x2="857" y2="542" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+
+            <text data-detail="context" x="539" y="557" class="t-primary" font-size="11">indicador</text>
+            <text data-detail="context" x="845" y="557" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+          </g>
+          <g data-detail="context" data-er-row="3">
+            <line x1="497" y1="562" x2="857" y2="562" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="563" width="352" height="18" rx="4" class="er-zebra"/>
+
+            <text data-detail="context" x="539" y="577" class="t-primary" font-size="11">valor</text>
+            <text data-detail="context" x="845" y="577" class="er-type" font-size="10.5" text-anchor="end">REAL</text>
+          </g>
+          <g data-detail="context" data-er-row="4">
+            <line x1="497" y1="582" x2="857" y2="582" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+
+            <text data-detail="context" x="539" y="597" class="t-primary" font-size="11">unidad</text>
+            <text data-detail="context" x="845" y="597" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+          </g>
+          <g data-detail="context" data-er-row="5">
+            <line x1="497" y1="602" x2="857" y2="602" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="603" width="352" height="18" rx="4" class="er-zebra"/>
+
+            <text data-detail="context" x="539" y="617" class="t-primary" font-size="11">estacion</text>
+            <text data-detail="context" x="845" y="617" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+          </g>
+          <g data-detail="context" data-er-row="6">
+            <line x1="497" y1="622" x2="857" y2="622" class="c-grid er-row-rule" stroke-width="0.5"/>
+
+            <rect x="507" y="627" width="22" height="13" rx="3" class="er-key-badge" data-er-badge="fk"/><text data-detail="context" x="518" y="637" class="t-messagebus" font-size="9" font-weight="600">FK</text>
+            <text data-detail="context" x="539" y="637" class="t-primary" font-size="11">departamento_id</text>
+            <text data-detail="context" x="845" y="637" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="7">
-            <line x1="44.5" y1="642" x2="404.5" y2="642" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="48.5" y="643" width="352" height="18" rx="4" class="er-zebra"/>
+            <line x1="497" y1="642" x2="857" y2="642" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="643" width="352" height="18" rx="4" class="er-zebra"/>
 
-            <text data-detail="context" x="86.5" y="657" class="t-primary" font-size="11">periodo_inicio</text>
-            <text data-detail="context" x="392.5" y="657" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <text data-detail="context" x="539" y="657" class="t-primary" font-size="11">periodo_inicio</text>
+            <text data-detail="context" x="845" y="657" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="8">
-            <line x1="44.5" y1="662" x2="404.5" y2="662" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <line x1="497" y1="662" x2="857" y2="662" class="c-grid er-row-rule" stroke-width="0.5"/>
 
 
-            <text data-detail="context" x="86.5" y="677" class="t-primary" font-size="11">periodo_fin</text>
-            <text data-detail="context" x="392.5" y="677" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <text data-detail="context" x="539" y="677" class="t-primary" font-size="11">periodo_fin</text>
+            <text data-detail="context" x="845" y="677" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
           <g data-detail="context" data-er-row="9">
-            <line x1="44.5" y1="682" x2="404.5" y2="682" class="c-grid er-row-rule" stroke-width="0.5"/>
-            <rect x="48.5" y="683" width="352" height="18" rx="4" class="er-zebra"/>
+            <line x1="497" y1="682" x2="857" y2="682" class="c-grid er-row-rule" stroke-width="0.5"/>
+            <rect x="501" y="683" width="352" height="18" rx="4" class="er-zebra"/>
 
-            <text data-detail="context" x="86.5" y="697" class="t-primary" font-size="11">anotacion</text>
-            <text data-detail="context" x="392.5" y="697" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
+            <text data-detail="context" x="539" y="697" class="t-primary" font-size="11">anotacion</text>
+            <text data-detail="context" x="845" y="697" class="er-type" font-size="10.5" text-anchor="end">TEXT</text>
           </g>
         </g>
 

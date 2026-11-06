@@ -817,9 +817,9 @@ DATABASE_CATALOG: dict[str, dict[str, Any]] = {
                 "description": "Jerarquía geográfica completa: los 14 departamentos tradicionales, los 44 municipios reestructurados tras la ley 2024 y los 262 distritos municipales históricos."
             },
             {
-                "name": "Demografía Censal BCR 2024",
-                "tables": ["censo_poblacion"],
-                "description": "12,880 filas con recuentos poblacionales por departamento, municipio, distrito, género y rangos de edad."
+                "name": "Demografía y Migración Internacional BCR 2024",
+                "tables": ["censo_poblacion", "censo_emigracion"],
+                "description": "Recuentos poblacionales por cohorte y 226,808 registros de personas emigrantes hacia el exterior por departamento, año de salida, edad y sexo."
             },
             {
                 "name": "Macroeconomía y Finanzas Familiares",
@@ -837,6 +837,7 @@ DATABASE_CATALOG: dict[str, dict[str, Any]] = {
             {"table": "municipios", "desc": "Los 44 municipios de la reforma territorial de 2024 enlazados a sus departamentos."},
             {"table": "distritos", "desc": "Los 262 distritos históricos vinculados a sus respectivos municipios y departamentos."},
             {"table": "censo_poblacion", "desc": "Población censada en 2024 por nivel geográfico, rango quinquenal de edad y género."},
+            {"table": "censo_emigracion", "desc": "Registro individual de 226,808 personas emigrantes internacionales del Censo 2024 con departamento de origen, año de salida y causa."},
             {"table": "remesas_mensuales", "desc": "Ingresos mensuales por remesas familiares en millones de USD del BCR."},
             {"table": "ipc_mensual", "desc": "Índice de Precios al Consumidor mensual base 2009=100 publicado por el BCR."},
             {"table": "clima_indicadores", "desc": "Indicadores climáticos del MARN (lluvias, temperaturas, sequías) vinculados a departamentos."}
@@ -846,9 +847,20 @@ DATABASE_CATALOG: dict[str, dict[str, Any]] = {
     MUNICIPIOS ||--|{ DISTRITOS : "contiene"
     DEPARTAMENTOS ||--|{ DISTRITOS : "ubica"
     DEPARTAMENTOS ||--|{ CENSO_POBLACION : "censado_en"
+    DEPARTAMENTOS ||--|{ CENSO_EMIGRACION : "origen_de"
     MUNICIPIOS ||--|{ CENSO_POBLACION : "censado_en"
     DISTRITOS ||--|{ CENSO_POBLACION : "censado_en"
     DEPARTAMENTOS ||--o{ CLIMA_INDICADORES : "registrado_en"
+
+    CENSO_EMIGRACION {
+        int id PK
+        string departamento_id FK
+        string municipio_id
+        string distrito_id
+        string sexo
+        int edad
+        int anio_emigracion
+    }
 
     DEPARTAMENTOS {
         string departamento_id PK

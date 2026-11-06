@@ -69,6 +69,19 @@ def main():
         FOREIGN KEY (distrito_id) REFERENCES distritos(distrito_id)
     );
 
+    CREATE TABLE censo_emigracion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        departamento_id TEXT NOT NULL,
+        municipio_id TEXT,
+        distrito_id TEXT,
+        sexo TEXT NOT NULL,
+        edad INTEGER,
+        anio_emigracion INTEGER,
+        pais_destino_cod INTEGER,
+        causa_cod INTEGER,
+        FOREIGN KEY (departamento_id) REFERENCES departamentos(departamento_id)
+    );
+
     CREATE TABLE remesas_mensuales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         periodo TEXT NOT NULL,
@@ -246,6 +259,44 @@ def main():
             clima_rows
         )
 
+    # 7. Insert Censo Emigración Internacional
+    emig_file = SALVADOR_DIR / "censo_2024_emigracion.csv"
+    if emig_file.exists():
+        with open(emig_file, encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            emig_rows = []
+            for r in reader:
+                d_id = (r.get("DEPTODESC") or "").strip()
+                m_id = (r.get("MUNICDESC") or "").strip() or None
+                di_id = (r.get("DISTODESC") or "").strip() or None
+                s_raw = (r.get("E01_3_EMI_SEXO") or "").strip()
+                sexo = "Hombre" if s_raw == "1" else ("Mujer" if s_raw == "2" else "Otro")
+                try:
+                    edad = int(r.get("E01_4_EMI_EDAD", 0))
+                except (ValueError, TypeError):
+                    edad = None
+                try:
+                    anio = int(r.get("E01_5_EMI_ANO", 0))
+                except (ValueError, TypeError):
+                    anio = None
+                try:
+                    pais = int(r.get("E01_6_EMI_PAIS", 0))
+                except (ValueError, TypeError):
+                    pais = None
+                try:
+                    causa = int(r.get("E01_7_EMI_CAUSA", 0))
+                except (ValueError, TypeError):
+                    causa = None
+                emig_rows.append((d_id, m_id, di_id, sexo, edad, anio, pais, causa))
+
+            cursor.executemany(
+                """INSERT INTO censo_emigracion
+                   (departamento_id, municipio_id, distrito_id, sexo, edad, anio_emigracion, pais_destino_cod, causa_cod)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?);""",
+                emig_rows
+            )
+            print(f"  -> Insertados {len(emig_rows):,} registros de emigración internacional")
+
     # Create Performance Indexes
     cursor.executescript("""
     CREATE INDEX idx_censo_nivel ON censo_poblacion (nivel_geografico);
@@ -254,6 +305,9 @@ def main():
     CREATE INDEX idx_censo_dist ON censo_poblacion (distrito_id);
     CREATE INDEX idx_remesas_per ON remesas_mensuales (periodo);
     CREATE INDEX idx_ipc_per ON ipc_mensual (periodo);
+    CREATE INDEX idx_emig_dept ON censo_emigracion (departamento_id);
+    CREATE INDEX idx_emig_anio ON censo_emigracion (anio_emigracion);
+    CREATE INDEX idx_emig_sexo ON censo_emigracion (sexo);
     """)
 
     conn.commit()

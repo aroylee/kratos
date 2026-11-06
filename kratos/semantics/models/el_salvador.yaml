@@ -23,6 +23,11 @@ entities:
     grain: "Una fila por cohorte censal (rango de edad y género en un nivel geográfico)"
     description: "Censo de Población 2024 del BCR (12,880 registros por edad y género)"
 
+  - name: censo_emigracion
+    primary_key: [id]
+    grain: "Una fila por persona emigrante internacional registrada en el Censo 2024"
+    description: "Censo de Emigración Internacional 2024 del BCR (226,808 registros con departamento, año, edad y sexo)"
+
   - name: remesas_mensuales
     primary_key: [id]
     grain: "Una fila por mes de ingresos de remesas familiares"
@@ -117,6 +122,20 @@ dimensions:
     type: categorical
     description: "Tipo de indicador climatológico MARN"
 
+  - id: Anio_Emigracion
+    table: censo_emigracion
+    column: anio_emigracion
+    synonyms: ["año de emigración", "año de salida", "año de migración", "año migración", "año emigración"]
+    type: temporal
+    description: "Año en que la persona emigró del país"
+
+  - id: Sexo_Emigrante
+    table: censo_emigracion
+    column: sexo
+    synonyms: ["sexo de emigrante", "género emigrante", "sexo emigración"]
+    type: categorical
+    description: "Sexo de la persona emigrante (Hombre, Mujer)"
+
 measures:
   - id: total_poblacion
     table: censo_poblacion
@@ -150,6 +169,14 @@ measures:
     is_currency: false
     description: "Valor promedio del indicador climático"
 
+  - id: total_emigrantes
+    table: censo_emigracion
+    agg_type: count
+    expression: "COUNT(*)"
+    unit: "emigrantes"
+    is_currency: false
+    description: "Total de personas emigrantes registradas"
+
 metrics:
   - id: Poblacion
     table: censo_poblacion
@@ -159,6 +186,15 @@ metrics:
     is_currency: false
     synonyms: ["población", "poblacion", "habitantes", "personas", "ciudadanos", "conteo de poblacion"]
     description: "Total de población censada en 2024"
+
+  - id: Emigrantes
+    table: censo_emigracion
+    expression: "COUNT(*)"
+    metric_type: atomic
+    unit: "emigrantes"
+    is_currency: false
+    synonyms: ["migraciones", "migración", "migracion", "emigración", "emigracion", "emigrantes", "personas emigrantes", "salidas del país", "migrantes", "éxodo"]
+    description: "Conteo total de personas emigrantes hacia el exterior"
 
   - id: Remesas_USD
     table: remesas_mensuales
@@ -231,4 +267,9 @@ relationships:
   - from_table: clima_indicadores
     to_table: departamentos
     on_clause: "clima_indicadores.departamento_id = departamentos.departamento_id"
+    cardinality: many_to_one
+
+  - from_table: censo_emigracion
+    to_table: departamentos
+    on_clause: "censo_emigracion.departamento_id = departamentos.departamento_id"
     cardinality: many_to_one
