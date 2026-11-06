@@ -294,8 +294,29 @@ def compile_echarts(rows: List[Dict[str, Any]], title: str = "Analytical Overvie
         return None
 
     columns = list(rows[0].keys())
-    if len(columns) < 2:
+    if not columns:
         return None
+
+    # Detect Single-Column Distinct Values Pattern
+    if len(columns) == 1:
+        dim_col = columns[0]
+        categories = [str(r.get(dim_col, "")) for r in rows if r.get(dim_col) is not None]
+        return {
+            "title": {"text": title, "textStyle": {"color": "#E2E8F0"}},
+            "tooltip": {"trigger": "item"},
+            "xAxis": {
+                "type": "category",
+                "data": categories,
+                "axisLabel": {"color": "#94A3B8", "rotate": 30 if len(categories) > 8 else 0}
+            },
+            "yAxis": {"type": "value", "show": False},
+            "series": [{
+                "name": dim_col,
+                "type": "bar",
+                "data": [1] * len(categories),
+                "itemStyle": {"color": "#6366F1", "borderRadius": [4, 4, 0, 0]}
+            }],
+        }
 
     # Detect 3-Column Patterns
     if len(columns) == 3:

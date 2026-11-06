@@ -764,6 +764,74 @@ def test_archify_engine_erd_endpoint():
         assert "html" in resp.text.lower()
 
 
+def test_distinct_values_pattern_el_salvador_census_years(registry):
+    """Verifies DISTINCT_VALUES analytical pattern for census years in El Salvador."""
+    interpreter = InterpreterAgent()
+    interpreted = interpreter.interpret("dame los distintos años de censo", "el_salvador")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.DISTINCT_VALUES
+    assert interpreted.dimensions == ["Anio_Censo"]
+    assert interpreted.metrics == []
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="el_salvador",
+        goal="dame los distintos años de censo",
+        analytical_pattern=interpreted.analytical_pattern,
+        time_granularity=interpreted.time_granularity,
+        time_dimension=interpreted.time_dimension,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+
+    inv = InvestigatorAgent(registry)
+    evidence = inv.execute_task(task)
+
+    assert len(evidence.queries) == 1
+    query = evidence.queries[0]
+    sql_lower = query.sql.lower()
+    assert "select distinct" in sql_lower
+    assert "censo_poblacion.censo_anio as anio_censo" in sql_lower
+    assert query.rows == [{"Anio_Censo": 2024}]
+
+    story = interpreter.formulate_storytelling(task, evidence)
+    assert "2024" in story.key_takeaway or any("2024" in f for f in story.quantitative_findings)
+
+    # Test single-column ECharts compilation
+    chart = compile_echarts(query.rows, title="Distintos Años de Censo")
+    assert chart is not None
+    assert chart["xAxis"]["data"] == ["2024"]
+
+
+def test_distinct_values_pattern_chinook_genres(registry):
+    """Verifies DISTINCT_VALUES analytical pattern for music genres in Chinook."""
+    interpreter = InterpreterAgent()
+    interpreted = interpreter.interpret("cuáles son los géneros", "chinook")
+
+    assert interpreted.analytical_pattern == AnalyticalPattern.DISTINCT_VALUES
+    assert interpreted.dimensions == ["Genero"]
+    assert interpreted.metrics == []
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="chinook",
+        goal="cuáles son los géneros",
+        analytical_pattern=interpreted.analytical_pattern,
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+
+    inv = InvestigatorAgent(registry)
+    evidence = inv.execute_task(task)
+
+    assert len(evidence.queries) == 1
+    query = evidence.queries[0]
+    sql_lower = query.sql.lower()
+    assert "select distinct" in sql_lower
+    assert len(query.rows) == 25
+
+
+
 
 
 

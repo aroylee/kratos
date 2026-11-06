@@ -144,10 +144,27 @@ class InterpreterAgent:
             ])
         )
 
+        # Check for Distinct Values Exploration (e.g. "dame los distintos años de censo", "cuáles son las categorías", "distintos países")
+        is_distinct = any(w in lowered for w in [
+            "distinto", "distintos", "distinta", "distintas", "diferente", "diferentes",
+            "único", "únicos", "unicos", "unica", "unicas", "valores posibles", "lista de",
+            "cuáles son los", "cuales son los", "cuáles son las", "cuales son las",
+            "qué años", "que años", "qué países", "que paises", "qué departamentos", "que departamentos",
+            "qué municipios", "que municipios", "qué categorías", "que categorias", "qué géneros", "que generos"
+        ])
+        has_measure_intent = any(w in lowered for w in [
+            "total de", "suma", "promedio", "monto", "ingresos", "ventas", "facturacion",
+            "facturación", "costo", "precio", "poblacion", "población", "conteo",
+            "cuanto", "cuánto", "cuantos", "cuántos", "cuantas", "cuántas",
+            "desempeño", "desempeno", "rendimiento", "más", "mas", "peor", "peores"
+        ])
+
         # 5. Analytical Pattern Detection
         if is_geo_partition:
             analytical_pattern = AnalyticalPattern.GEO_PARTITIONED_RANKING
             top_n = top_n or 1 # Default to dominant category per territory
+        elif is_distinct and not has_measure_intent and top_n is None:
+            analytical_pattern = AnalyticalPattern.DISTINCT_VALUES
         elif is_time_series and series_dimension and top_n:
             is_cohort_trend = any(w in lowered for w in [
                 "a través del tiempo", "traves del tiempo", "tendencia", "historico", "histórico", "comportamiento", "evolución", "evolucion"
@@ -182,7 +199,23 @@ class InterpreterAgent:
         dimensions: list[str] = []
         metrics: list[str] = []
 
-        if analytical_pattern == AnalyticalPattern.GEO_PARTITIONED_RANKING:
+        if analytical_pattern == AnalyticalPattern.DISTINCT_VALUES:
+            matched_dim = None
+            if model:
+                if any(w in lowered for w in ["censo", "censal"]) and any(w in lowered for w in ["año", "ano", "años", "anos"]):
+                    matched_dim = model.get_dimension("Anio_Censo")
+                elif any(w in lowered for w in ["clima", "climatico"]) and any(w in lowered for w in ["año", "ano", "años", "anos"]):
+                    matched_dim = model.get_dimension("Anio_Clima")
+                if not matched_dim:
+                    matched_dim = model.find_dimension_by_synonym(query)
+                if not matched_dim and series_dimension:
+                    matched_dim = model.get_dimension(series_dimension)
+                if not matched_dim and model.dimensions:
+                    matched_dim = model.dimensions[0]
+            if matched_dim:
+                dimensions.append(matched_dim.id)
+            # Distinct values queries do NOT aggregate metrics
+        elif analytical_pattern == AnalyticalPattern.GEO_PARTITIONED_RANKING:
             if geo_dim:
                 dimensions.append(geo_dim.id)
             if cat_dim:
@@ -215,17 +248,18 @@ class InterpreterAgent:
                 else:
                     dimensions.append("Categoria")
 
-        matched_met = model.find_metric_by_synonym(query) if model else None
-        if matched_met:
-            metrics.append(matched_met.id)
-        elif metric_target == MetricTarget.REVENUE:
-            metrics.append("Ventas_USD" if active_engine_id in ["northwind", "adventureworks_dw"] else "Facturacion_USD")
-        elif metric_target == MetricTarget.ORDERS:
-            metrics.append("Pedidos" if active_engine_id in ["northwind", "tpch"] else "Facturas")
-        elif metric_target == MetricTarget.CUSTOMERS:
-            metrics.append("Clientes")
-        else:
-            metrics.append("Total")
+        if analytical_pattern != AnalyticalPattern.DISTINCT_VALUES:
+            matched_met = model.find_metric_by_synonym(query) if model else None
+            if matched_met:
+                metrics.append(matched_met.id)
+            elif metric_target == MetricTarget.REVENUE:
+                metrics.append("Ventas_USD" if active_engine_id in ["northwind", "adventureworks_dw"] else "Facturacion_USD")
+            elif metric_target == MetricTarget.ORDERS:
+                metrics.append("Pedidos" if active_engine_id in ["northwind", "tpch"] else "Facturas")
+            elif metric_target == MetricTarget.CUSTOMERS:
+                metrics.append("Clientes")
+            else:
+                metrics.append("Total")
 
         return InterpretedRequest(
             intent=intent,
@@ -271,6 +305,29 @@ class InterpreterAgent:
         rows = evidence.queries[0].rows if evidence.queries else []
         dim_hint = task.dimensions[0] if task.dimensions else None
         met_hint = task.metrics[0] if task.metrics else None
+
+        # -------------------------------------------------------------------------
+        # CASE -1: DISTINCT VALUES (Exploración de valores únicos de una dimensión)
+        # -------------------------------------------------------------------------
+        if task.analytical_pattern == AnalyticalPattern.DISTINCT_VALUES and rows:
+            col_name = list(rows[0].keys())[0]
+            vals = [str(r.get(col_name)) for r in rows if r.get(col_name) is not None]
+            val_preview = ", ".join(vals[:12])
+            if len(vals) > 12:
+                val_preview += f" y {len(vals) - 12} más..."
+            return ExecutiveStorytelling(
+                key_takeaway=f"Valores únicos disponibles para '{col_name}': {len(vals)} registro(s) encontrado(s) en {task.engine_id}.",
+                diagnostic_metrics={"total_distintos": len(vals), "atributo": col_name},
+                quantitative_findings=[
+                    f"Atributo explorado: '{col_name}'.",
+                    f"Total de valores distintos: {len(vals)}.",
+                    f"Valores identificados: {val_preview}.",
+                ],
+                risk_alerts=[],
+                strategic_recommendations=[
+                    f"Utilizar cualquiera de estos {len(vals)} valores como filtros categóricos en consultas analíticas de {task.engine_id}."
+                ],
+            )
 
         # -------------------------------------------------------------------------
         # CASE 0: PARTITIONED RANKING (Top N por período temporal con Window Function)

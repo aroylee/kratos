@@ -88,6 +88,20 @@ dimensions:
     type: categorical
     description: "Nivel de agregación censal (departamento, municipio, distrito, nacional)"
 
+  - id: Anio_Censo
+    table: censo_poblacion
+    column: censo_anio
+    synonyms: ["año de censo", "año del censo", "años de censo", "año censal", "años censales", "censo año", "año censo", "censo años"]
+    type: temporal
+    description: "Año de realización del censo nacional de población (ej. 2024)"
+
+  - id: Anio_Clima
+    table: clima_indicadores
+    column: anio
+    synonyms: ["año de clima", "año del clima", "año climático", "año meteorológico"]
+    type: temporal
+    description: "Año de registro de indicadores climatológicos MARN"
+
   - id: Periodo
     table: remesas_mensuales
     column: periodo

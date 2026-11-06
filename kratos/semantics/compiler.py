@@ -20,6 +20,37 @@ class SemanticCompiler:
         order_dir = "ASC" if task.ranking_criterion == "menor desempeño" else "DESC"
         limit_val = top_n if top_n else 10
 
+        # =========================================================================
+        # PATTERN D: DISTINCT VALUES EXPLORATION (Evaluated upfront)
+        # =========================================================================
+        if pattern == AnalyticalPattern.DISTINCT_VALUES:
+            target_dim = None
+            if task.dimensions:
+                for d_name in task.dimensions:
+                    target_dim = model.get_dimension(d_name)
+                    if target_dim:
+                        break
+            if not target_dim:
+                target_dim = model.find_dimension_by_synonym(task.goal)
+            if not target_dim and model.dimensions:
+                target_dim = model.dimensions[0]
+
+            if target_dim:
+                col_expr = f"{target_dim.table}.{target_dim.column}" if target_dim.column else target_dim.select_expression
+                return (
+                    f"/* =========================================================================\n"
+                    f"   KRATOS ANALYTICAL QUERY // Motor: {model.engine_id}\n"
+                    f"   Objetivo: {task.goal}\n"
+                    f"   Patrón: Exploración de Valores Únicos (DISTINCT)\n"
+                    f"   Capa Semántica: Wren AI MDL ({model.name})\n"
+                    f"   ========================================================================= */\n"
+                    f"SELECT DISTINCT {col_expr} AS {target_dim.id}\n"
+                    f"FROM {target_dim.table}\n"
+                    f"WHERE {col_expr} IS NOT NULL\n"
+                    f"ORDER BY {target_dim.id} ASC\n"
+                    f"LIMIT 500;"
+                )
+
         # 1. Resolve Primary Metric
         metric = None
         if task.metrics:
@@ -43,7 +74,19 @@ class SemanticCompiler:
             primary_dim = model.dimensions[0]
 
         # 3. Resolve Temporal Dimension
-        time_dim = model.get_dimension("Fecha")
+        time_dim = None
+        if task.time_dimension:
+            time_dim = model.get_dimension(task.time_dimension)
+            if not time_dim:
+                time_dim = model.find_dimension_by_synonym(task.time_dimension)
+        if not time_dim and metric:
+            # Prefer temporal dimension belonging to the metric's table
+            for d in model.dimensions:
+                if d.type == "temporal" and d.table == metric.table:
+                    time_dim = d
+                    break
+        if not time_dim:
+            time_dim = model.get_dimension("Fecha")
         if not time_dim:
             for d in model.dimensions:
                 if d.type == "temporal":

@@ -33,6 +33,7 @@ class AnalyticalPattern(StrEnum):
     GEO_DISTRIBUTION = "GEO_DISTRIBUTION"           # Distribución por país, región o ciudad
     GEO_PARTITIONED_RANKING = "GEO_PARTITIONED_RANKING" # Categoría dominante o ranking particionado por geografía (Window Function)
     AGGREGATE_KPI = "AGGREGATE_KPI"                 # Métrica agregada global (total, promedio)
+    DISTINCT_VALUES = "DISTINCT_VALUES"             # Exploración de valores únicos o distintos de un atributo/dimensión
     SCHEMA_OVERVIEW = "SCHEMA_OVERVIEW"             # Estructura del esquema
 
 
