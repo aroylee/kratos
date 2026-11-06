@@ -203,7 +203,6 @@ class InterpreterAgent:
         else:
             if series_dimension:
                 dimensions.append(series_dimension)
-                dimensions.append(series_dimension)
             else:
                 matched_dim = model.find_dimension_by_synonym(query) if model else None
                 if matched_dim:

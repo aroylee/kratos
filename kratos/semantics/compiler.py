@@ -310,7 +310,14 @@ class SemanticCompiler:
             joins = cls._build_joins(req_tables, model, base_table=primary_dim.table)
             join_sql = " ".join([f"JOIN {r.to_table} ON {r.on_clause}" for r in joins])
             from_clause = f"FROM {primary_dim.table} {join_sql}".strip()
-            where_clause = f"WHERE {year_filter_clause}" if year_filter_clause else ""
+
+            where_conditions = []
+            if year_filter_clause:
+                where_conditions.append(year_filter_clause)
+            if primary_dim.column and primary_dim.column.lower() in ["region", "shipregion", "billingstate"]:
+                where_conditions.append(f"{primary_dim.table}.{primary_dim.column} IS NOT NULL")
+
+            where_clause = f"WHERE {' AND '.join(where_conditions)}" if where_conditions else ""
 
             rank_title = f"Top {limit_val}" if top_n else "Distribución Categórica"
             return (

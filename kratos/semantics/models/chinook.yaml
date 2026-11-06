@@ -70,9 +70,16 @@ dimensions:
   - id: Pais
     table: Invoice
     column: BillingCountry
-    synonyms: ["país", "pais", "paises", "países", "nación", "mercado", "región", "region", "regiones", "territorios", "territorio", "zonas", "zona", "destino", "destinos"]
+    synonyms: ["país", "pais", "paises", "países", "nación", "mercado", "destino", "destinos"]
     type: geo
-    description: "País o región geográfica de facturación de la transacción"
+    description: "País geográfico de facturación de la transacción"
+
+  - id: Estado
+    table: Invoice
+    column: BillingState
+    synonyms: ["estado", "estados", "provincia", "provincias", "región", "region", "regiones", "state", "departamento"]
+    type: categorical
+    description: "Estado, provincia o región de facturación"
 
   - id: Fecha
     table: Invoice

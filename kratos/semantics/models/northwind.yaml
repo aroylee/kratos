@@ -65,9 +65,16 @@ dimensions:
   - id: Pais
     table: customers
     column: country
-    synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado", "región", "region", "regiones", "territorio", "territorios", "zonas", "zona", "destino", "destinos"]
+    synonyms: ["país", "pais", "paises", "países", "nación", "nacion", "mercado", "destino", "destinos"]
     type: geo
-    description: "País o región geográfica de destino del cliente"
+    description: "País geográfico de destino del cliente"
+
+  - id: Region
+    table: customers
+    column: region
+    synonyms: ["región", "region", "regiones", "estado", "estados", "provincia", "provincias", "state", "states", "zona", "zonas", "departamento"]
+    type: categorical
+    description: "Región, estado o provincia geográfica del cliente (atributo de customers)"
 
   - id: Fecha
     table: orders

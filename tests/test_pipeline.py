@@ -148,12 +148,12 @@ def test_end_to_end_sakila_execution(registry):
     assert "SUSAN DAVIS" in str(evidence.queries[0].rows)
 
 
-def test_northwind_regiones_con_mas_envios_geo_map(registry):
-    """Verifies that 'muestrame las regiones con mas envíos' resolves to geographic dimension and map."""
+def test_northwind_paises_con_mas_envios_geo_map(registry):
+    """Verifies that geographic queries resolve to country dimension and map."""
     interp = InterpreterAgent()
     inv = InvestigatorAgent(registry)
 
-    interpreted = interp.interpret("muestrame las regiones con mas envíos", "northwind")
+    interpreted = interp.interpret("muestrame los paises con mas envíos", "northwind")
     assert "Pais" in interpreted.dimensions
     assert "Pedidos" in interpreted.metrics
 
@@ -661,6 +661,39 @@ def test_northwind_multi_series_time_filtered_cohort(registry):
     echarts = compile_echarts(rows, title=task.goal)
     assert len(echarts["series"]) == 3
     assert "dataZoom" in echarts
+
+
+def test_northwind_sales_by_region_dimension(registry):
+    interpreter = InterpreterAgent()
+    interpreted = interpreter.interpret("dame las ventas por región", "northwind")
+
+    assert "Region" in interpreted.dimensions
+    assert "Pais" not in interpreted.dimensions
+
+    task = DataTask(
+        intent=interpreted.intent,
+        engine_id="northwind",
+        goal="dame las ventas por región",
+        dimensions=interpreted.dimensions,
+        metrics=interpreted.metrics,
+    )
+
+    inv = InvestigatorAgent(registry)
+    evidence = inv.execute_task(task)
+
+    assert len(evidence.queries) == 1
+    sql = evidence.queries[0].sql
+    assert "customers.region is not null" in sql.lower() or "not customers.region is null" in sql.lower()
+
+    rows = evidence.queries[0].rows
+    assert len(rows) > 0
+    # Confirm valid region codes, not null or país
+    regions = [r["Region"] for r in rows]
+    assert "ID" in regions
+    assert "SP" in regions
+    assert "RJ" in regions
+    assert None not in regions
+
 
 
 

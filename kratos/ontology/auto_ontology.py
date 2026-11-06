@@ -27,12 +27,12 @@ from kratos.semantics.mdl import (
 # Standard canonical synonym dictionary across enterprise and relational domains
 CANONICAL_SYNONYM_RULES: dict[str, list[str]] = {
     # Geographic
-    "country": ["país", "pais", "paises", "países", "nación", "nacion", "mercado", "territorio", "destino", "destinos", "región", "region", "regiones"],
-    "pais": ["país", "pais", "paises", "países", "nación", "nacion", "mercado", "territorio", "destino", "destinos", "región", "region", "regiones"],
+    "country": ["país", "pais", "paises", "países", "nación", "nacion", "mercado", "destino", "destinos"],
+    "pais": ["país", "pais", "paises", "países", "nación", "nacion", "mercado", "destino", "destinos"],
     "city": ["ciudad", "ciudades", "localidad", "municipio"],
     "ciudad": ["ciudad", "ciudades", "localidad", "municipio"],
     "state": ["estado", "estados", "provincia", "provincias", "departamento"],
-    "region": ["región", "region", "regiones", "zona", "zonas", "territorio"],
+    "region": ["región", "region", "regiones", "zona", "zonas", "territorio", "departamento", "provincia"],
 
     # Temporal
     "date": ["fecha", "día", "dia", "tiempo", "histórico", "mes", "semana", "ano", "año", "trimestre"],
