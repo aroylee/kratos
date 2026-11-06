@@ -44,6 +44,16 @@ def main():
     check_parser.add_argument("query", help="Natural language query to test")
     check_parser.add_argument("--engine", default="northwind", help="Database engine ID (default: northwind)")
 
+    # Ingest subcommand (Data Engineering Agent)
+    ingest_parser = subparsers.add_parser("ingest", help="Ingest a database file or directory, discover relationships and build Wren MDL")
+    ingest_parser.add_argument("path", help="Path to database file (.db, .sqlite) or folder containing database files")
+    ingest_parser.add_argument("--engine-id", help="Explicit engine ID (for single file ingestion)")
+    ingest_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing semantic model YAML files")
+
+    # ERD subcommand
+    erd_parser = subparsers.add_parser("erd", help="Generate physically grounded Mermaid ERD for a database engine")
+    erd_parser.add_argument("engine", help="Database engine ID or path to .db file")
+
     args = parser.parse_args()
 
     if args.command == "serve":
@@ -207,6 +217,55 @@ def main():
         if res.matched_metrics:
             print(f"📈 Métricas Identificadas: {', '.join(res.matched_metrics)}")
         print("=" * 65 + "\n")
+
+    elif args.command == "ingest":
+        from kratos.agents.data_engineer import DataEngineeringAgent
+        agent = DataEngineeringAgent()
+        target = Path(args.path)
+
+        print(f"\n⚙️  DATA ENGINEERING AGENT // Ingesta & Modelado Semántico...")
+        print(f"📁 Analizando ruta: {target.resolve()}")
+
+        reports = agent.ingest_path(target, overwrite=args.overwrite)
+        if not reports:
+            print(f"⚠️  No se encontraron bases de datos válidas en {target}.")
+            sys.exit(1)
+
+        print("\n" + "=" * 65)
+        print(f"✅ INGESTA COMPLETADA: {len(reports)} base(s) de datos procesada(s)")
+        print("=" * 65)
+        for r in reports:
+            print(f"\n📦 Motor: {r.engine_id.upper()}")
+            print(f"   • Archivo físico: {r.db_path}")
+            print(f"   • Tablas descubiertas: {r.tables_count} ({r.columns_count} columnas totales)")
+            print(f"   • Relaciones FK identificadas: {r.relationships_count} rutas de JOIN")
+            print(f"   • Dimensiones analíticas: {len(r.dimensions)} ({', '.join(r.dimensions[:5])}...)")
+            print(f"   • Métricas de negocio: {len(r.metrics)} ({', '.join(r.metrics[:4])})")
+            if r.yaml_path:
+                print(f"   • Modelo Wren MDL guardado en: {r.yaml_path}")
+        print("\n" + "=" * 65 + "\n")
+
+    elif args.command == "erd":
+        from kratos.agents.data_engineer import DataEngineeringAgent
+        base_dir = Path(__file__).resolve().parent.parent
+        data_dir = base_dir / "data"
+
+        target = Path(args.engine)
+        if target.exists() and target.is_file():
+            engine = DatabaseEngine(target.stem.lower(), target)
+        else:
+            registry = EngineRegistry(data_dir)
+            engine = registry.engines.get(args.engine)
+            if not engine:
+                print(f"❌ Error: Motor '{args.engine}' no encontrado.")
+                sys.exit(1)
+
+        agent = DataEngineeringAgent()
+        erd = agent.generate_grounded_erd_for_engine(engine)
+        print(f"\n🛡️  GROUNDED PHYSICAL ERD // Motor: {engine.engine_id.upper()}\n")
+        print("```mermaid")
+        print(erd)
+        print("```\n")
 
 
 

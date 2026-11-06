@@ -102,6 +102,9 @@ DATABASE_CATALOG: dict[str, dict[str, Any]] = {
         datetime orderDate
         datetime shippedDate
         float freight
+        string shipCountry
+        string shipRegion
+        string shipCity
     }
     ORDER_DETAILS {
         int orderID PK,FK
@@ -113,8 +116,11 @@ DATABASE_CATALOG: dict[str, dict[str, Any]] = {
     CUSTOMERS {
         string customerID PK
         string companyName
+        string contactName
         string country
+        string region
         string city
+        string postalCode
     }
     EMPLOYEES {
         int employeeID PK

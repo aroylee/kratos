@@ -128,3 +128,28 @@ def test_auto_ontology_export_yaml(data_dir, tmp_path):
     assert "dimensions:" in yaml_content
     assert "metrics:" in yaml_content
     assert "relationships:" in yaml_content
+
+
+def test_data_engineering_agent_ingestion_and_grounded_erd(data_dir, tmp_path):
+    """Verifies autonomous DataEngineeringAgent database ingestion, schema profiling, and grounded ERD."""
+    from kratos.agents.data_engineer import DataEngineeringAgent
+
+    agent = DataEngineeringAgent(models_dir=tmp_path)
+    report = agent.ingest_database(data_dir / "northwind.db")
+
+    assert report.engine_id == "northwind"
+    assert report.tables_count == 11
+    assert report.columns_count == 84
+    assert report.relationships_count >= 10
+    assert "Region" in report.dimensions
+    assert "Pais" in report.dimensions
+    assert "Ciudad" in report.dimensions
+
+    # Verify that the generated ERD is 100% grounded and includes region in customers!
+    erd = report.grounded_erd
+    assert "erDiagram" in erd
+    assert "CUSTOMERS" in erd
+    assert "string region" in erd.lower() or "region" in erd
+    assert "ORDERS" in erd
+    assert "shipregion" in erd.lower() or "shipregion" in erd
+
